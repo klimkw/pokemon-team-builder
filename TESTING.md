@@ -103,9 +103,9 @@ versions aligned because the image supplies the matching browser binaries.
 ## Fast checks without Docker
 
 ```powershell
-# From backend, in a Python 3.12 virtual environment:
-pip install -r requirements-dev.txt
-python -m pytest -q
+# From backend, with uv installed (Python 3.12):
+uv sync --locked
+uv run --locked python -m pytest -q
 
 # From frontend, using Node 22.12+ (Node 24 recommended):
 npm ci
@@ -124,9 +124,9 @@ For PostgreSQL integration tests, start only the test database:
 
 ```powershell
 docker compose -p pokemon-team-builder-tests -f compose.test.yaml up -d --wait db-test
-# From backend with requirements-dev.txt installed:
+# From backend after uv sync --locked:
 $env:TEST_DATABASE_URL = 'postgresql+asyncpg://pokemon_test:disposable_test_password@127.0.0.1:55432/pokemon_test'
-python -m pytest --postgres -q
+uv run --locked python -m pytest --postgres -q
 ```
 
 For host Playwright debugging against the test Compose stack, set the frontend origin
@@ -252,3 +252,18 @@ The first live development service run succeeded with 1,351 unchanged Pokémon,
 18 unchanged type rows, zero failures, and no new change events. Existing accounts
 and teams were preserved. This verifies the normal separate-service startup; controlled
 upstream-change tests remain isolated from development data.
+
+
+## uv environment verification
+
+Backend dependencies are declared in pyproject.toml and resolved in the committed
+uv.lock. Docker uses pinned uv 0.13.3 to create an image-local .venv with locked sync;
+the runtime omits the dev group and the test image includes it. Migration to uv
+preserved all 43 previously installed package versions in the lock. uv lock --check
+verifies metadata consistency; image inspection checks actual installed versions,
+interpreter location, and runtime exclusion of pytest/aiosqlite. See the detailed
+workflow in agent-process/03-python-with-uv.md.
+
+The uv-built images passed 93 PostgreSQL tests, 84 SQLite tests with 9 skips, and all
+3 Chromium regressions. Actual installed versions matched all 43 baseline packages,
+and runtime inspection/offline lock checks passed.

@@ -16,7 +16,9 @@ GET `/api/auth/me` returns the user; POST `/api/auth/logout` revokes that sessio
 Registration does not log in automatically. Bad credentials and duplicate usernames
 return the library's 400 responses; protected routes return 401 without valid access.
 
-From `backend`, install `pip install -r requirements-dev.txt` and run `python -m pytest tests -q`.
+From `backend`, use Python 3.12 with uv: `uv sync --locked`, then
+`uv run --locked python -m pytest tests -q`. Runtime/test Docker images install the committed
+`uv.lock` with uv; no host Python environment is reused.
 From `frontend`, use Node 22.12+ (Node 24 recommended), run `npm ci`, `npm test`, and
 `npm run build`. Ninety-three backend tests pass against PostgreSQL; the fast SQLite option
 skips the two PostgreSQL-only checks. All 18 frontend component tests pass. Three
@@ -47,6 +49,12 @@ images with `docker compose -p pokemon-team-builder up -d --no-build`. Do not re
 the database volume. In this Windows-mounted workspace, the backend host cache
 metadata prevents a direct build; the current images were built from a clean
 source-only copy under /tmp, without reusing host dependencies. See TESTING.md.
+
+## Development walkthroughs
+
+[agent-process/README.md](agent-process/README.md) indexes the detailed build journal,
+PostgreSQL/Alembic walkthrough, and uv workflow. These process documents accompany
+the working README; they will remain separate from the final one-page submission.
 
 ## Design decisions
 

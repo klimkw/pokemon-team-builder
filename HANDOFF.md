@@ -187,6 +187,24 @@ isolated demo, session cleanup, login rate limiting, deployment, and final one-p
   E2E tests. TypeScript and production build pass. The optimizer is checked against
   exhaustive small assignments. See README.md for exact formulas and TESTING.md.
 
+## Python tooling and process documentation
+
+The backend uses uv project management: pyproject.toml, committed uv.lock, and Python
+3.12 in .python-version. Requirements files were replaced. Both Dockerfiles copy
+pinned uv 0.13.3 by digest and install locked image-local environments; runtime omits
+dev dependencies, tests include the dev group. Host commands from backend use
+uv sync --locked and uv run --locked. All 43 prior installed versions were preserved
+in the lock and installed test environment during migration. Runtime inspection and
+offline lock checks passed. uv-built images passed 93 PostgreSQL tests, 84 SQLite tests
+with 9 skips, and all 3 browser regressions. Development API/scanner now use the uv
+environment; existing data and migration head 0003 were preserved. Use
+uv run --locked python -m pytest for tests. Do not reuse Windows .venv inside Linux.
+
+agent-process/ contains a detailed chronological build journal, PostgreSQL/Alembic
+walkthrough, and uv guide. Continue recording completed increments there. Early work
+before the initial commit is attributed to the handoff rather than invented commits.
+Keep these process docs separate from the eventual one-page submission README.
+
 ## Running development environment
 
 Started October 19, 2026 at the user's request; leave running for manual review.
