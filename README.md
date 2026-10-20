@@ -34,6 +34,20 @@ by `npm run preview -- --port 5173`; `--configLoader native` was also supplied t
 and Vitest to avoid sandbox-restricted config bundling. Production Docker builds do
 not require these sandbox-specific flags.
 
+## Local development stack
+
+The local Docker stack is running at http://localhost:8080 with the backend at
+http://localhost:8000/docs. Create your own account in the UI. PostgreSQL data lives
+in the persistent `pokemon-team-builder_postgres_data` volume. The ignored `.env`
+contains local settings and must remain private. The frontend serves a built version;
+source changes require rebuilding its image rather than appearing through hot reload.
+
+Stop the stack with `docker compose -p pokemon-team-builder stop`; resume the current
+images with `docker compose -p pokemon-team-builder up -d --no-build`. Do not remove
+the database volume. In this Windows-mounted workspace, the backend host cache
+metadata prevents a direct build; the current images were built from a clean
+source-only copy under /tmp, without reusing host dependencies. See TESTING.md.
+
 ## Design decisions
 
 - Python/FastAPI, FastAPI Users 14.0.2, async SQLAlchemy, PostgreSQL, React/TypeScript/Vite.
@@ -119,8 +133,9 @@ verify actual JSONB columns/queries and row locking. Per-test schemas isolate da
 including migration round trips and account-schema adoption. See TESTING.md.
 
 The catalog starts empty; populate it with the explicit CLI command below. Tests
-use controlled fixtures. Live verification imported three real records into an isolated
-scratch SQLite database; the deployment database has not been populated here.
+use controlled fixtures. The local development database was initially populated on
+October 19, 2026: all 1,351 discovered PokéAPI records imported with zero failures.
+This is local development data, not a deployed production database.
 
 ## PokéAPI ingestion
 

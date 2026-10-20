@@ -139,6 +139,20 @@ three npm audit findings documented in TESTING.md, counter-team generation, chan
 scheduled runs/overlap prevention, session cleanup, login rate limiting, deployment,
 shareable repository setup, and final concise README/presentation preparation.
 
+## Running development environment
+
+Started October 19, 2026 at the user's request; leave running for manual review.
+Project: pokemon-team-builder, using the existing compose.yaml. UI is
+http://localhost:8080 and backend docs are http://localhost:8000/docs. An ignored
+.env was created only because none existed, with a generated database password.
+Do not print or commit it. No existing data was reset. The initial database catalog
+was empty; full CLI ingestion inserted all 1,351 discovered records, zero failures.
+The catalog API was checked through Nginx and returned real types, stats, sprites.
+Development data persists in pokemon-team-builder_postgres_data. This stack is
+separate from the removed pokemon-team-builder-tests project. Current Docker images
+were built from the clean /tmp source copy to avoid unreadable host cache metadata.
+This frontend is a production build served locally, without hot reload.
+
 ## Useful files
 
 - README.md and TESTING.md: current operating/design documentation.
