@@ -113,9 +113,9 @@ npm test
 npm run build
 ```
 
-The default backend suite uses temporary SQLite databases: 49 tests pass, with the
-two PostgreSQL-only tests skipped. It is a fast check, not a PostgreSQL substitute.
-The frontend has 13 component tests using mocked HTTP responses. Vitest discovers
+The default backend suite uses temporary SQLite databases: 84 tests pass, with
+nine PostgreSQL-only tests skipped. It is a fast check, not a PostgreSQL substitute.
+The frontend has 18 component tests using mocked HTTP responses. Vitest discovers
 only src/**/*.test files; Playwright discovers e2e files separately.
 
 ## Run PostgreSQL tests or Playwright from the host
@@ -267,3 +267,18 @@ workflow in agent-process/03-python-with-uv.md.
 The uv-built images passed 93 PostgreSQL tests, 84 SQLite tests with 9 skips, and all
 3 Chromium regressions. Actual installed versions matched all 43 baseline packages,
 and runtime inspection/offline lock checks passed.
+
+
+## Backend structure refactor verification
+
+The reorganized API, database, services, jobs, and shared schemas passed 93 PostgreSQL
+tests, 84 SQLite tests (nine PostgreSQL-only skips), 18 frontend component tests, and
+all three Chromium flows. The clean Docker build context contained only the new
+module locations, so old source files could not mask missing imports. Test containers
+and their network were removed after verification. Browser reports are retained in
+`test-artifacts/backend-refactor/`.
+
+Alembic metadata imports now use app.db.session and app.db.models. Historical revision
+files are unchanged; development startup still applies migrations before serving HTTP.
+The original app.ingest/app.scanner CLI wrappers preserve their exit codes and were
+smoke-checked with --help. Compose uses the canonical app.jobs.scanner entry point.

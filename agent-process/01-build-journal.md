@@ -208,6 +208,30 @@ A command review caught that the source application needs module-based test invo
 the documented command is uv run --locked python -m pytest, preserving the earlier
 Python-module test behavior rather than introducing packaging changes.
 
+## Backend responsibility separation
+
+The owner asked whether separating database code from backend service code would
+make maintenance easier, then approved the refactor. Database connection/session
+setup and SQLAlchemy models now live in `app/db/`; routes and authentication in
+`app/api/`; reusable scoring and synchronization code in `app/services/`; import
+and scanner orchestration in `app/jobs/`. Shared validation contracts live in
+`app/schemas/`, so jobs and services can use them without importing HTTP routes.
+
+Imports, Alembic metadata registration, test fixtures, scanner startup, and current
+walkthrough paths were updated together. The bundled type chart remains in app/data,
+with its loader adjusted for the deeper service module path. Thin legacy CLI entry
+points retain existing import/scan commands and their exit codes. Historical
+migration revisions and database schema were left intact. This is code organization;
+PostgreSQL already runs as a separate service, and both Python processes continue
+to use the same database layer.
+
+Verification passed: 93 PostgreSQL tests, 84 SQLite tests with nine skips, 18 frontend
+component tests, and three Chromium flows. Alembic check found no new upgrade
+operations. After updating the development API and scanner images, the startup scan
+succeeded with all 1,351 Pokémon and 18 type rows unchanged. The existing two teams,
+one account, zero catalog-change rows, and migration head 0003 were preserved.
+This increment is committed as “Separate backend API, database, services and jobs”.
+
 ## Remaining assignment work
 
 History and scanner execution are complete. Alerts still need the API query and UI

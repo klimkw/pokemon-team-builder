@@ -150,15 +150,15 @@ This is local development data, not a deployed production database.
 After migrations, from the repository root run:
 
 ```bash
-docker compose run --rm api python -m app.ingest
+docker compose run --rm api python -m app.jobs.ingest
 ```
 
 This overrides the image's startup command, so migrations must already have run
 (for example via `docker compose up --build`). For a first fresh setup without starting
 the API, use `docker compose run --rm api alembic upgrade head` before ingestion.
 For a sample, append `--limit 3`; this is explicitly reported as scope=sample and is
-not a complete catalog. Without Docker, run `python -m app.ingest` from `backend`
-with DATABASE_URL set. `python -m app.ingest --help` shows the sample option.
+not a complete catalog. Without Docker, run `python -m app.jobs.ingest` from `backend`
+with DATABASE_URL set. `python -m app.jobs.ingest --help` shows the sample option.
 
 - Discover every `/pokemon` page, including alternate forms, before writing anything.
   Validate count consistency, repeated links, and expected PokéAPI URLs. A discovery
@@ -186,8 +186,8 @@ with DATABASE_URL set. `python -m app.ingest --help` shows the sample option.
   There is no refresh HTTP endpoint and ingestion never runs inside the API. The separate
   scanner service runs immediately on its own startup, then at the configured interval.
 
-Read `app/pokeapi.py` for the HTTP client and pure normalization, `app/catalog_sync.py`
-for persistence, and `app/ingest.py` for CLI orchestration and summaries. These functions
+Read `app/services/pokeapi.py` for the HTTP client and pure normalization, `app/services/catalog_sync.py`
+for persistence, and `app/jobs/ingest.py` for CLI orchestration and summaries. These functions
 will be reused by the change scanner. Each changed record and its history entry commit in the same transaction;
 initial Pokémon inserts establish the baseline without history entries.
 
@@ -230,7 +230,7 @@ candidate Defense, opposing HP * opposing Attack) and its special-stat equivalen
 Speed is R(candidate Speed, opposing Speed). This is an explicit base-stat proxy,
 not the game's damage formula; stats cannot outweigh the first two objectives.
 
-`backend/app/counters.py` uses a bitmask dynamic program over candidates and opposing
+`backend/app/services/counters.py` uses a bitmask dynamic program over candidates and opposing
 slots, O(catalog_size * n * 2^n), n <= 6, without pruning or greedy selection. CPU work
 runs outside the async request loop. The result is optimal under this additive assigned-
 matchup model, not a claim of optimal real-battle strategy or team switching synergy.
@@ -253,7 +253,7 @@ and nonstandard types remain outside the model.
 ## Scanner and history
 
 The `scanner` Compose service uses the backend image with a separate command:
-`python -m app.scanner --schedule`. It starts after the API has applied migrations
+`python -m app.jobs.scanner --schedule`. It starts after the API has applied migrations
 and passed its health check. The API process never starts schedules or scrapes data.
 Scans use only PokéAPI: Pokémon details and the 18 standard type relationships.
 
@@ -264,8 +264,8 @@ Configure `.env` (defaults shown in `.env.example`), then recreate affected serv
 - `CHANGE_ALERT_WINDOW_DAYS=7`: positive integer, validated and available in backend
   settings for the next alert increment. It does not prune history or affect scans.
 
-Run once with `docker compose run --rm scanner python -m app.scanner`.
-The existing `python -m app.ingest [--limit N]` command remains a Pokémon-only import,
+Run once with `docker compose run --rm scanner python -m app.jobs.scanner`.
+The existing `python -m app.jobs.ingest [--limit N]` command remains a Pokémon-only import,
 now sharing scan audit and overlap protection. Manual import stdout retains its
 Pokémon counts with a status field. A one-shot failed/partial scan exits nonzero;
 overlapping attempts are audited as skipped and exit successfully.
@@ -292,11 +292,20 @@ changes can later be matched to the involved attack/defense types in saved teams
 
 ## Review and remaining scope
 
-Read backend/app/models.py (tables), team_schemas.py (public contracts), teams.py
-(ownership, validation, atomic save), catalog.py (catalog reads), and the two migration
-revisions. Authentication configuration moved to auth.py; db.py owns database sessions,
-settings.py holds environment settings, security.py enforces origins, and main.py
-assembles routers. The existing authentication API behavior is preserved.
+The backend separates responsibilities under `backend/app/`:
+
+- `api/`: HTTP routes, authentication, and request security.
+- `db/`: SQLAlchemy table models and database engine/session setup.
+- `services/`: counter-team scoring, upstream clients, and catalog/history updates.
+- `jobs/`: manual imports and the separately scheduled scanner.
+- `schemas/`: shared validated request and response contracts.
+- `main.py` and `settings.py`: application assembly and environment settings.
+
+Alembic's configuration and migration history stay in `backend/alembic.ini` and
+`backend/migrations/`. PostgreSQL remains its own Compose service; the API and scanner
+share the same database models and session setup. Existing `app.ingest` and
+`app.scanner` commands remain compatibility entry points; prefer `app.jobs.ingest`
+and `app.jobs.scanner` for new commands.
 
 For the frontend, read `frontend/src/api.ts` (HTTP requests and error translation),
 then `frontend/src/App.tsx` (session check, form actions, account screens),

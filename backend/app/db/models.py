@@ -7,7 +7,7 @@ from fastapi_users_db_sqlalchemy.generics import GUID, TIMESTAMPAware
 from sqlalchemy import JSON, CheckConstraint, ForeignKey, String
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from .db import Base
+from app.db.session import Base
 
 
 def utc_now():

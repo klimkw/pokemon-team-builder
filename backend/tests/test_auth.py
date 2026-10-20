@@ -3,8 +3,8 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select, update
 
-from app import db
-from app.models import User, AccessToken
+from app.db import session as db
+from app.db.models import User, AccessToken
 from app.settings import COOKIE_NAME
 
 

@@ -25,7 +25,7 @@ simply creates tables in an empty database.
 
 There are two related descriptions of our tables:
 
-- `backend/app/models.py` contains the current SQLAlchemy models. These describe the
+- `backend/app/db/models.py` contains the current SQLAlchemy models. These describe the
   table structure the Python application expects today.
 - `backend/migrations/versions/` contains the ordered changes that produce that
   structure from previous versions. These are deployment history, not application data.
@@ -69,7 +69,7 @@ service architecture or reuse host Python/Node environments.
    Uvicorn from starting rather than serving against a mismatched schema.
 5. Uvicorn starts FastAPI on port 8000. The API health check becomes available. The
    scanner waits for that health check before starting its own command.
-6. The scanner runs `python -m app.scanner --schedule`, sharing the database and backend
+6. The scanner runs `python -m app.jobs.scanner --schedule`, sharing the database and backend
    image but running in a separate container/process. It scans immediately and waits
    the configured interval after each completion. It does not run inside FastAPI.
 7. Nginx serves React at localhost:8080 and proxies `/api` to the API service. The
@@ -108,7 +108,7 @@ our isolated test Compose file publishes its disposable DB at loopback port 5543
 For a team save, React sends the team name and complete ordered Pokémon ID list to
 /api/teams. Nginx forwards the request to FastAPI. Authentication resolves the session
 cookie to an account using the account tables. The route obtains an async SQLAlchemy
-session from app/db.py, which uses an engine and connection pool.
+session from app/db/session.py, which uses an engine and connection pool.
 
 SQLAlchemy builds SQL from the models and query expressions; asyncpg communicates it
 to PostgreSQL. The route validates IDs, scopes the team by owner, locks its row for an

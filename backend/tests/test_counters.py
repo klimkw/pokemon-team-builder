@@ -3,9 +3,9 @@ import random
 from datetime import datetime, timezone
 
 import pytest
-from app import counters
-from app.counters import PairScore, effectiveness, generate_counter, score_matchup
-from app.team_schemas import PokemonRead
+from app.services import counters
+from app.services.counters import PairScore, effectiveness, generate_counter, score_matchup
+from app.schemas.teams import PokemonRead
 
 
 def pokemon(identifier, types=("normal",), **stats):

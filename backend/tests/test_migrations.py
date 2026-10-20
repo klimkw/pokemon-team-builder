@@ -3,8 +3,8 @@ import uuid
 from alembic import command
 from sqlalchemy import inspect, select
 from sqlalchemy.ext.asyncio import async_sessionmaker
-from app import db
-from app.models import User
+from app.db import session as db
+from app.db.models import User
 
 
 def test_migrations_match_models_and_support_round_trip(database_case):

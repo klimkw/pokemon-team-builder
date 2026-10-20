@@ -2,8 +2,8 @@
 import hashlib
 import json
 from typing import get_args
-from .models import CatalogChange, TypeChart, utc_now
-from .team_schemas import PokemonType
+from app.db.models import CatalogChange, TypeChart, utc_now
+from app.schemas.teams import PokemonType
 
 TYPES = tuple(get_args(PokemonType))
 

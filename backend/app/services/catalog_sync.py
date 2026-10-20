@@ -1,8 +1,8 @@
 """Database synchronization, reusable by ingestion and the future change scanner."""
 from typing import Literal
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from .models import CatalogChange, Pokemon, utc_now
-from .pokeapi import CatalogRecord
+from app.db.models import CatalogChange, Pokemon, utc_now
+from app.services.pokeapi import CatalogRecord
 
 SyncOutcome = Literal["inserted", "updated", "unchanged"]
 

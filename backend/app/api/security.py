@@ -1,5 +1,5 @@
 from fastapi import HTTPException, Request
-from .settings import APP_ORIGIN
+from app.settings import APP_ORIGIN
 
 
 async def require_same_origin(request: Request):

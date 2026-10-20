@@ -3,8 +3,8 @@ import asyncio
 from alembic import context
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import NullPool
-from app.db import Base
-from app import models  # Register every mapped table in Base.metadata.
+from app.db.session import Base
+from app.db import models  # Register every mapped table in Base.metadata.
 from app.settings import DATABASE_URL
 
 config = context.config

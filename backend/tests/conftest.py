@@ -14,7 +14,8 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import CreateSchema, DropSchema
-from app import db, main
+from app.db import session as db
+from app import main
 
 
 def pytest_addoption(parser):
@@ -93,7 +94,7 @@ def client(database_case, monkeypatch):
 
 @pytest.fixture
 def catalog(client):
-    from app.models import Pokemon
+    from app.db.models import Pokemon
     async def seed():
         async with db.session_maker() as session:
             for id, name, types in [(1, "bulbasaur", ["grass", "poison"]),

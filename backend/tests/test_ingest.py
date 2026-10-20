@@ -5,11 +5,11 @@ from datetime import datetime, timedelta, timezone
 import httpx
 import pytest
 from sqlalchemy import select, update
-from app import db
-from app.catalog_sync import sync_record
-from app.ingest import ingest_catalog
-from app.models import Pokemon
-from app.pokeapi import CATALOG_URL, PokeAPIClient, normalize_pokemon
+from app.db import session as db
+from app.services.catalog_sync import sync_record
+from app.jobs.ingest import ingest_catalog
+from app.db.models import Pokemon
+from app.services.pokeapi import CATALOG_URL, PokeAPIClient, normalize_pokemon
 
 NAMES = {1: "bulbasaur", 7: "squirtle", 25: "pikachu"}
 
@@ -237,8 +237,8 @@ def test_incomplete_catalog_count_aborts_without_writes(client):
 
 
 def test_cli_propagates_partial_failure_exit_code(client, monkeypatch, capsys):
-    from app import ingest
-    from app import scanner
+    from app.jobs import ingest
+    from app.jobs import scanner
     async def partial(*args, **kwargs):
         return scanner.ScanResult("partial", {"pokemon": {"failed": 1}})
     monkeypatch.setattr(scanner, "run_scan", partial)

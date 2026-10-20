@@ -4,8 +4,8 @@ import uuid
 import pytest
 from sqlalchemy import select, text
 from sqlalchemy.exc import DBAPIError
-from app import db
-from app.models import Team
+from app.db import session as db
+from app.db.models import Team
 
 pytestmark = pytest.mark.postgres
 

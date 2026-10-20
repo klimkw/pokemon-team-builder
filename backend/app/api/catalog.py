@@ -3,9 +3,9 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from .db import database
-from .models import Pokemon
-from .team_schemas import PokemonPage, PokemonRead, PokemonType
+from app.db.session import database
+from app.db.models import Pokemon
+from app.schemas.teams import PokemonPage, PokemonRead, PokemonType
 
 router = APIRouter(prefix="/api/pokemon", tags=["pokemon"])
 Database = Annotated[AsyncSession, Depends(database)]

@@ -3,7 +3,7 @@ import asyncio
 import os
 from sqlalchemy import make_url
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
-from app.models import Pokemon, utc_now
+from app.db.models import Pokemon, utc_now
 
 
 async def main():

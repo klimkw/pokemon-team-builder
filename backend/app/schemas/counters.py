@@ -1,7 +1,7 @@
 """Preview contracts: generation does not create or modify a saved team."""
 from typing import Annotated
 from pydantic import BaseModel, ConfigDict, Field
-from .team_schemas import PokemonRead, PokemonType
+from app.schemas.teams import PokemonRead, PokemonType
 
 
 class CounterRequest(BaseModel):

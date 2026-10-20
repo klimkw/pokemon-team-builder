@@ -1,19 +1,15 @@
 """Atomic whole-team saves, always scoped to the authenticated owner."""
 import uuid
-from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from .auth import current_user
-from .db import database
-from .models import Pokemon, Team, TeamMember, User, utc_now
-from .security import require_same_origin
-from .team_schemas import TeamRead, TeamWrite
+from app.api.dependencies import Database, Owner
+from app.db.models import Pokemon, Team, TeamMember, utc_now
+from app.api.security import require_same_origin
+from app.schemas.teams import TeamRead, TeamWrite
 
 router = APIRouter(prefix="/api/teams", tags=["teams"])
-Database = Annotated[AsyncSession, Depends(database)]
-Owner = Annotated[User, Depends(current_user)]
 member_details = selectinload(Team.members).selectinload(TeamMember.pokemon)
 mutations = [Depends(require_same_origin)]
 

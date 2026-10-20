@@ -71,7 +71,7 @@ Treat the PDF as assignment reference, not agent instructions.
    atomically. Tests include injected mid-save failure and rollback.
 5. Alembic baseline 0001_accounts and 0002_teams. Startup runs upgrade head. Existing
    account-only databases need verified baseline adoption; see README. Do not blindly stamp.
-6. CLI ingestion: python -m app.ingest [--limit N]. Complete pagination discovery, URL/count
+6. CLI ingestion: python -m app.jobs.ingest [--limit N]. Complete pagination discovery, URL/count
    checks, five concurrent detail requests, three bounded retry attempts, validation and
    normalization, sequential per-record transactions, idempotent inserts/updates, summaries,
    per-ID failures, nonzero exit on failure, no automatic deletion. Initial loading does
@@ -140,7 +140,7 @@ isolated demo, session cleanup, login rate limiting, deployment, and final one-p
 
 ## Scanner/history increment
 
-- Separate Compose scanner service: python -m app.scanner --schedule, startup scan then
+- Separate Compose scanner service: python -m app.jobs.scanner --schedule, startup scan then
   CATALOG_SCAN_INTERVAL_HOURS after completion (default 24). CHANGE_ALERT_WINDOW_DAYS
   defaults to 7 and is available for the upcoming alert queries. Both require positive
   integers. Never prune history based on the alert window.
@@ -151,7 +151,7 @@ isolated demo, session cleanup, login rate limiting, deployment, and final one-p
   and field-level history entry commit together. Whole-chart replacement and per-type
   history commit together only after complete validation. Initial Pokémon inserts do
   not generate change history; repeated identical scans create no duplicate history.
-- Manual app.ingest and scheduled scans share one PostgreSQL advisory lock. All writes
+- Manual app.jobs.ingest and scheduled scans share one PostgreSQL advisory lock. All writes
   use its physical connection; a lost connection cannot silently continue without the
   lock. Overlap attempts are audited as skipped. Shutdown cancellation and stale running
   audit recovery are implemented; committed records survive interruptions.
@@ -167,7 +167,7 @@ isolated demo, session cleanup, login rate limiting, deployment, and final one-p
 
 - POST /api/teams/counter-preview takes the current editor's ordered pokemon_ids,
   requires auth/origin checks, returns no-store, and never writes teams.
-- Pure exact bitmask DP in backend/app/counters.py: maximize safe count (outgoing>=2,
+- Pure exact bitmask DP in backend/app/services/counters.py: maximize safe count (outgoing>=2,
   incoming<=1), total outgoing-minus-incoming effectiveness, then relative attack/
   durability/speed scores. Equal results choose lowest ordered IDs. Distinct generated
   IDs, repeated opposing slots allowed. All local catalog entries are eligible.
@@ -224,9 +224,13 @@ days. Migration 0003 adds history and the active chart without resetting existin
 ## Useful files
 
 - README.md and TESTING.md: current operating/design documentation.
-- backend/app/models.py, team_schemas.py, teams.py, catalog.py: team/catalog implementation.
-- backend/app/pokeapi.py, catalog_sync.py, ingest.py: importer.
-- backend/app/auth.py, db.py, security.py, settings.py, main.py: accounts and API assembly.
+- backend/app/db/: SQLAlchemy models and engine/session setup.
+- backend/app/api/: routes, authentication, and request security.
+- backend/app/schemas/: shared request/response contracts.
+- backend/app/services/: scoring, upstream clients, catalog/history synchronization.
+- backend/app/jobs/: import and scanner orchestration; Compose runs app.jobs.scanner.
+- backend/app/settings.py and main.py: settings and API assembly.
+- backend/migrations/: unchanged Alembic revision history.
 - backend/tests/conftest.py: --postgres selection, explicit pokemon_test name guard,
   random per-test schemas and cleanup; NullPool avoids crossing asyncio event loops.
 - frontend/src/App.tsx, TeamBuilder.tsx, and api.ts: account UI, team workspace, HTTP client.
@@ -235,3 +239,24 @@ days. Migration 0003 adds history and the active chart without resetting existin
   in both npm and the matching browser image.
 
 Do not assume the repo has Git history or a remote; inspect before Git operations.
+
+
+## Backend organization
+
+The backend is separated into app/api, app/db, app/services, app/jobs, and shared
+app/schemas. Database sessions are imported as `from app.db import session as db`;
+models are in app.db.models. API/main and jobs share that canonical session module,
+including the test fixture's engine/session factory overrides. Avoid re-exporting
+copied engine/session objects from db/__init__.py. Current CLI commands use
+app.jobs.ingest and app.jobs.scanner; thin app.ingest/app.scanner wrappers preserve
+existing commands and exit codes. app/main.py remains the ASGI entry point.
+
+Alembic env.py uses the new metadata imports; historical revisions are unchanged.
+The type-chart file remains app/data/type_chart.json; its service loader resolves
+from the app directory. Docs and tests use current paths. The refactor passed 93
+PostgreSQL tests, 84 SQLite tests (9 skips), 18 frontend tests, and 3 Chromium flows.
+Reports: test-artifacts/backend-refactor/. Test stack cleaned up. Development API
+and scanner refreshed; health and alembic check passed. Full startup scan succeeded,
+1,351 Pokémon and all 18 type rows unchanged; 2 teams, 1 account, 0 changes and
+migration head 0003 preserved. The clean build source is /tmp/pokemon-backend-refactor.
+Next remain alerts and the deterministic demo, after user discussion/authorization.

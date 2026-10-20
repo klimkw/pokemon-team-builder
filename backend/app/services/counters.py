@@ -10,15 +10,15 @@ import hashlib
 import json
 from pathlib import Path
 from typing import get_args
-from .counter_schemas import CounterMatchup, CounterPreview
-from .team_schemas import PokemonRead, PokemonType
+from app.schemas.counters import CounterMatchup, CounterPreview
+from app.schemas.teams import PokemonRead, PokemonType
 
 MODEL_VERSION = "safe-coverage-v1"
 
 
 @lru_cache(maxsize=1)
 def type_chart():
-    data = json.loads((Path(__file__).parent / "data" / "type_chart.json").read_text())
+    data = json.loads((Path(__file__).parents[1] / "data" / "type_chart.json").read_text())
     rows = data["damage_to"]
     types = set(get_args(PokemonType))
     if set(rows) != types or any(set(row) != types for row in rows.values()):

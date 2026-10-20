@@ -2,12 +2,12 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from starlette.concurrency import run_in_threadpool
-from .counter_schemas import CounterPreview, CounterRequest
-from .counters import generate_counter
-from .models import Pokemon, TypeChart
-from .security import require_same_origin
-from .team_schemas import PokemonRead
-from .teams import Database, Owner
+from app.schemas.counters import CounterPreview, CounterRequest
+from app.services.counters import generate_counter
+from app.db.models import Pokemon, TypeChart
+from app.api.security import require_same_origin
+from app.schemas.teams import PokemonRead
+from app.api.dependencies import Database, Owner
 
 router = APIRouter(prefix="/api/teams", tags=["counter teams"])
 

@@ -6,13 +6,13 @@ import httpx
 import pytest
 from sqlalchemy import event, func, select
 from sqlalchemy.exc import IntegrityError
-from app import db
-from app.catalog_sync import sync_record
-from app.counters import type_chart
-from app.models import CatalogChange, Pokemon, ScanRun, TypeChart
-from app.pokeapi import CatalogRecord
-from app.scanner import LockedSessions, LostScanLock, ScanResult, run_scan, scan_lock, schedule
-from app.type_sync import TYPES, chart_version, normalize_type, sync_chart
+from app.db import session as db
+from app.services.catalog_sync import sync_record
+from app.services.counters import type_chart
+from app.db.models import CatalogChange, Pokemon, ScanRun, TypeChart
+from app.services.pokeapi import CatalogRecord
+from app.jobs.scanner import LockedSessions, LostScanLock, ScanResult, run_scan, scan_lock, schedule
+from app.services.type_sync import TYPES, chart_version, normalize_type, sync_chart
 
 
 def record(identifier=1, **changes):

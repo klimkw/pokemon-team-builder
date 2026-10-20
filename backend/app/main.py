@@ -2,13 +2,13 @@
 from contextlib import asynccontextmanager
 from typing import Annotated
 from fastapi import Depends, FastAPI, Request
-from . import db
-from .auth import UserCreate, UserRead, current_user, fastapi_users, auth_backend
-from .catalog import router as catalog_router
-from .counter_routes import router as counter_router
-from .models import User
-from .security import require_same_origin
-from .teams import router as teams_router
+from app.db import session as db
+from app.api.auth import UserCreate, UserRead, current_user, fastapi_users, auth_backend
+from app.api.catalog import router as catalog_router
+from app.api.counters import router as counter_router
+from app.db.models import User
+from app.api.security import require_same_origin
+from app.api.teams import router as teams_router
 
 
 @asynccontextmanager

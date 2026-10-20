@@ -7,7 +7,7 @@ from urllib.parse import urlsplit
 
 import httpx
 from pydantic import BaseModel, Field, HttpUrl
-from .team_schemas import PokemonStats, PokemonType
+from app.schemas.teams import PokemonStats, PokemonType
 
 CATALOG_URL = "https://pokeapi.co/api/v2/pokemon/?limit=200"
 STAT_NAMES = {"hp", "attack", "defense", "special-attack", "special-defense", "speed"}

@@ -3,8 +3,8 @@ import uuid
 import pytest
 from sqlalchemy import delete, event, func, select
 from sqlalchemy.exc import IntegrityError
-from app import db
-from app.models import Pokemon, Team, TeamMember
+from app.db import session as db
+from app.db.models import Pokemon, Team, TeamMember
 
 
 def create(client, ids=None, name="Starters"):

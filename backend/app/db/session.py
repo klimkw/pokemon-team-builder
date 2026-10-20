@@ -2,7 +2,7 @@
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
-from .settings import DATABASE_URL
+from app.settings import DATABASE_URL
 
 
 class Base(DeclarativeBase):
