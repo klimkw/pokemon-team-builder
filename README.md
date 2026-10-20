@@ -1,7 +1,7 @@
 # Pokemon Team Builder
 
-Take-home project built in reviewable increments. Current increment: responsive catalog
-and persistent team editor, verified through Docker and real-browser tests.
+Take-home project built in reviewable increments. Current increment: exact, explainable counter-team generation alongside the responsive
+catalog and persistent team editor, verified through Docker and real-browser tests.
 
 ## Run and test
 
@@ -18,8 +18,8 @@ return the library's 400 responses; protected routes return 401 without valid ac
 
 From `backend`, install `pip install -r requirements-dev.txt` and run `python -m pytest tests -q`.
 From `frontend`, use Node 22.12+ (Node 24 recommended), run `npm ci`, `npm test`, and
-`npm run build`. Fifty-one backend tests pass against PostgreSQL; the fast SQLite run has
-49 passes and two PostgreSQL-only skips. All 13 frontend component tests pass. Both
+`npm run build`. Sixty-nine backend tests pass against PostgreSQL; the fast SQLite option
+skips the two PostgreSQL-only checks. All 18 frontend component tests pass. Three
 Chromium E2E tests pass against PostgreSQL, FastAPI, and the production build served
 through Nginx in the isolated Docker stack. TypeScript and production build pass.
 See [TESTING.md](TESTING.md) for isolated Compose tests, setup, cleanup, and reports.
@@ -188,6 +188,57 @@ records observation time, not the unknown upstream effective time. Full SCD2/as-
 catalog queries and team snapshot/restore are deferred. Catalog changes will not alter
 team positions or point memberships at historical versions.
 
+## Counter-team generation
+
+Choose **View optimal counter team** for any nonempty editor lineup, including an
+unsaved draft. The modal previews an equal-sized lineup and explains each opposing
+slot's pairing, outgoing/incoming type effectiveness, and safe/risky status. Expand
+method/stat details for the full scoring model. **Save as new team** creates a separate
+team with the preview order; it never modifies or discards the source draft. Closing
+without saving writes nothing. Generated teams use distinct catalog IDs; alternate
+forms and legendary entries are eligible, and source members may also be candidates.
+
+POST `/api/teams/counter-preview` accepts `{"pokemon_ids":[25,1,7]}` with 1–6 IDs and
+requires authentication and the normal same-origin checks. It reads the local catalog,
+returns no-store preview data, and performs no team writes. Duplicate opposing members
+remain separate slots. Unknown IDs return 422; a catalog with fewer distinct entries
+than opposing slots returns 409. There are no network calls during generation.
+
+The exact objective, compared lexicographically, is:
+
+1. Maximize the number of safe assigned matchups: outgoing effectiveness >= 2× and
+   the opponent's best return effectiveness <= 1×.
+2. Maximize the sum of (outgoing effectiveness minus incoming effectiveness).
+3. Maximize the sum of relative-stat scores. Each component below is an integer
+   from 0 to 1,000; components sum to 0–3,000 per matchup. Zero versus zero is neutral.
+4. If all scores tie, choose the lexicographically lowest candidate ID list in
+   opposing-slot order, making results deterministic.
+
+For stats, let R(a,b) = round-half-up(1000*a/(a+b)), or 500 if both are zero.
+Attack potential is max(R(candidate Attack, opposing Defense), R(candidate Sp. Atk,
+opposing Sp. Def)). Durability is the integer-floor average of R(candidate HP *
+candidate Defense, opposing HP * opposing Attack) and its special-stat equivalent.
+Speed is R(candidate Speed, opposing Speed). This is an explicit base-stat proxy,
+not the game's damage formula; stats cannot outweigh the first two objectives.
+
+`backend/app/counters.py` uses a bitmask dynamic program over candidates and opposing
+slots, O(catalog_size * n * 2^n), n <= 6, without pruning or greedy selection. CPU work
+runs outside the async request loop. The result is optimal under this additive assigned-
+matchup model, not a claim of optimal real-battle strategy or team switching synergy.
+
+The model assumes each side can use attacks of either own type, taking its best type
+against both defending types. Defensive multipliers multiply; attacking types are
+alternatives, never multiplied together. Immunities remain zero. Moves, abilities,
+items, levels, and switching are excluded. Equal assumed same-type attack bonuses are
+omitted; displayed numbers are type effectiveness, not damage or win probabilities.
+
+`backend/app/data/type_chart.json` is a version-controlled snapshot retrieved from
+PokéAPI's current `damage_relations` for the 18 standard types. Generation checks its
+SHA-256 version and returns that version plus `safe-coverage-v1` for reproducibility.
+Source URL and retrieval time are recorded in the file. Historical generation charts
+are excluded. Chart changes currently require a reviewed snapshot update and restart;
+the future change scanner must include this data source as well as Pokémon records.
+
 ## Review and remaining scope
 
 Read backend/app/models.py (tables), team_schemas.py (public contracts), teams.py
@@ -202,7 +253,6 @@ then `frontend/src/App.tsx` (session check, form actions, account screens),
 `frontend/vite.config.ts` (development proxy), and `frontend/nginx.conf` (Compose proxy).
 No frontend authentication package or global state library is needed for these screens.
 
-Next: explainable counter teams,
-change scanner/alerts/demo, session cleanup, login rate limiting before public deployment,
+Next: change scanner/alerts/demo, session cleanup, login rate limiting before public deployment,
 deployment, and final one-page README. Password recovery and
 email verification are outside scope. Health currently reports process liveness only.

@@ -199,3 +199,31 @@ existing development-only Vitest tooling (Vitest, @vitest/mocker, and tinypool;
 one moderate and two critical package entries). The suggested fix is a major
 Vitest upgrade. These dependencies are not copied into the final Nginx image;
 resolve them in a separate tooling increment and rerun the component suite.
+
+
+## Counter-team verification
+
+The PostgreSQL suite now has 69 passing tests. Counter tests verify exact assignment
+against exhaustive permutations on seeded small catalogs, greedy traps, priority order,
+deterministic ties, distinct generated IDs, repeated opposing slots, type immunity,
+dual-type multiplication, strongest return attacks, relative stats, and zero stats.
+API tests verify validation, insufficient catalog handling, authentication/origin
+checks, no-store responses, deterministic output, and zero preview writes.
+
+The frontend suite now has 18 passing tests. Preview tests cover both directions of
+effectiveness, assumptions/stat explanations, risky fallbacks, generation retry and
+abort, failed-save name retention, separate-team saving, and duplicate-save protection.
+jsdom supplies minimal dialog methods; real modal behavior is tested in Chromium.
+
+There are three E2E tests. The counter flow adds an unsaved member to a saved source,
+previews the current draft, reads the method/stat explanations, verifies mobile modal
+width, saves a separate counter, verifies the source draft and saved source are
+unchanged, dismisses a second preview with Escape, and reloads the saved counter.
+Screenshots/reports are retained under test-artifacts/counter-teams/.
+
+
+A read-only development smoke check generated six distinct counters against all
+1,351 imported records in approximately 0.35 seconds in this Docker environment.
+The six selected matchups were safe under the model. This is a measured sample,
+not a latency guarantee. Development catalog/team/account counts were unchanged;
+no temporary development accounts or teams were created for this check.

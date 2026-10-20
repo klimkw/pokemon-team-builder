@@ -5,6 +5,7 @@ from fastapi import Depends, FastAPI, Request
 from . import db
 from .auth import UserCreate, UserRead, current_user, fastapi_users, auth_backend
 from .catalog import router as catalog_router
+from .counter_routes import router as counter_router
 from .models import User
 from .security import require_same_origin
 from .teams import router as teams_router
@@ -37,6 +38,7 @@ app.include_router(fastapi_users.get_auth_router(auth_backend),
                    dependencies=[Depends(require_same_origin)])
 app.include_router(catalog_router)
 app.include_router(teams_router)
+app.include_router(counter_router)
 
 
 @app.get("/api/auth/me", response_model=UserRead, tags=["auth"])

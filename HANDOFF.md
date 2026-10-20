@@ -132,12 +132,37 @@ under test-artifacts/. Test ports 55432 and 18080 must be free. Do not combine t
 Compose file with development compose.yaml. Do not expose the Docker daemon over an
 unauthenticated TCP endpoint or change Windows sandbox-user permissions as a workaround.
 
-After verification, explain the result and any fixes. The team builder UI increment is now implemented and verified. Walk through the next
-product increment (explainable counter-team generation) with the user before implementing.
-Remaining work also includes upgrading the existing Vitest tooling to resolve the
-three npm audit findings documented in TESTING.md, counter-team generation, change scanner/history/alerts/demo,
-scheduled runs/overlap prevention, session cleanup, login rate limiting, deployment,
-shareable repository setup, and final concise README/presentation preparation.
+After verification, explain the result and any fixes. Counter-team generation is now
+implemented under the user-approved priorities: safe coverage, then type strength,
+then relative stats. The next product increment is change detection/history/alerts;
+walk through it with the user first. Remaining work includes upgrading existing
+Vitest tooling (three npm audit findings documented in TESTING.md), scanning all used
+data including type relations, scheduled runs/overlap prevention, session cleanup,
+login rate limiting, deployment, and final one-page README/presentation preparation.
+
+## Counter-team increment
+
+- POST /api/teams/counter-preview takes the current editor's ordered pokemon_ids,
+  requires auth/origin checks, returns no-store, and never writes teams.
+- Pure exact bitmask DP in backend/app/counters.py: maximize safe count (outgoing>=2,
+  incoming<=1), total outgoing-minus-incoming effectiveness, then relative attack/
+  durability/speed scores. Equal results choose lowest ordered IDs. Distinct generated
+  IDs, repeated opposing slots allowed. All local catalog entries are eligible.
+- Chart snapshot backend/app/data/type_chart.json caches all 18 current PokéAPI types,
+  records provenance and verifies its SHA-256. No live requests during generation.
+  Future scanner must cover type relations too; no chart-refresh scheduler exists yet.
+- Frontend CounterPreview.tsx uses a native modal with loading/retry, safe/risky
+  explanations, expandable stats/assumptions, and explicit Save as new team. Preview
+  uses unsaved member edits; closing or saving preserves the original draft. New saved
+  counters appear in the existing selector. Model excludes moves/abilities/items/battle
+  simulation; do not describe scores as win probabilities.
+- The running development API/frontend have been refreshed with this increment.
+  Existing accounts, teams, and the 1,351-record catalog were preserved. A read-only
+  six-member full-catalog optimization took about 0.35 seconds. Users must refresh
+  their browser when ready to load the updated UI; do not force-discard drafts.
+- Verification: 69 PostgreSQL backend tests, 18 frontend component tests, 3 Chromium
+  E2E tests. TypeScript and production build pass. The optimizer is checked against
+  exhaustive small assignments. See README.md for exact formulas and TESTING.md.
 
 ## Running development environment
 

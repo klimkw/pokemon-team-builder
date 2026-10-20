@@ -47,6 +47,12 @@ async function request(
   } else if (response.status === 401) {
     message =
       "Your session has expired. Sign out and sign in again. Your draft is still here.";
+  } else if (
+    response.status === 409 &&
+    detail?.code === "INSUFFICIENT_CATALOG"
+  ) {
+    message =
+      "The catalog needs more distinct Pokémon to generate a counter of this size.";
   } else if (response.status === 404) {
     message =
       "This team is no longer available. Your draft is still here; start a new team to save another lineup.";
@@ -183,4 +189,42 @@ export async function saveTeam(
 }
 export async function deleteTeam(id: string): Promise<void> {
   await request(`teams/${id}`, { method: "DELETE" });
+}
+
+export type CounterMatchup = {
+  opponent_position: number;
+  opponent: Pokemon;
+  counter: Pokemon;
+  attacking_type: string;
+  incoming_type: string;
+  outgoing_multiplier: number;
+  incoming_multiplier: number;
+  safe: boolean;
+  type_strength: number;
+  attack_potential: number;
+  durability: number;
+  speed: number;
+  stats_score: number;
+};
+export type CounterPreview = {
+  model_version: string;
+  chart_version: string;
+  safe_count: number;
+  size: number;
+  type_strength: number;
+  stats_score: number;
+  matchups: CounterMatchup[];
+};
+export async function getCounterPreview(
+  pokemonIds: number[],
+  signal?: AbortSignal,
+): Promise<CounterPreview> {
+  return (
+    await request("teams/counter-preview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pokemon_ids: pokemonIds }),
+      signal,
+    })
+  ).json();
 }

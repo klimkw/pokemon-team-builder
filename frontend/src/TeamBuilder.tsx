@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import * as api from "./api";
+import CounterPreview from "./CounterPreview";
 import type { Pokemon, PokemonPage, Team, User } from "./api";
 
 const message = (error: unknown) =>
@@ -68,6 +69,10 @@ export default function TeamBuilder({
   const [catalogError, setCatalogError] = useState("");
   const [catalogRetry, setCatalogRetry] = useState(0);
   const operation = useRef(false);
+  const [counterSource, setCounterSource] = useState<{
+    ids: number[];
+    name: string;
+  } | null>(null);
   const dirty = signature(name, members) !== baseline;
   const locked = busy || signingOut || teamsLoading || !!teamsError;
 
@@ -543,6 +548,25 @@ export default function TeamBuilder({
               <p className="save-hint">
                 Changes are saved only when you choose Save team.
               </p>
+              <div className="counter-entry">
+                <button
+                  className="secondary-button"
+                  disabled={locked || members.length === 0}
+                  onClick={() =>
+                    setCounterSource({
+                      ids: members.map((pokemon) => pokemon.id),
+                      name,
+                    })
+                  }
+                >
+                  View optimal counter team <span aria-hidden="true">↗</span>
+                </button>
+                <p className="save-hint">
+                  {members.length
+                    ? "Preview counters for this lineup. No save required."
+                    : "Add at least one Pokémon to view a counter team."}
+                </p>
+              </div>
               {selected && (
                 <button
                   className="delete-team"
@@ -556,6 +580,19 @@ export default function TeamBuilder({
           )}
         </section>
       </div>
+      {counterSource && (
+        <CounterPreview
+          pokemonIds={counterSource.ids}
+          sourceName={counterSource.name}
+          onClose={() => setCounterSource(null)}
+          onSaved={(team) =>
+            setTeams((current) => [
+              team,
+              ...current.filter((item) => item.id !== team.id),
+            ])
+          }
+        />
+      )}
     </main>
   );
 }

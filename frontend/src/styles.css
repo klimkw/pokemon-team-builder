@@ -1139,3 +1139,225 @@ input:disabled {
     font-size: 12px;
   }
 }
+
+.counter-entry {
+  border-top: 1px solid #e1e4d8;
+  margin-top: 20px;
+}
+.counter-entry .secondary-button {
+  height: auto;
+  min-height: 48px;
+  margin-top: 18px;
+  text-align: left;
+}
+.counter-dialog {
+  width: min(780px, calc(100% - 32px));
+  max-height: calc(100svh - 40px);
+  padding: 28px;
+  border: 1px solid #d4d9c8;
+  border-radius: 14px;
+  background: #fffefa;
+  color: #252820;
+  box-shadow: 0 18px 70px #20281c35;
+}
+.counter-dialog::backdrop {
+  background: #20281c80;
+}
+.counter-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.counter-heading h2 {
+  margin-top: 8px;
+}
+.counter-heading .eyebrow {
+  font-size: 8px;
+}
+.counter-description {
+  margin-top: 16px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #68715d;
+}
+.counter-summary {
+  margin-top: 22px;
+  padding: 16px;
+  border: 1px solid #d5dfc6;
+  border-radius: 8px;
+  background: #f0f4e8;
+}
+.counter-summary strong {
+  font-size: 18px;
+}
+.counter-summary p {
+  font-size: 12px;
+  line-height: 1.7;
+  margin-top: 7px;
+}
+.counter-method {
+  margin: 18px 0;
+  font-size: 12px;
+  line-height: 1.8;
+  color: #59634c;
+}
+.counter-method summary,
+.matchup-stats summary {
+  cursor: pointer;
+  color: #37462a;
+  font-weight: 600;
+  padding: 5px 0;
+}
+.counter-method ol {
+  padding-left: 22px;
+}
+.counter-method p {
+  margin-top: 12px;
+}
+.counter-method small {
+  display: block;
+  margin-top: 10px;
+}
+.counter-matchups {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+}
+.counter-matchup {
+  padding: 18px;
+  border: 1px solid #dfe3d5;
+  border-radius: 8px;
+}
+.counter-pair-heading {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.counter-pair-heading .eyebrow {
+  font-size: 8px;
+  letter-spacing: 1px;
+}
+.matchup-label {
+  border-radius: 4px;
+  font-size: 10px;
+  padding: 5px 7px;
+}
+.matchup-label.safe {
+  background: #eaf1de;
+  color: #425c2c;
+}
+.matchup-label.risky {
+  background: #fff0db;
+  color: #85551c;
+}
+.counter-matchup h3 {
+  font-size: 19px;
+  margin-top: 15px;
+  overflow-wrap: anywhere;
+}
+.pokemon-name {
+  text-transform: capitalize;
+}
+.counter-versus {
+  font-weight: 400;
+  color: #747d65;
+  font-size: 13px;
+}
+.counter-types {
+  color: #6a745c;
+  font-size: 11px;
+  margin-top: 5px;
+  text-transform: capitalize;
+}
+.matchup-effects {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-top: 18px;
+}
+.matchup-effects strong {
+  display: block;
+  font-size: 15px;
+}
+.matchup-effects span {
+  display: block;
+  font-size: 12px;
+  line-height: 1.7;
+  color: #68715d;
+  margin-top: 5px;
+}
+.matchup-caution {
+  font-size: 12px;
+  color: #88531c;
+  background: #fff6e7;
+  border-radius: 5px;
+  padding: 10px;
+  margin-top: 14px;
+  line-height: 1.7;
+}
+.matchup-stats {
+  margin-top: 14px;
+  border-top: 1px solid #e5e8dd;
+  padding-top: 8px;
+  font-size: 11px;
+  line-height: 1.7;
+}
+.matchup-stats table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 10px 0;
+  font-size: 11px;
+}
+.matchup-stats caption {
+  text-align: left;
+  margin-bottom: 6px;
+}
+.matchup-stats th,
+.matchup-stats td {
+  padding: 5px 8px;
+  border-bottom: 1px solid #e5e8dd;
+  text-align: left;
+}
+.matchup-stats p {
+  color: #68715d;
+}
+.counter-save {
+  border-top: 1px solid #dfe3d5;
+  padding-top: 3px;
+  margin-top: 22px;
+}
+.counter-save input {
+  font-size: 13px;
+}
+.counter-save .primary-button {
+  margin-top: 14px;
+}
+@media (max-width: 520px) {
+  .counter-dialog {
+    padding: 18px;
+    width: calc(100% - 20px);
+    max-height: calc(100svh - 20px);
+  }
+  .counter-heading {
+    align-items: flex-start;
+  }
+  .counter-heading h2 {
+    font-size: 23px;
+  }
+  .counter-heading .quiet-button {
+    white-space: normal;
+    min-width: 80px;
+  }
+  .counter-matchup {
+    padding: 14px;
+  }
+  .matchup-effects {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
