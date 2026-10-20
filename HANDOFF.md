@@ -414,3 +414,35 @@ permission review timed out once; the permitted retry succeeded. All services ar
 running, and no automatic startup scan modified the restored scenario. Final current
 tests are 120 PostgreSQL, 105 SQLite with 15 skips, 22 component and 5 normal browser
 flows. Commit/push this completed increment; do not reset the owner's current demo.
+
+
+## Latest: sorting, sliders and selected-team comparison
+
+The owner's follow-up requests are implemented: default Index sort plus low/high
+ordering for all six base stats; paired native range sliders in place of number
+boxes; shared type chips across filters, catalog and selected team; six stats always
+visible per occupied team slot; selected cards outlined with an In team count.
+
+GET /api/pokemon adds a validated sort enum (index or stat_asc/stat_desc). SQL sorting
+precedes pagination with Pokemon.id ascending as the tie-breaker. Response.stat_maxima
+uses the entire catalog independently of filters, each at least 255 and higher when
+stored/manual stats exceed it. Sliders show values and clamp handles instead of
+crossing; default endpoints omit bounds, and keyboard/pointer interaction is tested.
+Sort changes reset offset. No database migration is needed. Shared components live
+in frontend/src/PokemonDetails.tsx and StatRange.tsx. TypeBadge styles are identical
+on the three surfaces; checkbox/outline conveys filter selection without recoloring
+its chip. Stats reuse the same labels/order in cards and selected slots.
+
+Tests passed: 127 PostgreSQL, 112 SQLite with 15 skips, 23 components and 6 regular
+browser flows. A duplicate selected-count label was caught by screenshot review,
+removed from team slots and covered by an exact card-only count assertion. Final
+frontend checks reran after that correction. Build/test context is
+/tmp/pokemon-catalog-compare; browser reports/screenshots are copied into
+ test-artifacts/catalog-comparison/. Read agent-process/07-catalog-comparison.md.
+Keep the scanner's restart-delay fix from the previous increment; do not allow a UI
+refresh to overwrite an active manual scenario. Leave existing accounts, teams,
+manual state and history intact. Deployment verification passed: all services healthy, no schema drift, live sorting
+and global slider domains correct. Counts remain 1,351 Pokemon, 2 teams, 1 account,
+2 change events and 1 active demo scenario. The worker respects its remaining delay
+and did not launch a startup scan. This increment is committed as “Add stat sorting,
+range sliders and selected-team comparisons”. Next remain hosting and final README.

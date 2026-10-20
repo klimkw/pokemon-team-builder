@@ -1439,3 +1439,29 @@ input:disabled {
 @media (max-width: 520px) { .app-shell { padding: 0 18px; } .site-header { height: 80px; gap: 8px; } .brand { font-size: 18px; gap: 7px; } .header-actions { gap: 7px; } .header-actions .quiet-button { padding: 9px 10px; font-size: 11px; } .icon-button { width: 36px; height: 36px; } .stat-ranges { grid-template-columns: 1fr; } .profile-card { padding: 18px; } .profile-teams > li { flex-direction: column; } .account-card { padding: 24px; } .team-panel { padding: 16px; } }
 
 .profile-card h2 .muted { margin-left: 8px; font-size: 14px; padding: 2px 7px; background: #edf0e5; border-radius: 12px; }
+
+.catalog-filters { grid-template-columns: minmax(0, 1fr) minmax(150px, 190px) 90px; }
+.type-filter-option { display: inline-flex; align-items: center; gap: 5px; border: 1px solid transparent; border-radius: 6px; padding: 4px; cursor: pointer; }
+.type-filter-option:hover { background: #edf0e5; }
+.type-filter-option.selected { border-color: #88986c; background: #f2f5eb; }
+.type-filter-option input { width: 13px; height: 13px; padding: 0; margin: 0; accent-color: #667848; }
+.type-badge { font-weight: 400; line-height: 1.3; }
+.stat-ranges { gap: 16px 24px; }
+.range-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 12px; }
+.range-heading output { color: #66754f; font-variant-numeric: tabular-nums; font-size: 11px; }
+.dual-range { position: relative; height: 32px; margin: 4px 8px 0; }
+.range-track { position: absolute; top: 14px; left: 0; right: 0; height: 4px; border-radius: 4px; background: linear-gradient(to right, #dfe3d5 var(--range-start), #718251 var(--range-start), #718251 var(--range-end), #dfe3d5 var(--range-end)); }
+.dual-range input[type="range"] { position: absolute; inset: 0; width: 100%; height: 32px; padding: 0; margin: 0; background: transparent; border: 0; box-shadow: none; appearance: none; -webkit-appearance: none; pointer-events: none; outline: none; }
+.dual-range input[type="range"]::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; pointer-events: auto; width: 18px; height: 18px; border-radius: 50%; background: #fffef9; border: 2px solid #718251; cursor: grab; }
+.dual-range input[type="range"]::-moz-range-thumb { pointer-events: auto; width: 16px; height: 16px; border-radius: 50%; background: #fffef9; border: 2px solid #718251; cursor: grab; }
+.dual-range input[type="range"]:focus-visible::-webkit-slider-thumb { outline: 3px solid #a73022; outline-offset: 3px; }
+.dual-range input[type="range"]:focus-visible::-moz-range-thumb { outline: 3px solid #a73022; outline-offset: 3px; }
+.dual-range .range-high { z-index: 2; }
+.team-member:not(.empty-member) { flex-wrap: wrap; }
+.member-info .type-badges { margin-top: 5px; }
+.member-info .type-badge { font-size: 10px; }
+.team-member .member-stats { flex: 0 0 100%; margin: 4px 0 0; padding: 9px 2px 2px; border-top: 1px solid #e6e8dd; }
+.pokemon-card { position: relative; }
+.pokemon-card.is-selected { border-color: #829467; box-shadow: inset 0 0 0 1px #829467; }
+.selected-label { position: absolute; right: 12px; top: 12px; color: #4b622c; font-size: 10px; font-weight: 650; }
+@media (max-width: 620px) { .catalog-filters { grid-template-columns: minmax(0, 1fr) 90px; } .catalog-filters > div:first-child { grid-column: 1 / -1; } }

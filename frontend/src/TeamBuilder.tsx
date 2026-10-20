@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Profile from "./Profile";
+import StatRange from "./StatRange";
+import { statNames, StatList, TypeBadge, TypeBadges } from "./PokemonDetails";
 import * as api from "./api";
 import CounterPreview from "./CounterPreview";
 import Alerts from "./Alerts";
@@ -16,14 +18,7 @@ const membersOf = (team: Team) =>
     .map((member) => member.pokemon);
 const signature = (name: string, members: Pokemon[]) =>
   JSON.stringify([name, members.map((pokemon) => pokemon.id)]);
-const statNames: Record<keyof Pokemon["stats"], string> = {
-  hp: "HP",
-  attack: "Attack",
-  defense: "Defense",
-  special_attack: "Sp. Atk",
-  special_defense: "Sp. Def",
-  speed: "Speed",
-};
+
 
 function Sprite({ pokemon }: { pokemon: Pokemon }) {
   const [failed, setFailed] = useState(false);
@@ -71,6 +66,7 @@ export default function TeamBuilder({
   const [types, setTypes] = useState<string[]>([]);
   const [typeMatch, setTypeMatch] = useState<"any" | "all">("any");
   const [pageSize, setPageSize] = useState(24);
+  const [sort, setSort] = useState("index");
   const [ranges, setRanges] = useState<Record<string, string>>({});
   const [profileOpen, setProfileOpen] = useState(window.location.hash === "#profile");
   useEffect(() => {
@@ -135,7 +131,7 @@ export default function TeamBuilder({
     if (invalidRanges) { setCatalogLoading(false); setCatalogError("Minimum must not exceed maximum."); return () => controller.abort(); }
     // Debounce text entry and ignore responses from superseded searches.
     const timer = window.setTimeout(() => {
-      api.getCatalog(query.trim(), type, offset, controller.signal, { types, typeMatch, ranges, limit: pageSize }).then(
+      api.getCatalog(query.trim(), type, offset, controller.signal, { types, typeMatch, ranges, limit: pageSize, sort }).then(
         (result) => {
           if (!controller.signal.aborted) {
             setCatalog(result);
@@ -154,7 +150,7 @@ export default function TeamBuilder({
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [query, type, types, typeMatch, ranges, pageSize, offset, catalogRetry, invalidRanges]);
+  }, [query, type, types, typeMatch, ranges, pageSize, sort, offset, catalogRetry, invalidRanges]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -284,6 +280,13 @@ export default function TeamBuilder({
               />
             </div>
             <div>
+              <label htmlFor="catalog-sort">Sort by</label>
+              <select id="catalog-sort" value={sort} onChange={event => { setSort(event.target.value); setOffset(0); }}>
+                <option value="index">Index</option>
+                {Object.entries(statNames).flatMap(([key, label]) => [<option key={`${key}_asc`} value={`${key}_asc`}>{label} · Low to high</option>, <option key={`${key}_desc`} value={`${key}_desc`}>{label} · High to low</option>])}
+              </select>
+            </div>
+            <div>
               <label htmlFor="page-size">Per page</label>
               <select id="page-size" value={pageSize} onChange={event => { setPageSize(Number(event.target.value)); setOffset(0); }}>
                 {[12, 24, 48, 96].map(size => <option key={size} value={size}>{size}</option>)}
@@ -293,14 +296,16 @@ export default function TeamBuilder({
           <details className="filter-panel">
             <summary>Filters{types.length || Object.values(ranges).some(Boolean) ? " · active" : ""}</summary>
             <fieldset className="type-filter"><legend>Types</legend>
-              <div className="type-options">{api.pokemonTypes.map(value => <label className={`type-option ${types.includes(value) ? "selected" : ""}`} key={value}>
-                <input type="checkbox" checked={types.includes(value)} onChange={event => { setType(""); setTypes(current => event.target.checked ? [...current, value] : current.filter(t => t !== value)); setOffset(0); }} />{value}
+              <div className="type-options">{api.pokemonTypes.map(value => <label className={`type-filter-option ${types.includes(value) ? "selected" : ""}`} key={value}>
+                <input type="checkbox" checked={types.includes(value)} onChange={event => { setType(""); setTypes(current => event.target.checked ? [...current, value] : current.filter(t => t !== value)); setOffset(0); }} /><TypeBadge type={value} />
               </label>)}</div>
               <label className="filter-match">Match<select aria-label="Type matching" value={typeMatch} onChange={event => { setTypeMatch(event.target.value as "any" | "all"); setOffset(0); }}><option value="any">Any selected type</option><option value="all">All selected types</option></select></label>
             </fieldset>
-            <fieldset><legend>Base stats</legend><div className="stat-ranges">{Object.entries(statNames).map(([key, label]) => <div className="stat-range" key={key}>
-              <span>{label}</span>{["min", "max"].map(bound => <input key={bound} aria-label={`${label} ${bound === "min" ? "minimum" : "maximum"}`} type="number" min={0} max={999} placeholder={bound === "min" ? "Min" : "Max"} value={ranges[`${key}_${bound}`] ?? ""} onChange={event => { setRanges(current => ({ ...current, [`${key}_${bound}`]: event.target.value })); setOffset(0); }} />)}
-            </div>)}</div></fieldset>
+            <fieldset><legend>Base stats</legend><div className="stat-ranges">{Object.entries(statNames).map(([key, label]) => {
+              const maximum = Math.max(catalog?.stat_maxima?.[key] ?? 255, Number(ranges[`${key}_max`] || 0), Number(ranges[`${key}_min`] || 0));
+              return <StatRange key={key} label={label} maximum={maximum} low={Number(ranges[`${key}_min`] || 0)} high={Number(ranges[`${key}_max`] || maximum)}
+                onChange={(low, high) => { setRanges(current => ({ ...current, [`${key}_min`]: low === 0 ? "" : String(low), [`${key}_max`]: high === maximum ? "" : String(high) })); setOffset(0); }} />;
+            })}</div></fieldset>
             <button className="quiet-button" onClick={() => { setTypes([]); setType(""); setTypeMatch("any"); setRanges({}); setOffset(0); }}>Clear filters</button>
           </details>
 
@@ -333,7 +338,7 @@ export default function TeamBuilder({
                 <div className="pokemon-grid">
                   {catalog.items.map((pokemon) => (
                     <article
-                      className="pokemon-card"
+                      className={`pokemon-card ${members.some(member => member.id === pokemon.id) ? "is-selected" : ""}`}
                       key={pokemon.id}
                       aria-label={pokemon.name}
                     >
@@ -342,26 +347,9 @@ export default function TeamBuilder({
                       </span>
                       <Sprite key={pokemon.id} pokemon={pokemon} />
                       <h3>{pokemon.name}</h3>
-                      <div className="type-badges">
-                        {pokemon.types.map((value) => (
-                          <span
-                            className={`type-badge type-${value}`}
-                            key={value}
-                          >
-                            {value}
-                          </span>
-                        ))}
-                      </div>
-                      <dl className="pokemon-stats">
-                        {(
-                          Object.keys(statNames) as (keyof Pokemon["stats"])[]
-                        ).map((key) => (
-                          <div key={key}>
-                            <dt>{statNames[key]}</dt>
-                            <dd>{pokemon.stats[key]}</dd>
-                          </div>
-                        ))}
-                      </dl>
+                      {members.some(member => member.id === pokemon.id) && <span className="selected-label">In team · {members.filter(member => member.id === pokemon.id).length}</span>}
+                      <TypeBadges types={pokemon.types} />
+                      <StatList pokemon={pokemon} />
                       <button
                         className="add-button"
                         disabled={locked || members.length >= 6}
@@ -504,7 +492,7 @@ export default function TeamBuilder({
                           <Sprite key={pokemon.id} pokemon={pokemon} />
                           <div className="member-info">
                             <h3>{pokemon.name}</h3>
-                            <span>{pokemon.types.join(" / ")}</span>
+                            <TypeBadges types={pokemon.types} />
                           </div>
                           <div className="member-actions">
                             <button
@@ -535,6 +523,7 @@ export default function TeamBuilder({
                               ×
                             </button>
                           </div>
+                          <StatList pokemon={pokemon} className="member-stats" />
                         </>
                       ) : (
                         <span>Empty slot</span>

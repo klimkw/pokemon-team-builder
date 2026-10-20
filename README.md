@@ -20,8 +20,8 @@ From `backend`, use Python 3.12 with uv: `uv sync --locked`, then
 `uv run --locked python -m pytest tests -q`. Runtime/test Docker images install the committed
 `uv.lock` with uv; no host Python environment is reused.
 From `frontend`, use Node 22.12+ (Node 24 recommended), run `npm ci`, `npm test`, and
-`npm run build`. 120 backend tests pass against PostgreSQL; the fast SQLite option
-passes 105 with 15 PostgreSQL-only skips. All 22 frontend component tests pass. Five
+`npm run build`. 127 backend tests pass against PostgreSQL; the fast SQLite option
+passes 112 with 15 PostgreSQL-only skips. All 23 frontend component tests pass. Six
 Chromium E2E tests pass against PostgreSQL, FastAPI, and the production build served
 through Nginx in the isolated Docker stack. TypeScript and production build pass.
 See [TESTING.md](TESTING.md) for isolated Compose tests, setup, cleanup, and reports.
@@ -341,7 +341,8 @@ email verification are outside scope. Health currently reports process liveness 
 ## Workspace controls
 
 The Pokédex supports 12/24/48/96 records per page, multiple types with any/all matching,
-and inclusive min/max ranges for each base stat. Filters combine with search and reset
+and inclusive range sliders for each base stat. Index/stat sorting is applied before
+pagination. Type badges and six-stat displays are shared with the selected team. Filters combine with search and reset
 to the first page when changed. The profile button opens account controls and your
 saved-team list. Username/password changes require the current password; a new password
 revokes existing sessions. Team drafts remain intact while viewing Profile.

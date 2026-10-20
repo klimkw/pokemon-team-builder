@@ -154,6 +154,7 @@ export type Pokemon = {
   sprite_url: string | null;
 };
 export type PokemonPage = {
+  stat_maxima?: Record<string, number>;
   items: Pokemon[];
   total: number;
   limit: number;
@@ -167,6 +168,7 @@ export type Team = {
 export type TeamWrite = { name: string; pokemon_ids: number[] };
 
 export type CatalogOptions = {
+  sort?: string;
   types: string[];
   typeMatch: "any" | "all";
   ranges: Record<string, string>;
@@ -177,6 +179,7 @@ export async function getCatalog(
   options?: CatalogOptions,
 ): Promise<PokemonPage> {
   const params = new URLSearchParams({ q, limit: String(options?.limit ?? 24), offset: String(offset) });
+  if (options?.sort && options.sort !== "index") params.set("sort", options.sort);
   if (type) params.set("type", type);
   options?.types.forEach(value => params.append("types", value));
   if (options?.types.length) params.set("type_match", options.typeMatch);

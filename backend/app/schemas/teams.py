@@ -27,6 +27,7 @@ class PokemonRead(BaseModel):
 
 
 class PokemonPage(BaseModel):
+    stat_maxima: dict[str, int] = Field(default_factory=dict)
     items: list[PokemonRead]
     total: int
     limit: int

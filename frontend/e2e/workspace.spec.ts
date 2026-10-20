@@ -34,7 +34,10 @@ test("stable account card, advanced filters, profile and password changes", asyn
   await page.getByLabel("Type matching").selectOption("all");
   await expect(page.getByText("No Pokémon to show")).toBeVisible();
   await page.getByLabel("Type matching").selectOption("any");
-  await page.getByLabel("Attack minimum").fill("50");
+  const attackMinimum = page.getByRole("slider", { name: "Attack minimum" });
+  await attackMinimum.focus();
+  await attackMinimum.press("Home");
+  for (let step = 0; step < 5; step++) await attackMinimum.press("PageUp");
   await expect(page.getByText("No Pokémon to show")).toBeVisible();
   await page.getByRole("button", { name: "Clear filters" }).click();
   await expect(page.getByRole("article")).toHaveCount(12);

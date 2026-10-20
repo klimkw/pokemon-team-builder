@@ -14,6 +14,7 @@ async def list_pokemon(db: Database, q: str = Query(default='', max_length=100),
                        type: PokemonType | None = None,
                        types: Annotated[list[PokemonType] | None, Query()] = None,
                        type_match: Literal['any', 'all'] = 'any',
+                       sort: Literal['index', 'hp_asc', 'hp_desc', 'attack_asc', 'attack_desc', 'defense_asc', 'defense_desc', 'special_attack_asc', 'special_attack_desc', 'special_defense_asc', 'special_defense_desc', 'speed_asc', 'speed_desc'] = 'index',
                        limit: int = Query(default=24, ge=1, le=100),
                        offset: int = Query(default=0, ge=0),
                        hp_min: int | None = Query(None, ge=0, le=999),
@@ -45,8 +46,17 @@ async def list_pokemon(db: Database, q: str = Query(default='', max_length=100),
         if high is not None:
             conditions.append(Pokemon.stats[stat].as_integer() <= high)
     total = await db.scalar(select(func.count()).select_from(Pokemon).where(*conditions))
-    items = await db.scalars(select(Pokemon).where(*conditions).order_by(Pokemon.id).limit(limit).offset(offset))
-    return PokemonPage(items=[PokemonRead.model_validate(item) for item in items], total=total, limit=limit, offset=offset)
+    ordering = [Pokemon.id]
+    if sort != 'index':
+        stat, direction = sort.rsplit('_', 1)
+        value = Pokemon.stats[stat].as_integer()
+        ordering = [value.asc() if direction == 'asc' else value.desc(), Pokemon.id]
+    items = await db.scalars(select(Pokemon).where(*conditions).order_by(*ordering).limit(limit).offset(offset))
+    # Domains use the entire catalog, so sliders do not shrink when filters are applied.
+    stats = ['hp', 'attack', 'defense', 'special_attack', 'special_defense', 'speed']
+    maxima = (await db.execute(select(*(func.max(Pokemon.stats[key].as_integer()) for key in stats)))).one()
+    stat_maxima = {key: max(255, value or 0) for key, value in zip(stats, maxima)}
+    return PokemonPage(items=[PokemonRead.model_validate(item) for item in items], total=total, limit=limit, offset=offset, stat_maxima=stat_maxima)
 
 
 @router.get('/{pokemon_id}', response_model=PokemonRead)

@@ -113,9 +113,9 @@ npm test
 npm run build
 ```
 
-The default backend suite uses temporary SQLite databases: 105 tests pass, with
+The default backend suite uses temporary SQLite databases: 112 tests pass, with
 15 PostgreSQL-only tests skipped. It is a fast check, not a PostgreSQL substitute.
-The frontend has 22 component tests using mocked HTTP responses. Vitest discovers
+The frontend has 23 component tests using mocked HTTP responses. Vitest discovers
 only src/**/*.test files; Playwright discovers e2e files separately.
 
 ## Run PostgreSQL tests or Playwright from the host
@@ -385,3 +385,29 @@ Final runtime check confirmed the corrected worker waits for its remaining inter
 all active manual fields match their applied values, and original history remains at
 two events. Health and Alembic metadata checks passed. The running UI is updated; the
 owner should save any draft before refreshing their browser.
+
+
+## Catalog sorting, sliders and team comparison
+
+Current checks passed 127 PostgreSQL tests, 112 SQLite tests with 15 PostgreSQL-only
+skips, 23 component tests and six regular Chromium flows. All twelve stat ordering
+choices are tested for numeric order, stable index ties, filter combination and
+pagination. Invalid sorting is rejected; global slider maxima remain available for
+empty filtered results and expand for unusually large catalog/demo values.
+
+The range component exposes two labelled native handles, visible selected values and
+clamping. Chromium checks both keyboard increments and a real pointer drag, then
+clears filters. It checks selected-card counts, all six visible team stats, matching
+computed type-badge colors/fonts across filters/cards/team members, and mobile width.
+The existing workspace range-input check now exercises the slider with keyboard keys.
+
+Visual review caught an extra selected-count label rendered in a team slot and
+positioned over its panel. It was removed; a browser assertion now verifies that only
+the catalog card has the count. Component and browser suites were rerun afterward.
+Reports/screenshots: test-artifacts/catalog-comparison/. Test containers and their
+network are cleaned up separately from development.
+
+The local app was updated using the tested images. Live sort/domain queries and
+Alembic check passed. Counts remain 1,351 catalog entries, two teams, one account,
+two history entries and one active manual scenario. The scanner retained its remaining
+interval and did not run a new startup refresh. No schema migration was required.

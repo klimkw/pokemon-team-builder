@@ -324,6 +324,23 @@ retaining the original scenario/history. Restart scheduling now respects the las
 live scan, with an additional regression test. See 06-workspace-ux.md for details.
 This increment is committed as “Refine workspace UX with filters, profiles and unread alerts”.
 
+## Catalog comparison refinements
+
+The owner requested default index sorting plus all six stat directions, paired range
+sliders, consistent type chips and visible selected-member stats. Sorting now occurs
+before pagination with deterministic index ties. Global catalog stat maxima provide
+stable slider domains; native minimum/maximum handles share a track and support both
+keyboard and pointer interaction. Shared type/stat components keep the three surfaces
+consistent, and selected catalog entries show a count while team slots expose six stats.
+
+Tests cover numeric ordering, filtering, pagination and slider maxima; Chromium checks
+requests, pointer/keyboard controls, matching computed styles, selection counts and
+mobile layout. Visual review found a duplicated count label positioned outside a team
+slot; it was removed and a regression assertion added. Final checks passed 127
+PostgreSQL tests, 112 SQLite tests with 15 skips, 23 components and six regular browser
+flows. See 07-catalog-comparison.md. The milestone is committed as “Add stat sorting,
+range sliders and selected-team comparisons”.
+
 ## Remaining assignment work
 
 Public deployment and the final one-page technical README remain. Known Vitest
