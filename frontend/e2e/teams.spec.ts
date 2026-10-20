@@ -31,12 +31,14 @@ test("build, save, reload, reorder, switch, and delete teams", async ({
   ).toBeVisible();
   await page.getByRole("button", { name: "Previous", exact: true }).click();
   await page.getByLabel("Search Pokémon").fill("bulbasaur");
-  await page.getByLabel("Type", { exact: true }).selectOption("grass");
+  await page.getByText(/^Filters/).click();
+  await page.getByRole("checkbox", { name: "grass", exact: true }).check();
   await expect(page.getByRole("article")).toHaveCount(1);
   await page.getByRole("button", { name: "Add bulbasaur to team" }).click();
   await page.getByRole("button", { name: "Add bulbasaur to team" }).click();
   await page.getByLabel("Search Pokémon").fill("charmander");
-  await page.getByLabel("Type", { exact: true }).selectOption("fire");
+  await page.getByRole("checkbox", { name: "grass", exact: true }).uncheck();
+  await page.getByRole("checkbox", { name: "fire", exact: true }).check();
   const add = page.getByRole("button", { name: "Add charmander to team" });
   for (let i = 0; i < 4; i++) await add.click();
   await expect(add).toBeDisabled();

@@ -73,7 +73,7 @@ export default function App() {
         setPassword("");
         setShowPassword(false);
         setNotice(
-          "Account created. Sign in with your new password to continue.",
+          "Account created. Sign in.",
         );
       } else {
         const user = await api.login(credentials);
@@ -94,11 +94,12 @@ export default function App() {
     setError("");
     try {
       await api.logout();
+      window.history.replaceState(null, "", window.location.pathname);
       setSession({ status: "ready", user: null });
       setMode("login");
       setPassword("");
       setShowPassword(false);
-      setNotice("You’re signed out. Your account is saved for next time.");
+      setNotice("You’re signed out.");
     } catch (error) {
       setError(errorMessage(error));
     } finally {
@@ -117,14 +118,13 @@ export default function App() {
             Pokémon<span className="brand-subtitle">TEAM BUILDER</span>
           </span>
         </a>
-        <span className="header-note">
-          <span className="status-dot" />A place for your next lineup
-        </span>
+        <div id="workspace-actions" />
       </header>
 
       {user ? (
         <TeamBuilder
           user={user}
+          onUserUpdated={(next) => setSession({ status: "ready", user: next })}
           onSignOut={signOut}
           signingOut={busy}
           accountError={error}
@@ -132,44 +132,9 @@ export default function App() {
       ) : (
         <main className="account-layout">
           <section className="intro" aria-labelledby="intro-title">
-            <p className="eyebrow">
-              <span className="eyebrow-line" />
-              THE MAKING OF A GREAT TEAM
-            </p>
-            <h1 id="intro-title">
-              Every great team
-              <br />
-              starts with <span>you.</span>
-            </h1>
-            <p className="intro-copy">
-              A favorite partner. An unexpected pairing.
-              <br className="desktop-break" /> A team that’s entirely yours.
-            </p>
-
-            <div className="lineup-art" aria-hidden="true">
-              <div className="lineup-label">
-                <span>YOUR NEXT CHAPTER</span>
-                <span>01 — 06</span>
-              </div>
-              <div className="lineup-circles">
-                <div className="partner-ball">
-                  <span />
-                </div>
-                {[2, 3, 4, 5, 6].map((number) => (
-                  <div className="empty-slot" key={number}>
-                    <span>+</span>
-                    <small>0{number}</small>
-                  </div>
-                ))}
-              </div>
-              <div className="lineup-caption">
-                <span className="tiny-star">✳</span> SIX SPOTS. ENDLESS
-                POSSIBILITIES.
-              </div>
-            </div>
-            <p className="intro-footnote">
-              A little strategy. A lot of possibility.
-            </p>
+            <span className="ball-mark hero-ball" aria-hidden="true" />
+            <h1 id="intro-title">Build your <span>team.</span></h1>
+            <p>Explore Pokémon. Find your counters.</p>
           </section>
 
           <section
@@ -219,21 +184,7 @@ export default function App() {
                     Create account
                   </button>
                 </div>
-                <p className="card-kicker">
-                  {mode === "login"
-                    ? "WELCOME BACK, TRAINER"
-                    : "YOUR JOURNEY STARTS HERE"}
-                </p>
-                <h2 id="account-title">
-                  {mode === "login"
-                    ? "Pick up where you left off."
-                    : "Make it your own."}
-                </h2>
-                <p className="card-description">
-                  {mode === "login"
-                    ? "Sign in to your Pokémon Team Builder account."
-                    : "Choose a username and password to get started."}
-                </p>
+                <h2 id="account-title">{mode === "login" ? "Sign in" : "Create account"}</h2>
                 {notice && (
                   <p className="message success" role="status">
                     {notice}
@@ -268,12 +219,7 @@ export default function App() {
                       mode === "register" ? "username-help" : undefined
                     }
                   />
-                  {mode === "register" && (
-                    <p className="field-help" id="username-help">
-                      3–32 letters, numbers, or underscores. Case doesn’t
-                      matter.
-                    </p>
-                  )}
+                  <p className="field-help" id="username-help">3–32 letters, numbers or underscores.</p>
                   <label htmlFor="password">Password</label>
                   <div className="password-field">
                     <input
@@ -309,11 +255,7 @@ export default function App() {
                       {showPassword ? "Hide" : "Show"}
                     </button>
                   </div>
-                  {mode === "register" && (
-                    <p className="field-help" id="password-help">
-                      Use 8–128 characters. A longer password is better.
-                    </p>
-                  )}
+                  <p className="field-help" id="password-help">8–128 characters.</p>
                   <button
                     className="primary-button"
                     type="submit"
@@ -329,25 +271,13 @@ export default function App() {
                     <span aria-hidden="true">↗</span>
                   </button>
                 </form>
-                <p className="account-note">
-                  <span className="note-icon" aria-hidden="true">
-                    ◇
-                  </span>
-                  {mode === "login"
-                    ? "Your teams belong to your account. Come back anytime."
-                    : "No email needed. Just a username and a fresh start."}
-                </p>
+
               </>
             )}
           </section>
         </main>
       )}
-      <footer className="site-footer">
-        <span>BUILT FOR THE TEAM YOU HAVE IN MIND.</span>
-        <span>
-          Pokémon Team Builder <span aria-hidden="true">↗</span>
-        </span>
-      </footer>
+
     </div>
   );
 }

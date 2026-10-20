@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import Profile from "./Profile";
 import * as api from "./api";
 import CounterPreview from "./CounterPreview";
 import Alerts from "./Alerts";
@@ -45,7 +47,9 @@ export default function TeamBuilder({
   onSignOut,
   signingOut,
   accountError,
+  onUserUpdated,
 }: {
+  onUserUpdated?: (user: User) => void;
   user: User;
   onSignOut: () => Promise<void>;
   signingOut: boolean;
@@ -64,6 +68,21 @@ export default function TeamBuilder({
   const [notice, setNotice] = useState("");
   const [query, setQuery] = useState("");
   const [type, setType] = useState("");
+  const [types, setTypes] = useState<string[]>([]);
+  const [typeMatch, setTypeMatch] = useState<"any" | "all">("any");
+  const [pageSize, setPageSize] = useState(24);
+  const [ranges, setRanges] = useState<Record<string, string>>({});
+  const [profileOpen, setProfileOpen] = useState(window.location.hash === "#profile");
+  useEffect(() => {
+    const sync = () => setProfileOpen(window.location.hash === "#profile");
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
+  }, []);
+  function showProfile(open: boolean) {
+    setProfileOpen(open);
+    window.history.replaceState(null, "", open ? "#profile" : window.location.pathname);
+  }
+  const invalidRanges = Object.keys(statNames).some(stat => ranges[stat + "_min"] && ranges[stat + "_max"] && Number(ranges[stat + "_min"]) > Number(ranges[stat + "_max"]));
   const [offset, setOffset] = useState(0);
   const [catalog, setCatalog] = useState<PokemonPage | null>(null);
   const [catalogLoading, setCatalogLoading] = useState(true);
@@ -113,9 +132,10 @@ export default function TeamBuilder({
     const controller = new AbortController();
     setCatalogLoading(true);
     setCatalogError("");
+    if (invalidRanges) { setCatalogLoading(false); setCatalogError("Minimum must not exceed maximum."); return () => controller.abort(); }
     // Debounce text entry and ignore responses from superseded searches.
     const timer = window.setTimeout(() => {
-      api.getCatalog(query.trim(), type, offset, controller.signal).then(
+      api.getCatalog(query.trim(), type, offset, controller.signal, { types, typeMatch, ranges, limit: pageSize }).then(
         (result) => {
           if (!controller.signal.aborted) {
             setCatalog(result);
@@ -134,7 +154,7 @@ export default function TeamBuilder({
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [query, type, offset, catalogRetry]);
+  }, [query, type, types, typeMatch, ranges, pageSize, offset, catalogRetry, invalidRanges]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -183,11 +203,11 @@ export default function TeamBuilder({
       setBusy(false);
     }
   }
-  async function removeTeam() {
-    if (!selected || operation.current || locked) return;
+  async function removeTeam(target = selected) {
+    if (!target || operation.current || locked) return;
     if (
       !window.confirm(
-        `Delete “${teams.find((team) => team.id === selected)?.name ?? name}”? This also discards any unsaved changes to this team.`,
+        `Delete “${teams.find((team) => team.id === target)?.name ?? name}”? This also discards any unsaved changes to this team.`,
       )
     )
       return;
@@ -196,10 +216,10 @@ export default function TeamBuilder({
     setSaveError("");
     setNotice("");
     try {
-      await api.deleteTeam(selected);
-      const remaining = teams.filter((team) => team.id !== selected);
+      await api.deleteTeam(target);
+      const remaining = teams.filter((team) => team.id !== target);
       setTeams(remaining);
-      openTeam(remaining[0]);
+      if (target === selected) openTeam(remaining[0]);
       setNotice("Team deleted.");
     } catch (error) {
       setSaveError(message(error));
@@ -209,42 +229,38 @@ export default function TeamBuilder({
     }
   }
 
+  const membershipKey = JSON.stringify(teams.map(team => [team.id, team.name, team.members.map(member => member.pokemon.id)]));
+  const toolbar = <div className="header-actions">
+    <Alerts membershipKey={membershipKey} />
+    <button className="icon-button" aria-label="Profile" aria-pressed={profileOpen} onClick={() => showProfile(!profileOpen)}>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg>
+    </button>
+    <button className="quiet-button" disabled={busy || signingOut} onClick={() => { if (canLeave()) void onSignOut(); }}>{signingOut ? "Signing out…" : "Sign out"}</button>
+  </div>;
+  const header = document.getElementById("workspace-actions");
   return (
     <main className="builder">
-      <div className="builder-heading">
-        <div>
-          <p className="eyebrow">YOUR NEXT LINEUP</p>
-          <h1>
-            Make room for <span>possibility.</span>
-          </h1>
-          <h2 className="trainer-greeting">You’re in, {user.username}.</h2>
-        </div>
-        <button
-          className="quiet-button"
-          disabled={busy || signingOut}
-          onClick={() => {
-            if (canLeave()) void onSignOut();
-          }}
-        >
-          {signingOut ? "Signing out…" : "Sign out"}
-        </button>
-      </div>
+      {header ? createPortal(toolbar, header) : toolbar}
+      <h2 className="sr-only trainer-greeting">You’re in, {user.username}.</h2>
+      {profileOpen && <Profile user={user} teams={teams} busy={locked} onBack={() => showProfile(false)}
+        onEdit={team => { if (canLeave()) { openTeam(team); showProfile(false); } }}
+        onDelete={team => removeTeam(team.id)} onUpdated={next => onUserUpdated?.(next)}
+        onPasswordChanged={onSignOut} canEndSession={canLeave} operationError={saveError || teamsError} />}
       {accountError && (
         <p className="message error" role="alert">
           {accountError}
         </p>
       )}
-      <nav className="builder-jumps" aria-label="Workspace sections">
+      <nav hidden={profileOpen} className="builder-jumps" aria-label="Workspace sections">
         <a href="#catalog-title">Browse Pokémon</a>
         <a href="#team-title">Your team · {members.length} / 6</a>
       </nav>
-      {!teamsLoading && !teamsError && <Alerts membershipKey={JSON.stringify(teams.map(team => [team.id, team.name, team.members.map(member => member.pokemon.id)]))} />}
-      <div className="builder-columns">
+
+      <div className="builder-columns" hidden={profileOpen}>
         <section className="catalog-panel" aria-labelledby="catalog-title">
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">FIND YOUR PARTNERS</p>
-              <h2 id="catalog-title">The Pokédex</h2>
+              <h1 id="catalog-title">Pokédex</h1>
             </div>
             <span className="catalog-count">
               {catalog && !catalogLoading && !catalogError
@@ -268,24 +284,26 @@ export default function TeamBuilder({
               />
             </div>
             <div>
-              <label htmlFor="pokemon-type">Type</label>
-              <select
-                id="pokemon-type"
-                value={type}
-                onChange={(event) => {
-                  setType(event.target.value);
-                  setOffset(0);
-                }}
-              >
-                <option value="">All types</option>
-                {api.pokemonTypes.map((value) => (
-                  <option key={value} value={value}>
-                    {value[0].toUpperCase() + value.slice(1)}
-                  </option>
-                ))}
+              <label htmlFor="page-size">Per page</label>
+              <select id="page-size" value={pageSize} onChange={event => { setPageSize(Number(event.target.value)); setOffset(0); }}>
+                {[12, 24, 48, 96].map(size => <option key={size} value={size}>{size}</option>)}
               </select>
             </div>
           </div>
+          <details className="filter-panel">
+            <summary>Filters{types.length || Object.values(ranges).some(Boolean) ? " · active" : ""}</summary>
+            <fieldset className="type-filter"><legend>Types</legend>
+              <div className="type-options">{api.pokemonTypes.map(value => <label className={`type-option ${types.includes(value) ? "selected" : ""}`} key={value}>
+                <input type="checkbox" checked={types.includes(value)} onChange={event => { setType(""); setTypes(current => event.target.checked ? [...current, value] : current.filter(t => t !== value)); setOffset(0); }} />{value}
+              </label>)}</div>
+              <label className="filter-match">Match<select aria-label="Type matching" value={typeMatch} onChange={event => { setTypeMatch(event.target.value as "any" | "all"); setOffset(0); }}><option value="any">Any selected type</option><option value="all">All selected types</option></select></label>
+            </fieldset>
+            <fieldset><legend>Base stats</legend><div className="stat-ranges">{Object.entries(statNames).map(([key, label]) => <div className="stat-range" key={key}>
+              <span>{label}</span>{["min", "max"].map(bound => <input key={bound} aria-label={`${label} ${bound === "min" ? "minimum" : "maximum"}`} type="number" min={0} max={999} placeholder={bound === "min" ? "Min" : "Max"} value={ranges[`${key}_${bound}`] ?? ""} onChange={event => { setRanges(current => ({ ...current, [`${key}_${bound}`]: event.target.value })); setOffset(0); }} />)}
+            </div>)}</div></fieldset>
+            <button className="quiet-button" onClick={() => { setTypes([]); setType(""); setTypeMatch("any"); setRanges({}); setOffset(0); }}>Clear filters</button>
+          </details>
+
           <div aria-busy={catalogLoading}>
             {catalogLoading ? (
               <p className="catalog-state" role="status">
@@ -305,7 +323,7 @@ export default function TeamBuilder({
               <div className="catalog-state">
                 <h3>No Pokémon to show</h3>
                 <p>
-                  {query || type
+                  {query || type || types.length || Object.values(ranges).some(Boolean)
                     ? "Try another name or type."
                     : "The catalog hasn’t been loaded yet. Once it’s ready, Pokémon will appear here."}
                 </p>
@@ -364,7 +382,7 @@ export default function TeamBuilder({
                     className="quiet-button"
                     disabled={offset === 0}
                     onClick={() =>
-                      setOffset((value) => Math.max(0, value - 24))
+                      setOffset((value) => Math.max(0, value - pageSize))
                     }
                   >
                     Previous
@@ -377,7 +395,7 @@ export default function TeamBuilder({
                   <button
                     className="quiet-button"
                     disabled={offset + catalog.limit >= catalog.total}
-                    onClick={() => setOffset((value) => value + 24)}
+                    onClick={() => setOffset((value) => value + pageSize)}
                   >
                     Next
                   </button>
@@ -393,7 +411,6 @@ export default function TeamBuilder({
         >
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">SIX SPOTS. YOUR CALL.</p>
               <h2 id="team-title">Your team</h2>
             </div>
             <span className="member-count">{members.length} / 6</span>
@@ -466,10 +483,10 @@ export default function TeamBuilder({
                   {dirty
                     ? "Unsaved changes"
                     : selected
-                      ? "All changes saved"
+                      ? "Saved"
                       : "New team draft"}
                 </span>
-                <span>Duplicates welcome</span>
+
               </div>
               <ol className="team-members">
                 {Array.from({ length: 6 }, (_, index) => {
@@ -520,15 +537,13 @@ export default function TeamBuilder({
                           </div>
                         </>
                       ) : (
-                        <span>Choose a Pokémon from the catalog</span>
+                        <span>Empty slot</span>
                       )}
                     </li>
                   );
                 })}
               </ol>
-              <p className="team-hint">
-                Order matters. Use the arrows to arrange your lineup.
-              </p>
+
               {saveError && (
                 <p className="message error" role="alert">
                   {saveError}
@@ -547,9 +562,7 @@ export default function TeamBuilder({
                 {busy ? "Working…" : "Save team"}
                 <span aria-hidden="true">↗</span>
               </button>
-              <p className="save-hint">
-                Changes are saved only when you choose Save team.
-              </p>
+
               <div className="counter-entry">
                 <button
                   className="secondary-button"

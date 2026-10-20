@@ -118,3 +118,9 @@ class DemoState(Base):
     demo_id: Mapped[uuid.UUID] = mapped_column(GUID)
     payload: Mapped[dict] = mapped_column(JSON().with_variant(JSONB(), "postgresql"))
     originals: Mapped[dict] = mapped_column(JSON().with_variant(JSONB(), "postgresql"))
+
+
+class AlertRead(Base):
+    __tablename__ = "alert_reads"
+    user_id: Mapped[uuid.UUID] = mapped_column(GUID, ForeignKey("user.id", ondelete="CASCADE"), primary_key=True)
+    change_id: Mapped[uuid.UUID] = mapped_column(GUID, ForeignKey("catalog_changes.id", ondelete="CASCADE"), primary_key=True)

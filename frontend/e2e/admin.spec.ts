@@ -29,14 +29,24 @@ test("admin docs queue scanner changes, repeat without duplicates and reset in t
   }
   const first = await run("demo/changes", patch);
   expect(first.pokemon.updated).toBe(1);
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Alerts, 2 unread", exact: true })).toBeVisible();
+  await expect(page.locator(".unread-badge")).toHaveText("2");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.getByRole("button", { name: /^Alerts/ }).click();
   await page.getByRole("button", { name: "Refresh alerts" }).click();
   await expect(page.getByRole("heading", { name: "Recent changes (2)" })).toBeVisible();
   await expect(page.getByText("Attack: 49 → 60")).toBeVisible();
   await expect(page.getByText(/Demo change · applied manually/)).toHaveCount(2);
   await page.screenshot({ path: testInfo.outputPath("admin-alerts.png"), fullPage: true });
+  await expect(page.locator(".unread-badge")).toHaveCount(0);
+  await page.getByRole("button", { name: "Close alerts" }).click();
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Alerts", exact: true })).toBeVisible();
   expect((await run("demo/changes", patch)).pokemon.updated).toBe(0);
   expect((await (await page.request.get("/api/alerts")).json()).total).toBe(2);
   expect((await run("demo/reset")).removed_history).toBe(2);
+  await page.getByRole("button", { name: /^Alerts/ }).click();
   await page.getByRole("button", { name: "Refresh alerts" }).click();
   await expect(page.getByText("No recent changes affecting your saved teams.")).toBeVisible();
   expect((await (await page.request.get("/api/pokemon/1")).json()).stats.attack).toBe(49);

@@ -300,6 +300,30 @@ all 18 type rows unchanged, zero failures, and existing accounts/teams preserved
 No fictional changes are active in the development app. See 05-admin-scanner-controls.md
 for review steps and operational details.
 
+## Compact UI, profile and persistent unread alerts
+
+The owner requested less copy, consistent account-card alignment, selectable catalog
+page size, multiple type/stat filters, header sign-out/profile/alerts actions and an
+unread badge. The workspace retains the existing palette, with short labels and an
+initially closed native alerts drawer. Filters offer any/all type matching and all
+six inclusive stat ranges; size/filter changes return to page one.
+
+Profile preserves the mounted builder draft, exposes saved teams for editing/deletion,
+and supports username/password changes with current-password verification. Password
+changes revoke all sessions atomically. Migration 0005 adds per-user alert reads so
+badges persist across sessions and only displayed events become read. Polling/focus
+refresh keeps counts current without a realtime channel.
+
+Verification passed 120 PostgreSQL tests, 105 SQLite tests with 15 skips, 22 component
+tests and five normal browser flows. Card dimensions, header placement, filter behavior,
+profile/account actions, mobile layout and unread persistence were checked in Chromium.
+The old saved-copy assertion was updated; stale profile navigation after sign-out was
+fixed. Deployment exposed the scanner's startup refresh interfering with an active
+manual scenario; its two reversals were restored and its generated events removed,
+retaining the original scenario/history. Restart scheduling now respects the last full
+live scan, with an additional regression test. See 06-workspace-ux.md for details.
+This increment is committed as “Refine workspace UX with filters, profiles and unread alerts”.
+
 ## Remaining assignment work
 
 Public deployment and the final one-page technical README remain. Known Vitest

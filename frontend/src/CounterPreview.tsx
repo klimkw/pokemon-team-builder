@@ -101,7 +101,6 @@ export default function CounterPreview({
     >
       <div className="counter-heading">
         <div>
-          <p className="eyebrow">A PLAN FOR THE MATCHUP</p>
           <h2 id="counter-title">Optimal counter team</h2>
         </div>
         <button
@@ -114,8 +113,7 @@ export default function CounterPreview({
         </button>
       </div>
       <p id="counter-description" className="counter-description">
-        Based on your current lineup, including unsaved member changes. Your
-        original team stays as it is.
+        Based on your current draft. Saved as a separate team.
       </p>
       {loading && (
         <p role="status" className="catalog-state">

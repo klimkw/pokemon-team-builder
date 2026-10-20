@@ -6,7 +6,7 @@ import signal
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from app.db import session as db
-from app.db.models import AdminJob, utc_now
+from app.db.models import AdminJob, ScanRun, utc_now
 from app.jobs.scanner import run_scan, scan_lock
 from app.services.demo_controls import apply_changes, reset_changes
 from app.settings import CATALOG_SCAN_INTERVAL_HOURS, ENABLE_DEMO_CONTROLS
@@ -69,12 +69,25 @@ async def process_one(engine):
     return True
 
 
+async def scan_delay(sessions, *, now=None):
+    """Persist interval semantics across worker restarts; manual scenarios are not live refreshes."""
+    now = now or utc_now()
+    async with sessions() as session:
+        runs = await session.scalars(select(ScanRun).where(ScanRun.status.in_(['succeeded', 'partial']),
+            ScanRun.finished_at.is_not(None)).order_by(ScanRun.finished_at.desc()))
+        for run in runs:
+            if run.summary.get('scope') == 'full' and 'types' in run.summary and run.summary.get('source') in (None, 'upstream'):
+                elapsed = (now - run.finished_at).total_seconds()
+                return max(0, CATALOG_SCAN_INTERVAL_HOURS * 3600 - elapsed)
+    return 0
+
+
 async def work(engine, stop, *, scheduled=False, poll_seconds=2):
     async with scan_lock(engine, key=WORKER_LOCK_KEY) as ownership:
         if ownership is None:
             raise RuntimeError('Another scanner worker already owns this database queue')
         await recover_jobs(ownership)
-        next_scan = 0
+        next_scan = asyncio.get_running_loop().time() + (await scan_delay(ownership) if scheduled else 0)
         while not stop.is_set():
             ownership.check()
             # Prove the worker still owns its original physical advisory-lock session.

@@ -8,6 +8,8 @@ owner review the decisions and explain the application from browser to database.
   implementation increments, verification, and Git milestones.
 - [PostgreSQL and Alembic walkthrough](02-postgres-and-alembic.md): what creates the
   database, what creates the tables, how requests use them, and how upgrades preserve data.
+- [Workspace UX](06-workspace-ux.md): compact screens, catalog filters, secure profile
+  updates and persistent unread alerts.
 - [Admin scanner controls](05-admin-scanner-controls.md): the current same-app API-doc
   demonstration, live refresh, job status, admin setup, and reset boundaries.
 - [Alerts and demo](04-alerts-and-demo.md): relevance rules, fixture stages, expected UI,

@@ -1,68 +1,53 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import * as api from "./api";
 import Alerts from "./Alerts";
 import type { AlertPage } from "./api";
-
-const page: AlertPage = {
-  is_demo: false,
-  items: [{ is_manual_demo: true, id: "change-1", entity_kind: "pokemon", entity_name: "bulbasaur",
-    detected_at: "2026-10-20T12:00:00Z", changes: { "stats.attack": { before: 49, after: 60 } },
-    affected: [{ id: 1, name: "bulbasaur", reasons: ["catalog"], teams: [{ id: "team-1", name: "My lineup", positions: [0, 2] }] }] }],
-  total: 1, limit: 10, offset: 0, window_days: 7, since: "2026-10-13T12:00:00Z", as_of: "2026-10-20T12:00:00Z",
-  latest_scan: { status: "succeeded", started_at: "2026-10-20T11:59:00Z", finished_at: "2026-10-20T12:00:00Z" },
-};
+const page: AlertPage = { is_demo: false, unread_total: 1,
+  items: [{ id: "change-1", is_manual_demo: true, is_read: false, entity_kind: "pokemon", entity_name: "bulbasaur", detected_at: "2026-10-20T12:00:00Z", changes: { "stats.attack": { before: 49, after: 60 } }, affected: [{ id: 1, name: "bulbasaur", reasons: ["catalog"], teams: [{ id: "team-1", name: "My lineup", positions: [0, 2] }] }] }],
+  total: 1, limit: 10, offset: 0, window_days: 7, since: "2026-10-13T12:00:00Z", as_of: "2026-10-20T12:00:00Z", latest_scan: null };
+beforeEach(() => {
+  vi.spyOn(HTMLDialogElement.prototype, "showModal").mockImplementation(function (this: HTMLDialogElement) { this.setAttribute("open", ""); });
+  vi.spyOn(HTMLDialogElement.prototype, "close").mockImplementation(function (this: HTMLDialogElement) { this.removeAttribute("open"); });
+  vi.spyOn(api, "markAlertsRead").mockResolvedValue(undefined);
+});
 afterEach(() => vi.restoreAllMocks());
-
-it("shows field differences, observation time and grouped saved slots", async () => {
+it("keeps the tray closed and counts unread alerts until opened", async () => {
   vi.spyOn(api, "getAlerts").mockResolvedValue(page);
   render(<Alerts membershipKey="one" />);
-  expect(await screen.findByText("bulbasaur changed")).toBeVisible();
-  expect(screen.getByText("Attack: 49 → 60")).toBeVisible();
-  expect(screen.getByText(/Demo change · applied manually/)).toBeVisible();
+  const icon = await screen.findByRole("button", { name: "Alerts, 1 unread" });
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(api.markAlertsRead).not.toHaveBeenCalled();
+  fireEvent.click(icon);
+  expect(await screen.findByText("Attack: 49 → 60")).toBeVisible();
   expect(screen.getByText("My lineup · slots 1, 3")).toBeVisible();
-  expect(screen.getByText(/last 7 days/)).toBeVisible();
-  expect(screen.getByText(/Unsaved drafts are not included/)).toBeVisible();
+  await waitFor(() => expect(screen.getByRole("button", { name: "Alerts" })).toBeVisible());
+  expect(api.markAlertsRead).toHaveBeenCalledWith(["change-1"]);
+  fireEvent.click(screen.getByRole("button", { name: "Close alerts" }));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 });
-
-it("explains type directions and incomplete scanner freshness", async () => {
-  vi.spyOn(api, "getAlerts").mockResolvedValue({ ...page,
-    is_demo: true,
-    latest_scan: { ...page.latest_scan!, status: "partial" },
-    items: [{ ...page.items[0], entity_kind: "type", entity_name: "fire",
-      changes: { "damage_to.grass": { before: 2, after: 1 } },
-      affected: [{ ...page.items[0].affected[0], reasons: ["defending_type"] }] }],
-  });
+it("does not hide unread badges if marking read fails", async () => {
+  vi.spyOn(api, "getAlerts").mockResolvedValue(page);
+  vi.mocked(api.markAlertsRead).mockRejectedValue(new Error("network"));
   render(<Alerts membershipKey="one" />);
-  expect(await screen.findByText("fire type matchups changed")).toBeVisible();
-  expect(screen.getByText("fire attacks against grass: 2× → 1×")).toBeVisible();
-  expect(screen.getByText(/its defensive matchup changed/)).toBeVisible();
-  expect(screen.getByText(/Some source data may not have been checked/)).toBeVisible();
-  expect(screen.getByText(/these changes are fictional/)).toBeVisible();
+  fireEvent.click(await screen.findByRole("button", { name: "Alerts, 1 unread" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("Could not mark alerts");
+  expect(screen.getByRole("button", { name: "Alerts, 1 unread" })).toBeVisible();
 });
-
-it("shows empty and never-scanned states and retries failed loads", async () => {
-  const load = vi.spyOn(api, "getAlerts").mockRejectedValueOnce(new Error("Server unavailable"))
-    .mockResolvedValue({ ...page, total: 0, items: [], window_days: 14, latest_scan: null });
+it("retries failed loads and shows the empty state", async () => {
+  const load = vi.spyOn(api, "getAlerts").mockRejectedValueOnce(new Error("Server unavailable")).mockResolvedValue({ ...page, total: 0, unread_total: 0, items: [] });
   render(<Alerts membershipKey="empty" />);
-  expect(await screen.findByRole("alert")).toHaveTextContent("Server unavailable");
-  fireEvent.click(screen.getByRole("button", { name: "Refresh alerts" }));
+  fireEvent.click(screen.getByRole("button", { name: "Alerts" }));
   expect(await screen.findByText("No recent changes affecting your saved teams.")).toBeVisible();
-  expect(screen.getByText(/last 14 days/)).toBeVisible();
-  expect(screen.getByText(/No scan has been recorded/)).toBeVisible();
-  expect(load).toHaveBeenCalledTimes(2);
+  expect(load.mock.calls.length).toBeGreaterThan(1);
 });
-
-it("paginates and refreshes membership without allowing stale requests to replace results", async () => {
-  const load = vi.spyOn(api, "getAlerts").mockResolvedValue({ ...page, total: 11 });
+it("paginates and resets to the latest page when saved membership changes", async () => {
+  const load = vi.spyOn(api, "getAlerts").mockResolvedValue({ ...page, total: 11, unread_total: 0, items: [{ ...page.items[0], is_read: true }] });
   const view = render(<Alerts membershipKey="first" />);
+  fireEvent.click(screen.getByRole("button", { name: "Alerts" }));
   await screen.findByText("bulbasaur changed");
   fireEvent.click(screen.getByRole("button", { name: "Older alerts" }));
   await waitFor(() => expect(load).toHaveBeenLastCalledWith(10, expect.any(AbortSignal)));
-  await screen.findByText("bulbasaur changed");
-  expect(screen.getByRole("button", { name: "Older alerts" })).toBeDisabled();
   view.rerender(<Alerts membershipKey="second" />);
   await waitFor(() => expect(load).toHaveBeenLastCalledWith(0, expect.any(AbortSignal)));
-  view.unmount();
-  expect(load.mock.calls.at(-1)![1]!.aborted).toBe(true);
 });

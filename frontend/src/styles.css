@@ -1368,3 +1368,74 @@ input:disabled {
 .change-list > li { border-top: 1px solid #deded5; padding-top: 1rem; }
 .change-list h3 { margin-bottom: .4rem; }
 .change-list ul { padding-left: 1.3rem; }
+
+/* Compact workspace and account layouts. */
+[hidden] { display: none !important; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+.site-header { height: 88px; flex-shrink: 0; gap: 16px; }
+.header-actions { display: flex; align-items: center; gap: 12px; }
+.icon-button { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; border: 1px solid #dcded4; border-radius: 50%; background: #fffdf8; font-size: 26px; flex-shrink: 0; }
+.icon-button:hover, .icon-button[aria-pressed="true"] { background: #e7eadf; border-color: #a2ad8a; }
+.icon-button svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.unread-badge { position: absolute; top: -5px; right: -6px; min-width: 20px; height: 20px; padding: 0 4px; display: grid; place-items: center; border-radius: 50%; background: #c73d30; color: white; font-size: 10px; font-weight: 800; border: 2px solid #f6f4ee; }
+.alert-error-dot { position: absolute; top: -4px; right: -4px; font-size: 12px; color: #a73022; }
+.builder { padding-top: 30px; }
+.builder-columns { gap: 26px; }
+.catalog-panel h1 { font-family: Manrope, sans-serif; font-size: 28px; letter-spacing: -1px; }
+.panel-heading { min-height: 44px; }
+.catalog-filters { grid-template-columns: minmax(0, 1fr) 100px; align-items: end; margin: 20px 0 12px; }
+.filter-panel { margin-bottom: 20px; border: 1px solid #dcdfd3; border-radius: 12px; padding: 12px 14px; background: #fcfbf7; }
+.filter-panel summary { cursor: pointer; font-size: 13px; font-weight: 650; }
+.filter-panel fieldset { border: 0; padding: 0; margin: 18px 0; min-width: 0; }
+.filter-panel legend { font-weight: 650; font-size: 12px; margin-bottom: 10px; }
+.type-options { display: flex; flex-wrap: wrap; gap: 7px; }
+.type-option { display: inline-flex; gap: 5px; align-items: center; padding: 5px 9px; border: 1px solid #d9ddcf; border-radius: 16px; background: #fff; font-size: 11px; text-transform: capitalize; cursor: pointer; }
+.type-option.selected { background: #e2e9d4; border-color: #8c9b70; }
+.type-option input { width: 13px; height: 13px; margin: 0; accent-color: #667848; padding: 0; }
+.filter-match { display: flex; gap: 10px; align-items: center; margin-top: 12px; font-size: 12px; }
+.filter-match select { width: auto; max-width: 220px; }
+.stat-ranges { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px 20px; }
+.stat-range { display: grid; grid-template-columns: 65px minmax(0,1fr) minmax(0,1fr); align-items: center; gap: 7px; font-size: 11px; }
+.stat-range input { width: 100%; min-width: 0; padding: 8px; height: 36px; }
+.team-panel { border: 1px solid #dcdfd3; border-radius: 16px; background: #fffdf9; padding: 20px; }
+.team-panel .panel-heading h2 { margin-top: 0; font-size: 22px; }
+.team-member { min-height: 75px; }
+.empty-member { min-height: 62px; }
+.account-layout { align-items: center; flex: 1; min-height: calc(100svh - 88px); gap: 7vw; padding: 48px 0; }
+.account-card { width: 100%; min-height: 550px; align-self: center; padding: 32px; }
+.account-card h2 { font-size: 26px; line-height: 1.3; margin: 24px 0; min-height: 34px; }
+.account-card .field-help { min-height: 18px; margin-bottom: 18px; font-size: 11px; }
+.account-card .message { margin-bottom: 12px; }
+.intro h1 { font-size: clamp(36px, 4vw, 60px); line-height: 1.1; }
+.intro > p { margin-top: 20px; color: #6c735f; font-size: 15px; }
+.hero-ball { width: 64px; height: 64px; margin-bottom: 32px; border-width: 3px; }
+.hero-ball::before { height: 3px; }
+.hero-ball::after { width: 18px; height: 18px; border-width: 3px; }
+.alerts-drawer { inset: 0 0 0 auto; margin: 0 0 0 auto; width: min(440px,100vw); max-width: 100vw; height: 100dvh; max-height: 100dvh; border: 0; border-left: 1px solid #dcded4; padding: 0; background: #fcfbf7; color: #252820; box-shadow: -16px 0 80px #25282020; }
+.alerts-drawer::backdrop { background: #25282066; }
+.alerts-content { padding: 24px; min-height: 100%; overflow-wrap: anywhere; }
+.alerts-content h2 { font-size: 23px; }
+.alerts-meta { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 16px 0; font-size: 12px; color: #6c735f; }
+.alerts-empty { text-align: center; color: #6c735f; padding: 70px 10px; }
+.change-list { font-size: 13px; }
+.change-list h3 { font-size: 15px; }
+.change-values { margin: 12px 0; }
+.affected-pokemon { margin-top: 10px; font-size: 12px; }
+.demo-label { font-size: 10px; color: #a73022; margin-bottom: 6px; }
+.profile-page > .panel-heading { margin-bottom: 24px; }
+.profile-page h1 { font-size: 28px; }
+.profile-columns { display: grid; grid-template-columns: minmax(280px, 360px) minmax(0,1fr); gap: 26px; }
+.profile-card { min-width: 0; background: #fffdf9; border: 1px solid #dcdfd3; border-radius: 16px; padding: 24px; }
+.profile-card h2 { font-size: 20px; margin-bottom: 22px; }
+.profile-card .field-help { font-size: 11px; margin-bottom: 18px; }
+.muted { font-weight: 400; color: #7b826e; }
+.profile-teams { list-style: none; padding: 0; margin: 0; }
+.profile-teams > li { display: flex; gap: 16px; justify-content: space-between; align-items: start; padding: 16px 0; border-top: 1px solid #e3e5db; }
+.profile-teams h3 { font-size: 15px; margin-bottom: 8px; overflow-wrap: anywhere; }
+.profile-teams p { font-size: 12px; color: #6c735f; overflow-wrap: anywhere; }
+.profile-team-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.danger { color: #a73022; }
+@media (max-width: 850px) { .profile-columns { grid-template-columns: 1fr; } .account-layout { min-height: auto; padding: 36px 0; } .intro { display: none; } .account-card { max-width: 440px; margin: auto; min-height: 550px; } }
+@media (max-width: 520px) { .app-shell { padding: 0 18px; } .site-header { height: 80px; gap: 8px; } .brand { font-size: 18px; gap: 7px; } .header-actions { gap: 7px; } .header-actions .quiet-button { padding: 9px 10px; font-size: 11px; } .icon-button { width: 36px; height: 36px; } .stat-ranges { grid-template-columns: 1fr; } .profile-card { padding: 18px; } .profile-teams > li { flex-direction: column; } .account-card { padding: 24px; } .team-panel { padding: 16px; } }
+
+.profile-card h2 .muted { margin-left: 8px; font-size: 14px; padding: 2px 7px; background: #edf0e5; border-radius: 12px; }

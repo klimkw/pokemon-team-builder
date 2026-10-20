@@ -34,7 +34,11 @@ async function request(
   const body = await response.json().catch(() => null);
   const detail = body?.detail;
   let message = "Something went wrong. Please try again.";
-  if (detail === "REGISTER_USER_ALREADY_EXISTS") {
+  if (detail?.code === "CURRENT_PASSWORD_INVALID") {
+    message = "Current password is incorrect.";
+  } else if (detail?.code === "USERNAME_TAKEN") {
+    message = "That username is taken.";
+  } else if (detail === "REGISTER_USER_ALREADY_EXISTS") {
     message = "That username is taken. Try another or sign in.";
   } else if (detail === "LOGIN_BAD_CREDENTIALS") {
     message = "Username or password is incorrect.";
@@ -56,6 +60,10 @@ async function request(
   } else if (response.status === 404) {
     message =
       "This team is no longer available. Your draft is still here; start a new team to save another lineup.";
+  } else if (response.status === 422 && path === "profile") {
+    message = "Use 3–32 letters, numbers or underscores, and an 8–128 character password.";
+  } else if (response.status === 422 && path.startsWith("pokemon")) {
+    message = "Check your type and stat filters. Minimum must not exceed maximum.";
   } else if (response.status === 422) {
     message =
       detail?.code === "UNKNOWN_POKEMON"
@@ -158,18 +166,21 @@ export type Team = {
 };
 export type TeamWrite = { name: string; pokemon_ids: number[] };
 
+export type CatalogOptions = {
+  types: string[];
+  typeMatch: "any" | "all";
+  ranges: Record<string, string>;
+  limit: number;
+};
 export async function getCatalog(
-  q: string,
-  type: string,
-  offset: number,
-  signal?: AbortSignal,
+  q: string, type: string, offset: number, signal?: AbortSignal,
+  options?: CatalogOptions,
 ): Promise<PokemonPage> {
-  const params = new URLSearchParams({
-    q,
-    limit: "24",
-    offset: String(offset),
-  });
+  const params = new URLSearchParams({ q, limit: String(options?.limit ?? 24), offset: String(offset) });
   if (type) params.set("type", type);
+  options?.types.forEach(value => params.append("types", value));
+  if (options?.types.length) params.set("type_match", options.typeMatch);
+  Object.entries(options?.ranges ?? {}).forEach(([key, value]) => { if (value !== "") params.set(key, value); });
   return (await request(`pokemon?${params}`, { signal })).json();
 }
 export async function getTeams(signal?: AbortSignal): Promise<Team[]> {
@@ -230,6 +241,7 @@ export async function getCounterPreview(
 }
 
 export type ChangeAlert = {
+  is_read?: boolean;
   is_manual_demo?: boolean;
   id: string;
   entity_kind: "pokemon" | "type";
@@ -244,6 +256,7 @@ export type ChangeAlert = {
   }[];
 };
 export type AlertPage = {
+  unread_total?: number;
   is_demo: boolean;
   items: ChangeAlert[];
   total: number;
@@ -256,4 +269,11 @@ export type AlertPage = {
 };
 export async function getAlerts(offset: number, signal?: AbortSignal): Promise<AlertPage> {
   return (await request(`alerts?limit=10&offset=${offset}`, { signal })).json();
+}
+
+export async function markAlertsRead(changeIds: string[]): Promise<void> {
+  await request("alerts/read", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ change_ids: changeIds }) });
+}
+export async function updateProfile(payload: { current_password: string; username?: string; new_password?: string }): Promise<{ user: User; session_revoked: boolean }> {
+  return (await request("profile", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })).json();
 }

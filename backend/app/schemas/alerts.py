@@ -24,6 +24,7 @@ class AffectedPokemon(BaseModel):
 
 
 class ChangeAlert(BaseModel):
+    is_read: bool = False
     is_manual_demo: bool = False
     id: UUID
     entity_kind: Literal["pokemon", "type"]
@@ -41,6 +42,7 @@ class ScanStatus(BaseModel):
 
 
 class AlertPage(BaseModel):
+    unread_total: int = 0
     is_demo: bool = False
     items: list[ChangeAlert]
     total: int

@@ -1,17 +1,13 @@
-import { useEffect, useState } from "react";
-import { getAlerts } from "./api";
+import { useEffect, useRef, useState } from "react";
+import { getAlerts, markAlertsRead } from "./api";
 import type { AlertPage } from "./api";
 
 const labels: Record<string, string> = {
   "stats.hp": "HP", "stats.attack": "Attack", "stats.defense": "Defense",
-  "stats.special_attack": "Special attack", "stats.special_defense": "Special defense",
-  "stats.speed": "Speed", name: "Name", types: "Types", sprite_url: "Sprite URL",
+  "stats.special_attack": "Sp. Atk", "stats.special_defense": "Sp. Def", "stats.speed": "Speed",
+  name: "Name", types: "Types", sprite_url: "Sprite",
 };
-function valueText(value: unknown) {
-  if (value === null) return "none";
-  if (Array.isArray(value)) return value.join(" / ");
-  return String(value);
-}
+const valueText = (value: unknown) => value === null ? "none" : Array.isArray(value) ? value.join(" / ") : String(value);
 const dateText = (value: string) => new Date(value).toLocaleString();
 
 export default function Alerts({ membershipKey }: { membershipKey: string }) {
@@ -20,61 +16,82 @@ export default function Alerts({ membershipKey }: { membershipKey: string }) {
   const [retry, setRetry] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [readError, setReadError] = useState("");
+  const [open, setOpen] = useState(false);
+  const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => { setOffset(0); }, [membershipKey]);
   useEffect(() => {
+    const refresh = () => setRetry(n => n + 1);
+    const timer = window.setInterval(refresh, 60_000);
+    window.addEventListener("focus", refresh);
+    return () => { window.clearInterval(timer); window.removeEventListener("focus", refresh); };
+  }, []);
+  useEffect(() => {
     const controller = new AbortController();
-    setLoading(true);
-    setError("");
-    setData(null);
+    setLoading(true); setError("");
     getAlerts(offset, controller.signal).then(result => {
       if (!controller.signal.aborted) { setData(result); setLoading(false); }
     }, failure => {
-      if (!controller.signal.aborted) {
-        setError(failure instanceof Error ? failure.message : "Unable to load alerts.");
-        setLoading(false);
-      }
+      if (!controller.signal.aborted) { setError(failure instanceof Error ? failure.message : "Unable to load alerts."); setLoading(false); }
     });
     return () => controller.abort();
   }, [membershipKey, offset, retry]);
-  return <section className="alerts-panel" aria-labelledby="alerts-title" aria-busy={loading}>
-    <div className="panel-heading">
-      <h2 id="alerts-title">Recent changes{data ? ` (${data.total})` : ""}</h2>
-      <button className="quiet-button" disabled={loading} onClick={() => {
-        setOffset(0); setRetry(n => n + 1);
-      }}>Refresh alerts</button>
-    </div>
-    <p>Changes affecting Pokémon in your saved teams. Unsaved drafts are not included.</p>
-    {loading ? <p role="status">Checking recent changes…</p> : error ?
-      <p className="message error" role="alert">{error} Use Refresh alerts to try again.</p> : data && <>
-        {data.is_demo && <p className="message">Demo data: these changes are fictional and stored in a separate demo database.</p>}
-        <p className="save-hint">Detected within the last {data.window_days} days. Times show when our scanner observed a change, not when the source changed.</p>
-        {data.latest_scan ? <p className="save-hint">
-          Latest scan: {data.latest_scan.status} · {dateText(data.latest_scan.finished_at ?? data.latest_scan.started_at)}.
-          {data.latest_scan.status !== "succeeded" && " Some source data may not have been checked. Refresh alerts after a successful scan."}
-        </p> : <p className="save-hint">No scan has been recorded yet. An empty list does not confirm that source data is current.</p>}
-        {data.total === 0 ? <p>No recent changes affecting your saved teams.</p> : <>
-          <ul className="change-list">
+  useEffect(() => {
+    if (open && dialog.current && !dialog.current.open) {
+      if (typeof dialog.current.showModal === "function") dialog.current.showModal();
+      else dialog.current.setAttribute("open", "");
+    }
+  }, [open]);
+  useEffect(() => {
+    if (!open || loading || !data) return;
+    const ids = data.items.filter(item => !item.is_read).map(item => item.id);
+    if (!ids.length) return;
+    let cancelled = false;
+    setReadError("");
+    markAlertsRead(ids).then(() => {
+      if (!cancelled) setData(current => {
+        if (!current) return current;
+        const marked = current.items.filter(item => ids.includes(item.id) && !item.is_read).length;
+        return { ...current, unread_total: Math.max(0, (current.unread_total ?? current.total) - marked),
+          items: current.items.map(item => ids.includes(item.id) ? { ...item, is_read: true } : item) };
+      });
+    }, () => { if (!cancelled) setReadError("Could not mark alerts as read. Refresh to retry."); });
+    return () => { cancelled = true; };
+  }, [open, loading, data]);
+  function close() { dialog.current?.close?.(); setOpen(false); }
+  const unread = data?.unread_total ?? data?.total ?? 0;
+  return <>
+    <button className="icon-button alert-icon" aria-label={`Alerts${unread ? `, ${unread} unread` : ""}`} aria-haspopup="dialog" aria-expanded={open} onClick={() => { setOpen(true); setRetry(n => n + 1); }}>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
+      {unread > 0 && <span className="unread-badge" aria-hidden="true">{unread > 99 ? "99+" : unread}</span>}
+      {error && <span className="alert-error-dot" aria-hidden="true">!</span>}
+    </button>
+    {open && <dialog ref={dialog} className="alerts-drawer" aria-labelledby="alerts-title" onCancel={() => setOpen(false)} onClick={event => { if (event.target === event.currentTarget) close(); }}>
+      <section className="alerts-content" aria-busy={loading}>
+        <div className="panel-heading"><h2 id="alerts-title">Recent changes{data ? ` (${data.total})` : ""}</h2><button className="icon-button" aria-label="Close alerts" onClick={close}>×</button></div>
+        <div className="alerts-meta"><span>Saved teams · {data?.window_days ?? 7} days</span><button className="quiet-button" disabled={loading} onClick={() => { setOffset(0); setRetry(n => n + 1); }}>Refresh alerts</button></div>
+        {readError && <p className="message error" role="alert">{readError}</p>}
+        {loading ? <p role="status">Loading alerts…</p> : error ? <p className="message error" role="alert">{error}</p> : data && <>
+          {data.latest_scan && data.latest_scan.status !== "succeeded" && <p className="message">Latest scan: {data.latest_scan.status}. Data may be incomplete.</p>}
+          {!data.latest_scan && <p className="save-hint">Not scanned yet.</p>}
+          {data.total === 0 ? <p className="alerts-empty">No recent changes affecting your saved teams.</p> : <ul className="change-list">
             {data.items.map(alert => <li key={alert.id}>
-              {alert.is_manual_demo && <p className="save-hint">Demo change · applied manually through the scanner</p>}
+              {alert.is_manual_demo && <p className="demo-label">Demo change · applied manually through the scanner</p>}
               <h3>{alert.entity_kind === "type" ? `${alert.entity_name} type matchups changed` : `${alert.entity_name} changed`}</h3>
-              <p className="save-hint">Detected <time dateTime={alert.detected_at}>{dateText(alert.detected_at)}</time></p>
-              <ul>{Object.entries(alert.changes).map(([field, change]) => <li key={field}>
+              <time className="save-hint" dateTime={alert.detected_at}>{dateText(alert.detected_at)}</time>
+              <ul className="change-values">{Object.entries(alert.changes).map(([field, change]) => <li key={field}>
                 {field.startsWith("damage_to.") ? `${alert.entity_name} attacks against ${field.slice(10)}` : labels[field] ?? field}: {valueText(change.before)}{field.startsWith("damage_to.") && "×"} → {valueText(change.after)}{field.startsWith("damage_to.") && "×"}
               </li>)}</ul>
-              <p>Affects:</p>
-              <ul>{alert.affected.map(pokemon => <li key={pokemon.id}>
-                <strong>{pokemon.name}</strong>{pokemon.reasons.includes("attacking_type") && " · uses this attacking type"}{pokemon.reasons.includes("defending_type") && " · its defensive matchup changed"}
-                <ul>{pokemon.teams.map(team => <li key={team.id}>{team.name} · slots {team.positions.map(p => p + 1).join(", ")}</li>)}</ul>
-              </li>)}</ul>
+              {alert.affected.map(pokemon => <div className="affected-pokemon" key={pokemon.id}><strong>{pokemon.name}</strong><ul>{pokemon.teams.map(team => <li key={team.id}>{team.name} · slots {team.positions.map(p => p + 1).join(", ")}</li>)}</ul></div>)}
             </li>)}
-          </ul>
-          {data.items.length === 0 && <p>No changes on this page. Refresh alerts to return to the latest changes.</p>}
-          <nav className="catalog-pagination" aria-label="Alert pages">
+          </ul>}
+          {data.total > 10 && <nav className="catalog-pagination" aria-label="Alert pages">
             <button className="quiet-button" disabled={!offset} onClick={() => setOffset(n => Math.max(0, n - 10))}>Newer alerts</button>
             <span>{data.items.length ? offset + 1 : 0}–{Math.min(offset + data.items.length, data.total)} of {data.total}</span>
             <button className="quiet-button" disabled={offset + data.limit >= data.total} onClick={() => setOffset(n => n + 10)}>Older alerts</button>
-          </nav>
+          </nav>}
         </>}
-      </>}
-  </section>;
+      </section>
+    </dialog>}
+  </>;
 }

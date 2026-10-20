@@ -1,6 +1,6 @@
 # Pokemon Team Builder
 
-Take-home project built in reviewable increments. Current increment: admin API-doc controls for live refresh and reversible demo changes,
+Take-home project built in reviewable increments. Current increment: compact workspace, advanced Pokédex filters, editable profiles and unread alerts,
 alongside the catalog, persistent teams, explainable counters, and change history.
 
 ## Run and test
@@ -20,8 +20,8 @@ From `backend`, use Python 3.12 with uv: `uv sync --locked`, then
 `uv run --locked python -m pytest tests -q`. Runtime/test Docker images install the committed
 `uv.lock` with uv; no host Python environment is reused.
 From `frontend`, use Node 22.12+ (Node 24 recommended), run `npm ci`, `npm test`, and
-`npm run build`. 114 backend tests pass against PostgreSQL; the fast SQLite option
-passes 99 with 15 PostgreSQL-only skips. All 22 frontend component tests pass. Four
+`npm run build`. 120 backend tests pass against PostgreSQL; the fast SQLite option
+passes 105 with 15 PostgreSQL-only skips. All 22 frontend component tests pass. Five
 Chromium E2E tests pass against PostgreSQL, FastAPI, and the production build served
 through Nginx in the isolated Docker stack. TypeScript and production build pass.
 See [TESTING.md](TESTING.md) for isolated Compose tests, setup, cleanup, and reports.
@@ -288,7 +288,9 @@ records still commit when others fail; per-record catalog/history changes are at
 
 ## Recent-change alerts and reproducible demo
 
-The signed-in workspace shows recent changes to Pokémon in your current saved teams.
+The header bell opens recent changes to Pokémon in your current saved teams.
+Its red badge counts unread events; the tray is closed by default. Displayed events
+are marked read on the server, preserving that state across sessions.
 GET `/api/alerts` groups affected Pokémon, owned teams, and duplicate slots; it includes
 before/after values, detection timestamps, pagination and the latest scanner status.
 Type-chart changes match both a Pokémon's attacking types and its defensive types.
@@ -334,3 +336,13 @@ No frontend authentication package or global state library is needed for these s
 Next: public hosting, session cleanup, login rate limiting before public deployment,
 deployment, and final one-page README. Password recovery and
 email verification are outside scope. Health currently reports process liveness only.
+
+
+## Workspace controls
+
+The Pokédex supports 12/24/48/96 records per page, multiple types with any/all matching,
+and inclusive min/max ranges for each base stat. Filters combine with search and reset
+to the first page when changed. The profile button opens account controls and your
+saved-team list. Username/password changes require the current password; a new password
+revokes existing sessions. Team drafts remain intact while viewing Profile.
+See [the UX walkthrough](agent-process/06-workspace-ux.md) for API and unread semantics.

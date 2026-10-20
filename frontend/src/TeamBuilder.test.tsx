@@ -151,7 +151,7 @@ it("keeps edits when discard is cancelled and permits switching when confirmed",
     target: { value: "second" },
   });
   expect(input).toHaveValue("Second lineup");
-  expect(screen.getByText("All changes saved")).toBeVisible();
+  expect(screen.getByText("Saved", { exact: true })).toBeVisible();
 });
 
 it("confirms deletion and selects the remaining saved team", async () => {
@@ -208,13 +208,12 @@ it("sends search and type filters, resets pagination, and shows all six stats", 
   fireEvent.change(screen.getByLabelText("Search Pokémon"), {
     target: { value: "bulb" },
   });
-  fireEvent.change(screen.getByLabelText("Type", { exact: true }), {
-    target: { value: "grass" },
-  });
+  fireEvent.click(screen.getByText(/^Filters/));
+  fireEvent.click(screen.getByRole("checkbox", { name: "grass" }));
   await waitFor(() =>
     expect(
       fetchMock.mock.calls.some(([url]) =>
-        String(url).includes("q=bulb&limit=24&offset=0&type=grass"),
+        String(url).includes("q=bulb&limit=24&offset=0&types=grass"),
       ),
     ).toBe(true),
   );

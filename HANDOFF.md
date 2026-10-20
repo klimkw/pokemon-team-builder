@@ -359,3 +359,58 @@ unchanged, zero failures. Counts remain 1,351 Pokemon, 2 teams, 1 account and ze
 catalog changes; migration head is 0004_admin_jobs. No fictional changes are active
 in development. Same-app Swagger and OpenAPI paths were verified. Next remain public
 hosting, one-page README, and the previously recorded pre-deployment cleanup tasks.
+
+
+## Latest: compact workspace UX, profile and unread alerts
+
+The owner requested less copy, aligned login/register cards, page-size selection,
+multi-type/stat filters, header sign-out/profile controls and a closed alerts tray
+with a red unread count. These are implemented using the existing palette. Page sizes
+12/24/48/96; type any/all and inclusive min/max ranges for all six stats. Filters are
+collapsed by default and reset offset when changed; the API retains legacy type=.
+The builder stays mounted while Profile is open, preserving drafts. Profile can rename
+the account, change its password, and view/edit/delete saved teams. Current password
+verification is required; password changes revoke all sessions, including the current
+one. Sign-out clears the #profile route. No privilege fields are accepted by PATCH
+/api/profile, and account ownership stays on the same UUID.
+
+Migration 0005_alert_reads adds user/change acknowledgements with cascading removal.
+GET /api/alerts now includes unread_total and item.is_read. POST /api/alerts/read marks
+only currently relevant IDs for the signed-in user, idempotently. The closed-by-default
+native modal drawer marks its displayed page as read after acknowledgement; unviewed
+pages remain unread. The badge persists across reload/login and counts only current
+saved-membership/window matches. Refresh happens on saved-membership changes, focus,
+a 60-second timer and explicit refresh. Failed acknowledgements keep the unread count.
+Header controls are rendered in App's header through a portal; standalone component
+tests use the same toolbar without the portal target.
+
+Tests: 120 PostgreSQL, 105 SQLite (15 skips), 22 components, 5 regular Chromium flows.
+Old isolated-demo E2E stays opt-in. Screenshots/reports: test-artifacts/workspace-ux/.
+Clean build source: /tmp/pokemon-workspace-ux. Read agent-process/06-workspace-ux.md.
+An old saved-copy assertion was updated; the new browser test caught and fixed stale
+profile navigation after password-triggered sign-out.
+
+Important deployment recovery: existing main app had 2 manual-demo history events
+and an active demo_state. Restarting the old worker triggered a full live startup
+scan, reversing two demo changes before cancellation. The worker was stopped. Only
+those two interrupted-run values/events were transactionally restored/removed after
+checking current values matched that run; the original 2 events and read state were
+retained. The interrupted audit is marked deployment_rollback, and a succeeded
+scope=restore/source=deployment_restore audit records recovery. The active scenario
+was not reset. Do not treat this as permission to delete ordinary source history.
+
+The worker now calculates the remaining interval from the last completed full live
+scan on restart; manual demo/reset/recovery audits are ignored. Explicit admin refresh
+continues to work independently. A regression test checks remaining/overdue timing.
+This scheduling fix was followed by a full backend rerun. The corrected scanner image is running and verified: roughly 23 hours remain until
+the next scheduled live scan, the active demo's edited fields still match its applied
+values, and the original history count remains two. API/frontend run the new UX;
+account and teams remain intact, migration head is 0005_alert_reads. Do not
+force browser refresh or discard the owner's draft. Next remain public hosting and
+final one-page README, plus recorded deployment-hardening follow-ups.
+
+Final runtime verification passed health and metadata checks. The worker restart
+permission review timed out once; the permitted retry succeeded. All services are
+running, and no automatic startup scan modified the restored scenario. Final current
+tests are 120 PostgreSQL, 105 SQLite with 15 skips, 22 component and 5 normal browser
+flows. Commit/push this completed increment; do not reset the owner's current demo.
