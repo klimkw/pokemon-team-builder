@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Any, Literal
 from uuid import UUID
 from pydantic import BaseModel
+from app.schemas.teams import PokemonType
 
 
 class FieldChange(BaseModel):
@@ -17,6 +18,7 @@ class AffectedTeam(BaseModel):
 
 
 class AffectedPokemon(BaseModel):
+    types: list[PokemonType]
     id: int
     name: str
     reasons: list[Literal["catalog", "attacking_type", "defending_type"]]

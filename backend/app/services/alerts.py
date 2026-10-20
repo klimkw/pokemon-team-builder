@@ -46,7 +46,7 @@ async def get_alerts(session, user_id, *, limit=20, offset=0, now=None,
                         reasons.append("defending_type")
                         relevant_fields.update(defenses)
                 if reasons:
-                    affected.append({"id": pokemon_id, "name": pokemon.name, "reasons": reasons,
+                    affected.append({"id": pokemon_id, "name": pokemon.name, "types": pokemon.types, "reasons": reasons,
                                      "teams": list(member["teams"].values())})
             if affected:
                 alerts.append(ChangeAlert(is_read=change.id in read_ids, is_manual_demo=(scan_summary or {}).get("source") == "manual_demo", id=change.id, entity_kind=change.entity_kind,

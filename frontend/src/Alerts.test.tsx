@@ -4,7 +4,7 @@ import * as api from "./api";
 import Alerts from "./Alerts";
 import type { AlertPage } from "./api";
 const page: AlertPage = { is_demo: false, unread_total: 1,
-  items: [{ id: "change-1", is_manual_demo: true, is_read: false, entity_kind: "pokemon", entity_name: "bulbasaur", detected_at: "2026-10-20T12:00:00Z", changes: { "stats.attack": { before: 49, after: 60 } }, affected: [{ id: 1, name: "bulbasaur", reasons: ["catalog"], teams: [{ id: "team-1", name: "My lineup", positions: [0, 2] }] }] }],
+  items: [{ id: "change-1", is_manual_demo: true, is_read: false, entity_kind: "pokemon", entity_name: "bulbasaur", detected_at: "2026-10-20T12:00:00Z", changes: { "stats.attack": { before: 49, after: 60 } }, affected: [{ id: 1, name: "bulbasaur", types: ["grass", "poison"], reasons: ["catalog"], teams: [{ id: "team-1", name: "My lineup", positions: [0, 2] }] }] }],
   total: 1, limit: 10, offset: 0, window_days: 7, since: "2026-10-13T12:00:00Z", as_of: "2026-10-20T12:00:00Z", latest_scan: null };
 beforeEach(() => {
   vi.spyOn(HTMLDialogElement.prototype, "showModal").mockImplementation(function (this: HTMLDialogElement) { this.setAttribute("open", ""); });
@@ -19,7 +19,7 @@ it("keeps the tray closed and counts unread alerts until opened", async () => {
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   expect(api.markAlertsRead).not.toHaveBeenCalled();
   fireEvent.click(icon);
-  expect(await screen.findByText("Attack: 49 → 60")).toBeVisible();
+  expect(await screen.findByLabelText("Attack: 49 → 60")).toBeVisible();
   expect(screen.getByText("My lineup · slots 1, 3")).toBeVisible();
   await waitFor(() => expect(screen.getByRole("button", { name: "Alerts" })).toBeVisible());
   expect(api.markAlertsRead).toHaveBeenCalledWith(["change-1"]);
@@ -45,9 +45,23 @@ it("paginates and resets to the latest page when saved membership changes", asyn
   const load = vi.spyOn(api, "getAlerts").mockResolvedValue({ ...page, total: 11, unread_total: 0, items: [{ ...page.items[0], is_read: true }] });
   const view = render(<Alerts membershipKey="first" />);
   fireEvent.click(screen.getByRole("button", { name: "Alerts" }));
-  await screen.findByText("bulbasaur changed");
+  await screen.findByText("Bulbasaur Changed");
   fireEvent.click(screen.getByRole("button", { name: "Older alerts" }));
   await waitFor(() => expect(load).toHaveBeenLastCalledWith(10, expect.any(AbortSignal)));
   view.rerender(<Alerts membershipKey="second" />);
   await waitFor(() => expect(load).toHaveBeenLastCalledWith(0, expect.any(AbortSignal)));
+});
+
+it("uses title-case change cards, shared type badges and explicit matchup context", async () => {
+  vi.spyOn(api, "getAlerts").mockResolvedValue({ ...page, items: [{ ...page.items[0], entity_kind: "type", entity_name: "fire",
+    changes: { "damage_to.grass": { before: 2, after: 1 } },
+    affected: [{ ...page.items[0].affected[0], reasons: ["defending_type"] }] }] });
+  render(<Alerts membershipKey="typed" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Alerts, 1 unread" }));
+  expect(await screen.findByRole("heading", { name: "Fire Type Matchups Changed" })).toBeVisible();
+  expect(screen.getByLabelText("Fire attacks against Grass: 2× → 1×")).toHaveClass("change-chip");
+  const affected = screen.getByRole("list", { name: "Affected Pokémon" });
+  expect(affected.querySelector('.type-grass')).toHaveTextContent('grass');
+  expect(affected.querySelector('.type-poison')).toHaveTextContent('poison');
+  expect(screen.getByText("Defensive matchup changed")).toBeVisible();
 });

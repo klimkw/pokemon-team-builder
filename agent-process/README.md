@@ -4,6 +4,8 @@ This folder explains how the Pokémon Team Builder was developed with an AI codi
 assistant and how its main technical pieces work. It is intended to help the project
 owner review the decisions and explain the application from browser to database.
 
+- [Alerts presentation](08-alerts-presentation.md): event cards, shared type chips and
+  affected Pokémon relevance.
 - [Build journal](01-build-journal.md): chronological requirements, decisions,
   implementation increments, verification, and Git milestones.
 - [PostgreSQL and Alembic walkthrough](02-postgres-and-alembic.md): what creates the

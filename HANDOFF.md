@@ -446,3 +446,19 @@ and global slider domains correct. Counts remain 1,351 Pokemon, 2 teams, 1 accou
 2 change events and 1 active demo scenario. The worker respects its remaining delay
 and did not launch a startup scan. This increment is committed as “Add stat sorting,
 range sliders and selected-team comparisons”. Next remain hosting and final README.
+
+## Latest: alerts presentation
+
+Alerts now use title-case event headings, compact before/after chips and indented
+Pokémon with shared type badges. Type-matchup events show attacking/defensive relevance;
+saved team/slot references remain beneath each affected Pokémon. The alert API adds
+current types to affected entries. No migration is required. Scanner and read semantics
+are unchanged. See agent-process/08-alerts-presentation.md.
+
+Verification passed: 127 PostgreSQL, 112 SQLite (15 skips), 24 component tests and six
+regular Chromium flows. Desktop/mobile screenshots reviewed and retained locally in
+test-artifacts/alerts-polish/. Development updated from tested images; preserve the
+existing database and active manual scenario. Save drafts before refreshing the browser.
+Runtime checks passed: all services healthy, no schema drift, and counts remain
+1,351 Pokémon, two teams, one account, two history events and one active manual
+scenario. The worker retained its remaining scheduled interval without a startup scan.

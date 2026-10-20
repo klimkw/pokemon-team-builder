@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { getAlerts, markAlertsRead } from "./api";
 import type { AlertPage } from "./api";
+import { TypeBadge, TypeBadges } from "./PokemonDetails";
 
 const labels: Record<string, string> = {
   "stats.hp": "HP", "stats.attack": "Attack", "stats.defense": "Defense",
@@ -8,6 +9,7 @@ const labels: Record<string, string> = {
   name: "Name", types: "Types", sprite_url: "Sprite",
 };
 const valueText = (value: unknown) => value === null ? "none" : Array.isArray(value) ? value.join(" / ") : String(value);
+const titleCase = (value: string) => value.replace(/\b[a-z]/g, letter => letter.toUpperCase());
 const dateText = (value: string) => new Date(value).toLocaleString();
 
 export default function Alerts({ membershipKey }: { membershipKey: string }) {
@@ -77,12 +79,26 @@ export default function Alerts({ membershipKey }: { membershipKey: string }) {
           {data.total === 0 ? <p className="alerts-empty">No recent changes affecting your saved teams.</p> : <ul className="change-list">
             {data.items.map(alert => <li key={alert.id}>
               {alert.is_manual_demo && <p className="demo-label">Demo change · applied manually through the scanner</p>}
-              <h3>{alert.entity_kind === "type" ? `${alert.entity_name} type matchups changed` : `${alert.entity_name} changed`}</h3>
+              <h3>{titleCase(alert.entity_kind === "type" ? `${alert.entity_name} type matchups changed` : `${alert.entity_name} changed`)}</h3>
               <time className="save-hint" dateTime={alert.detected_at}>{dateText(alert.detected_at)}</time>
-              <ul className="change-values">{Object.entries(alert.changes).map(([field, change]) => <li key={field}>
-                {field.startsWith("damage_to.") ? `${alert.entity_name} attacks against ${field.slice(10)}` : labels[field] ?? field}: {valueText(change.before)}{field.startsWith("damage_to.") && "×"} → {valueText(change.after)}{field.startsWith("damage_to.") && "×"}
+              <ul className="change-values">{Object.entries(alert.changes).map(([field, change]) => {
+                const matchup = field.startsWith("damage_to.");
+                const label = matchup ? `${titleCase(alert.entity_name)} attacks against ${titleCase(field.slice(10))}` : labels[field] ?? titleCase(field);
+                const before = `${valueText(change.before)}${matchup ? "×" : ""}`;
+                const after = `${valueText(change.after)}${matchup ? "×" : ""}`;
+                return <li className="change-chip" key={field} aria-label={`${label}: ${before} → ${after}`}>
+                  <span className="change-chip-label">{matchup ? <><TypeBadge type={alert.entity_name} /><span aria-hidden="true">→</span><TypeBadge type={field.slice(10)} /></> : label}</span>
+                  <span className="change-chip-values"><span className="change-before">{before}</span><span className="change-arrow" aria-hidden="true">→</span><strong className="change-after">{after}</strong></span>
+                </li>;
+              })}</ul>
+              <ul className="alert-affected" aria-label="Affected Pokémon">{alert.affected.map(pokemon => <li className="affected-pokemon" key={pokemon.id}>
+                <div className="affected-heading"><h4>{titleCase(pokemon.name)}</h4><TypeBadges types={pokemon.types} /></div>
+                {alert.entity_kind === "type" && <p className="affected-reason">{[
+                  pokemon.reasons.includes("attacking_type") ? "Attacking matchup changed" : "",
+                  pokemon.reasons.includes("defending_type") ? "Defensive matchup changed" : "",
+                ].filter(Boolean).join(" · ")}</p>}
+                <ul className="affected-teams">{pokemon.teams.map(team => <li key={team.id}>{team.name} · slots {team.positions.map(p => p + 1).join(", ")}</li>)}</ul>
               </li>)}</ul>
-              {alert.affected.map(pokemon => <div className="affected-pokemon" key={pokemon.id}><strong>{pokemon.name}</strong><ul>{pokemon.teams.map(team => <li key={team.id}>{team.name} · slots {team.positions.map(p => p + 1).join(", ")}</li>)}</ul></div>)}
             </li>)}
           </ul>}
           {data.total > 10 && <nav className="catalog-pagination" aria-label="Alert pages">

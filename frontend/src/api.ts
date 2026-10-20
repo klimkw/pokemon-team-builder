@@ -252,6 +252,7 @@ export type ChangeAlert = {
   detected_at: string;
   changes: Record<string, { before: unknown; after: unknown }>;
   affected: {
+    types: string[];
     id: number;
     name: string;
     reasons: ("catalog" | "attacking_type" | "defending_type")[];

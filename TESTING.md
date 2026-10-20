@@ -411,3 +411,13 @@ The local app was updated using the tested images. Live sort/domain queries and
 Alembic check passed. Counts remain 1,351 catalog entries, two teams, one account,
 two history entries and one active manual scenario. The scanner retained its remaining
 interval and did not run a new startup refresh. No schema migration was required.
+
+## Alerts presentation
+
+Passed 127 PostgreSQL tests, 112 SQLite tests (15 PostgreSQL-only skips), 24 component
+tests and six regular Chromium flows. The legacy separate-demo browser flow remains
+opt-in/skipped. Production frontend build passed inside Docker. Checks cover current
+affected Pokémon types, title-case headings, accessible before/after change chips,
+shared type badges, defensive relevance, persisted unread handling and mobile width.
+Desktop/mobile screenshots were visually reviewed; reports: test-artifacts/alerts-polish/.
+The isolated test stack was removed after verification.

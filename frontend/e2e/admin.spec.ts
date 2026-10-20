@@ -36,9 +36,17 @@ test("admin docs queue scanner changes, repeat without duplicates and reset in t
   await page.getByRole("button", { name: /^Alerts/ }).click();
   await page.getByRole("button", { name: "Refresh alerts" }).click();
   await expect(page.getByRole("heading", { name: "Recent changes (2)" })).toBeVisible();
-  await expect(page.getByText("Attack: 49 → 60")).toBeVisible();
+  await expect(page.getByLabel("Attack: 49 → 60", { exact: true })).toBeVisible();
   await expect(page.getByText(/Demo change · applied manually/)).toHaveCount(2);
+  await expect(page.getByRole("heading", { name: "Bulbasaur Changed", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Fire Type Matchups Changed", exact: true })).toBeVisible();
+  const affected = page.locator('.affected-pokemon').first();
+  await expect(affected.locator('.type-grass')).toBeVisible();
+  await expect(page.getByText('Defensive matchup changed', { exact: true })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("admin-alerts.png"), fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath("alerts-mobile.png"), fullPage: true });
   await expect(page.locator(".unread-badge")).toHaveCount(0);
   await page.getByRole("button", { name: "Close alerts" }).click();
   await page.reload();

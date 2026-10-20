@@ -1465,3 +1465,27 @@ input:disabled {
 .pokemon-card.is-selected { border-color: #829467; box-shadow: inset 0 0 0 1px #829467; }
 .selected-label { position: absolute; right: 12px; top: 12px; color: #4b622c; font-size: 10px; font-weight: 650; }
 @media (max-width: 620px) { .catalog-filters { grid-template-columns: minmax(0, 1fr) 90px; } .catalog-filters > div:first-child { grid-column: 1 / -1; } }
+
+/* Alert event cards share the Pokédex typography and type chips. */
+.alerts-content .change-list { gap: 16px; margin: 20px 0; }
+.alerts-content .change-list > li { border: 1px solid #dedfd4; border-radius: 12px; padding: 16px; background: #fffefa; box-shadow: 0 4px 12px -10px #37412c30; }
+.alerts-content .change-list h3 { font-family: Manrope, sans-serif; font-size: 15px; font-weight: 700; line-height: 1.45; margin: 0 0 5px; }
+.alerts-content .change-list time { display: block; font-size: 10px; color: #7b826e; }
+.alerts-content .change-values { list-style: none; display: flex; flex-wrap: wrap; gap: 7px; padding: 0; margin: 14px 0 16px; }
+.change-chip { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; max-width: 100%; padding: 7px 10px; background: #f0f3e8; border: 1px solid #dce3cd; border-radius: 8px; font-size: 11px; }
+.change-chip-label, .change-chip-values { display: inline-flex; align-items: center; gap: 7px; }
+.change-chip-label { font-weight: 550; }
+.change-chip-values { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.change-before { color: #818773; }
+.change-arrow { color: #929a83; }
+.change-after { color: #3e512c; font-weight: 700; }
+.alerts-content .alert-affected { list-style: none; padding: 0 0 0 12px; margin: 0; display: grid; gap: 13px; }
+.alerts-content .affected-pokemon { margin: 0; padding-left: 12px; border-left: 2px solid #dce3cd; min-width: 0; }
+.affected-heading { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.affected-heading h4 { font: 700 12px/1.5 Manrope, sans-serif; margin: 0; }
+.affected-heading .type-badges { min-height: 0; }
+.affected-reason { font-size: 10px; line-height: 1.6; color: #6c735f; margin-top: 5px; }
+.alerts-content .affected-teams { list-style: none; padding: 0; margin: 5px 0 0; font-size: 10px; line-height: 1.7; color: #737b65; }
+@media (max-width: 400px) { .alerts-content { padding: 18px; } .alerts-content .change-list > li { padding: 14px; } }
+.change-chip-values { flex-wrap: wrap; min-width: 0; max-width: 100%; }
+.change-before, .change-after { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }

@@ -45,6 +45,7 @@ def test_alerts_group_duplicate_slots_and_multiple_owned_teams(signed_in):
     alert = page["items"][0]
     assert alert["changes"]["stats.attack"] == {"before": 49, "after": 60}
     assert len(alert["affected"]) == 1
+    assert alert["affected"][0]["types"] == ["grass", "poison"]
     teams = {team["id"]: team for team in alert["affected"][0]["teams"]}
     assert teams[first["id"]]["positions"] == [0, 1]
     assert teams[second["id"]]["positions"] == [0]
