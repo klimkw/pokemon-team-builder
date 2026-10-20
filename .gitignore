@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+.aws/
+.codex/
+.agents/
+*.log
+.venv/
+__pycache__/
+.pytest_cache/
+node_modules/
+dist/
+test-results/
+playwright-report/
+test-artifacts/
+account-preview.png
