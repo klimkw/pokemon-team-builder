@@ -238,11 +238,10 @@ def test_incomplete_catalog_count_aborts_without_writes(client):
 
 def test_cli_propagates_partial_failure_exit_code(client, monkeypatch, capsys):
     from app import ingest
+    from app import scanner
     async def partial(*args, **kwargs):
-        report = ingest.ImportReport(discovered=2, selected=2, scope="full", inserted=1)
-        report.failures[7] = "HTTPStatusError: unavailable"
-        return report
-    monkeypatch.setattr(ingest, "ingest_catalog", partial)
+        return scanner.ScanResult("partial", {"pokemon": {"failed": 1}})
+    monkeypatch.setattr(scanner, "run_scan", partial)
     assert asyncio.run(ingest.run_cli(None)) == 1
     import json
     assert json.loads(capsys.readouterr().out)["failed"] == 1

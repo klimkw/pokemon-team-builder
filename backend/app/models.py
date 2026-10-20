@@ -57,3 +57,37 @@ class TeamMember(Base):
     position: Mapped[int] = mapped_column(primary_key=True, autoincrement=False)
     pokemon_id: Mapped[int] = mapped_column(ForeignKey("pokemon.id", ondelete="RESTRICT"), index=True)
     pokemon: Mapped[Pokemon] = relationship(lazy="raise")
+
+
+class ScanRun(Base):
+    __tablename__ = "scan_runs"
+    __table_args__ = (CheckConstraint("status IN ('running','succeeded','partial','failed','interrupted','skipped')", name="ck_scan_run_status"),)
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    started_at: Mapped[datetime] = mapped_column(TIMESTAMPAware(timezone=True), default=utc_now, index=True)
+    finished_at: Mapped[datetime | None] = mapped_column(TIMESTAMPAware(timezone=True))
+    status: Mapped[str] = mapped_column(String(20))
+    summary: Mapped[dict] = mapped_column(JSON().with_variant(JSONB(), "postgresql"), default=dict)
+    error: Mapped[str | None] = mapped_column(String(500))
+
+
+class CatalogChange(Base):
+    __tablename__ = "catalog_changes"
+    __table_args__ = (
+        CheckConstraint("entity_kind IN ('pokemon','type')", name="ck_catalog_change_kind"),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    scan_run_id: Mapped[uuid.UUID | None] = mapped_column(GUID, ForeignKey("scan_runs.id", ondelete="RESTRICT"), index=True)
+    entity_kind: Mapped[str] = mapped_column(String(20))
+    entity_key: Mapped[str] = mapped_column(String(100))
+    entity_name: Mapped[str] = mapped_column(String(100))
+    detected_at: Mapped[datetime] = mapped_column(TIMESTAMPAware(timezone=True), default=utc_now, index=True)
+    changes: Mapped[dict] = mapped_column(JSON().with_variant(JSONB(), "postgresql"))
+
+
+class TypeChart(Base):
+    __tablename__ = "type_chart"
+    __table_args__ = (CheckConstraint("id = 1", name="ck_type_chart_singleton"),)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=False)
+    damage_to: Mapped[dict] = mapped_column(JSON().with_variant(JSONB(), "postgresql"))
+    version: Mapped[str] = mapped_column(String(71))
+    synced_at: Mapped[datetime] = mapped_column(TIMESTAMPAware(timezone=True), default=utc_now)

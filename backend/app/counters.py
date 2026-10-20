@@ -5,7 +5,7 @@ Only after all three tie, choose the lexicographically lowest ordered ID list.
 The bitmask DP processes each candidate once: O(catalog_size * n * 2**n), n <= 6.
 """
 from dataclasses import dataclass
-from functools import lru_cache
+from functools import lru_cache, partial
 import hashlib
 import json
 from pathlib import Path
@@ -31,18 +31,18 @@ def type_chart():
     return data
 
 
-def effectiveness(attacking_type: str, defending_types: list[str]) -> float:
-    row = type_chart()["damage_to"][attacking_type]
+def effectiveness(attacking_type: str, defending_types: list[str], chart=None) -> float:
+    row = (chart or type_chart())["damage_to"][attacking_type]
     result = 1.0
     for defending_type in defending_types:
         result *= row[defending_type]
     return result
 
 
-def best_attack(attacker: PokemonRead, defender: PokemonRead) -> tuple[str, float]:
+def best_attack(attacker: PokemonRead, defender: PokemonRead, chart=None) -> tuple[str, float]:
     # Attack with ONE own type, never multiply the attacker's two types together.
     # Alphabetical ordering makes tied attack-type explanations deterministic.
-    return max(((kind, effectiveness(kind, defender.types)) for kind in sorted(attacker.types)),
+    return max(((kind, effectiveness(kind, defender.types, chart)) for kind in sorted(attacker.types)),
                key=lambda item: item[1])
 
 
@@ -73,9 +73,9 @@ class PairScore:
         return (int(self.safe), int(4 * (self.outgoing - self.incoming)), self.stats)
 
 
-def score_matchup(candidate: PokemonRead, opponent: PokemonRead) -> PairScore:
-    attacking_type, outgoing = best_attack(candidate, opponent)
-    incoming_type, incoming = best_attack(opponent, candidate)
+def score_matchup(candidate: PokemonRead, opponent: PokemonRead, chart=None) -> PairScore:
+    attacking_type, outgoing = best_attack(candidate, opponent, chart)
+    incoming_type, incoming = best_attack(opponent, candidate, chart)
     c, o = candidate.stats, opponent.stats
     attack = max(ratio_score(c.attack, o.defense), ratio_score(c.special_attack, o.special_defense))
     durability = (ratio_score(c.hp * c.defense, o.hp * o.attack)
@@ -85,17 +85,18 @@ def score_matchup(candidate: PokemonRead, opponent: PokemonRead) -> PairScore:
                      outgoing >= 2 and incoming <= 1, attack, durability, speed)
 
 
-def generate_counter(opponents: list[PokemonRead], candidates: list[PokemonRead]) -> CounterPreview:
+def generate_counter(opponents: list[PokemonRead], candidates: list[PokemonRead], chart=None) -> CounterPreview:
     if not 1 <= len(opponents) <= 6:
         raise ValueError("Counter generation requires 1–6 opponents")
     by_id = {candidate.id: candidate for candidate in candidates}
     if len(by_id) < len(opponents):
         raise ValueError("Not enough distinct catalog entries")
+    scorer = score_matchup if chart is None else partial(score_matchup, chart=chart)
     size = len(opponents)
     # mask -> (objective, IDs by opposing slot). Zero is an unassigned slot.
     states = {0: ((0, 0, 0), (0,) * size)}
     for candidate in sorted(by_id.values(), key=lambda pokemon: pokemon.id):
-        pairs = [score_matchup(candidate, opponent).objective for opponent in opponents]
+        pairs = [scorer(candidate, opponent).objective for opponent in opponents]
         previous = states
         states = previous.copy()  # Skipping this candidate is always permitted.
         for mask, (objective, ids) in previous.items():
@@ -113,13 +114,13 @@ def generate_counter(opponents: list[PokemonRead], candidates: list[PokemonRead]
     matches = []
     for index, (opponent, candidate_id) in enumerate(zip(opponents, ids)):
         candidate = by_id[candidate_id]
-        pair = score_matchup(candidate, opponent)
+        pair = scorer(candidate, opponent)
         matches.append(CounterMatchup(opponent_position=index, opponent=opponent, counter=candidate,
             attacking_type=pair.attacking_type, incoming_type=pair.incoming_type,
             outgoing_multiplier=pair.outgoing, incoming_multiplier=pair.incoming,
             safe=pair.safe, type_strength=pair.outgoing - pair.incoming,
             attack_potential=pair.attack_potential, durability=pair.durability, speed=pair.speed,
             stats_score=pair.stats))
-    return CounterPreview(model_version=MODEL_VERSION, chart_version=type_chart()["version"],
+    return CounterPreview(model_version=MODEL_VERSION, chart_version=(chart or type_chart())["version"],
         safe_count=objective[0], size=size, type_strength=objective[1] / 4,
         stats_score=objective[2], matchups=matches)

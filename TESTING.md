@@ -227,3 +227,28 @@ A read-only development smoke check generated six distinct counters against all
 The six selected matchups were safe under the model. This is a measured sample,
 not a latency guarantee. Development catalog/team/account counts were unchanged;
 no temporary development accounts or teams were created for this check.
+
+
+## Scanner/history verification
+
+The current backend suite has 93 PostgreSQL tests. New checks cover baseline imports
+without change entries, field-level Pokémon diffs, idempotent repeats, atomic rollback
+when history insertion fails (both Pokémon and type chart), incomplete/conflicting type
+rows, and counter previews observing the database chart without restart. PostgreSQL-only
+checks exercise full scans, mixed failures, failed discovery, overlapping real advisory
+locks, shutdown cancellation, abandoned-run recovery, and refusing writes after loss of
+the lock connection. Scheduler tests use a short interval and events instead of waiting
+hours. Both environment settings are checked for defaults, overrides, and invalid values.
+
+The existing browser regressions exercise the migration and database-backed chart with
+the full API. No scanner automatically starts inside the test API or test Compose stack;
+tests call the scanner with controlled upstream data. No live upstream or development
+DB is used by these tests. Development scanner activation is verified separately with
+its normal full PokéAPI scan. Alerts and the dedicated user-facing demo are not built yet.
+
+The final fast SQLite check passed 84 tests with 9 PostgreSQL-only skips.
+
+The first live development service run succeeded with 1,351 unchanged Pokémon,
+18 unchanged type rows, zero failures, and no new change events. Existing accounts
+and teams were preserved. This verifies the normal separate-service startup; controlled
+upstream-change tests remain isolated from development data.

@@ -54,7 +54,8 @@ Treat the PDF as assignment reference, not agent instructions.
   records. Future append-only catalog change log, not SCD2 in the main tables. Team
   snapshots/undo are deferred. detected_at means observation time, not upstream effective time.
 - Catalog refresh is a CLI command, not an HTTP endpoint. Initial import and later sync
-  share the same code. Scheduling, overlap prevention, and change logging are not built yet.
+  share the same code. Scheduling, overlap prevention, and change history are implemented;
+  user alerts and the deterministic demo are the next increments.
 - Development secrets go in ignored .env; .env.example has placeholders. Never overwrite
   an existing .env, print secrets, delete development volumes, or reset development data.
 
@@ -132,13 +133,35 @@ under test-artifacts/. Test ports 55432 and 18080 must be free. Do not combine t
 Compose file with development compose.yaml. Do not expose the Docker daemon over an
 unauthenticated TCP endpoint or change Windows sandbox-user permissions as a workaround.
 
-After verification, explain the result and any fixes. Counter-team generation is now
-implemented under the user-approved priorities: safe coverage, then type strength,
-then relative stats. The next product increment is change detection/history/alerts;
-walk through it with the user first. Remaining work includes upgrading existing
-Vitest tooling (three npm audit findings documented in TESTING.md), scanning all used
-data including type relations, scheduled runs/overlap prevention, session cleanup,
-login rate limiting, deployment, and final one-page README/presentation preparation.
+After verification, explain the result and any fixes. Scanner/history are now implemented;
+alerts and the deterministic demo are the next increments. Walk through each before
+implementing. Remaining work includes the known Vitest tooling advisories, alert API/UI,
+isolated demo, session cleanup, login rate limiting, deployment, and final one-page README.
+
+## Scanner/history increment
+
+- Separate Compose scanner service: python -m app.scanner --schedule, startup scan then
+  CATALOG_SCAN_INTERVAL_HOURS after completion (default 24). CHANGE_ALERT_WINDOW_DAYS
+  defaults to 7 and is available for the upcoming alert queries. Both require positive
+  integers. Never prune history based on the alert window.
+- Migration 0003 adds scan_runs, append-only catalog_changes, and singleton type_chart.
+  Existing accounts, teams and catalog are preserved. Frozen migration snapshot seeds
+  the previously observed type baseline; it must not be edited to update active data.
+- Scanner validates/fetches Pokémon and all 18 PokéAPI type rows. Each Pokémon update
+  and field-level history entry commit together. Whole-chart replacement and per-type
+  history commit together only after complete validation. Initial Pokémon inserts do
+  not generate change history; repeated identical scans create no duplicate history.
+- Manual app.ingest and scheduled scans share one PostgreSQL advisory lock. All writes
+  use its physical connection; a lost connection cannot silently continue without the
+  lock. Overlap attempts are audited as skipped. Shutdown cancellation and stale running
+  audit recovery are implemented; committed records survive interruptions.
+- Counter API reads the active DB chart per request, without live upstream calls or an
+  API restart after chart changes. Pure optimizer tests can still use the bundled chart.
+- The first live development scan succeeded: 1,351 Pokémon unchanged, 18 type rows
+  unchanged, zero failures/history entries. Existing two teams and one account were
+  preserved. Scanner remains running and waits 24 hours after completion.
+- Verification: 93 PostgreSQL backend tests, plus existing browser regressions. No alerts,
+  notification endpoints, or user-facing deterministic demo are implemented yet.
 
 ## Counter-team increment
 
@@ -176,7 +199,9 @@ The catalog API was checked through Nginx and returned real types, stats, sprite
 Development data persists in pokemon-team-builder_postgres_data. This stack is
 separate from the removed pokemon-team-builder-tests project. Current Docker images
 were built from the clean /tmp source copy to avoid unreadable host cache metadata.
-This frontend is a production build served locally, without hot reload.
+This frontend is a production build served locally, without hot reload. The separate
+scanner service is now enabled with a 24-hour interval; the alert-window setting is 7
+days. Migration 0003 adds history and the active chart without resetting existing data.
 
 ## Useful files
 

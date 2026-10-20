@@ -35,7 +35,7 @@ class ImportReport:
 
 
 async def ingest_catalog(api: PokeAPIClient, sessions, *, concurrency: int = 5,
-                         limit: int | None = None, progress=None) -> ImportReport:
+                         limit: int | None = None, progress=None, scan_run_id=None) -> ImportReport:
     if concurrency < 1 or (limit is not None and limit < 1):
         raise ValueError("Concurrency and limit must be positive")
     discovered = await api.discover()
@@ -66,7 +66,7 @@ async def ingest_catalog(api: PokeAPIClient, sessions, *, concurrency: int = 5,
             pokemon_id, record, error = await task
             if error is None:
                 try:
-                    outcome = await sync_record(record, sessions)
+                    outcome = await sync_record(record, sessions, scan_run_id=scan_run_id)
                     setattr(report, outcome, getattr(report, outcome) + 1)
                 except SQLAlchemyError as failure:
                     error = f"{type(failure).__name__}: database write failed"
@@ -83,18 +83,12 @@ async def ingest_catalog(api: PokeAPIClient, sessions, *, concurrency: int = 5,
 
 
 async def run_cli(limit: int | None) -> int:
+    # Manual imports use the same audit and overlap protection as scheduled scans.
+    from .scanner import run_scan
     try:
-        async with httpx.AsyncClient(timeout=httpx.Timeout(20, connect=10),
-                                     limits=httpx.Limits(max_connections=5),
-                                     headers={"User-Agent": "PokemonTeamBuilder/0.1 (catalog sync)"},
-                                     follow_redirects=False) as http:
-            report = await ingest_catalog(PokeAPIClient(http), db.session_maker, limit=limit,
-                                           progress=lambda text: print(text, file=sys.stderr))
-        print(json.dumps({**asdict(report), "failed": report.failed}, indent=2))
-        return report.exit_code
-    except (httpx.HTTPError, ValueError, SQLAlchemyError) as error:
-        print(f"Import aborted: {type(error).__name__}: {error}", file=sys.stderr)
-        return 1
+        result = await run_scan(db.engine, limit=limit, include_types=False)
+        print(json.dumps({"status": result.status, **result.summary.get("pokemon", result.summary)}, indent=2))
+        return result.exit_code
     finally:
         await db.engine.dispose()
 

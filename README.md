@@ -1,7 +1,7 @@
 # Pokemon Team Builder
 
-Take-home project built in reviewable increments. Current increment: exact, explainable counter-team generation alongside the responsive
-catalog and persistent team editor, verified through Docker and real-browser tests.
+Take-home project built in reviewable increments. Current increment: separately scheduled catalog scanning with atomic change history,
+alongside the catalog, persistent teams, and explainable counter-team generator.
 
 ## Run and test
 
@@ -18,7 +18,7 @@ return the library's 400 responses; protected routes return 401 without valid ac
 
 From `backend`, install `pip install -r requirements-dev.txt` and run `python -m pytest tests -q`.
 From `frontend`, use Node 22.12+ (Node 24 recommended), run `npm ci`, `npm test`, and
-`npm run build`. Sixty-nine backend tests pass against PostgreSQL; the fast SQLite option
+`npm run build`. Ninety-three backend tests pass against PostgreSQL; the fast SQLite option
 skips the two PostgreSQL-only checks. All 18 frontend component tests pass. Three
 Chromium E2E tests pass against PostgreSQL, FastAPI, and the production build served
 through Nginx in the isolated Docker stack. TypeScript and production build pass.
@@ -173,17 +173,18 @@ with DATABASE_URL set. `python -m app.ingest --help` shows the sample option.
   Full runs report locally stored IDs absent upstream but never delete them. Sample
   runs suppress absence reporting. Exit 0 means every selected record succeeded;
   partial/fatal failures exit 1; interruption exits 130. Rerun safely to retry.
-- Run one importer at a time. Cross-process overlap prevention is deferred until
-  scheduling. synced_at means last successful check, not when upstream data changed.
-  There is no refresh HTTP endpoint and ingestion never runs automatically at API startup.
+- Manual imports and scheduled scans share a PostgreSQL advisory lock; overlapping
+  attempts are audited and skipped before upstream requests. synced_at means last successful check, not when upstream data changed.
+  There is no refresh HTTP endpoint and ingestion never runs inside the API. The separate
+  scanner service runs immediately on its own startup, then at the configured interval.
 
 Read `app/pokeapi.py` for the HTTP client and pure normalization, `app/catalog_sync.py`
 for persistence, and `app/ingest.py` for CLI orchestration and summaries. These functions
-will be reused by the change scanner. The future change-log insert belongs in the same
-transaction as a changed catalog record; initial inserts establish the baseline.
+will be reused by the change scanner. Each changed record and its history entry commit in the same transaction;
+initial Pokémon inserts establish the baseline without history entries.
 
-History decision: keep current tables simple. Add an append-only Pokemon change log
-with before/after values and detected_at when implementing notifications. detected_at
+History decision: current tables remain simple, with a separate append-only change log
+containing before/after values and detected_at. detected_at
 records observation time, not the unknown upstream effective time. Full SCD2/as-of
 catalog queries and team snapshot/restore are deferred. Catalog changes will not alter
 team positions or point memberships at historical versions.
@@ -232,12 +233,54 @@ alternatives, never multiplied together. Immunities remain zero. Moves, abilitie
 items, levels, and switching are excluded. Equal assumed same-type attack bonuses are
 omitted; displayed numbers are type effectiveness, not damage or win probabilities.
 
-`backend/app/data/type_chart.json` is a version-controlled snapshot retrieved from
-PokéAPI's current `damage_relations` for the 18 standard types. Generation checks its
-SHA-256 version and returns that version plus `safe-coverage-v1` for reproducibility.
-Source URL and retrieval time are recorded in the file. Historical generation charts
-are excluded. Chart changes currently require a reviewed snapshot update and restart;
-the future change scanner must include this data source as well as Pokémon records.
+The API reads the active chart from PostgreSQL on each preview, returning its SHA-256
+version plus `safe-coverage-v1`. Migration 0003 seeds a frozen PokéAPI snapshot from
+`backend/migrations/data/type_chart_v1.json`; provenance and observation time are in
+that file. The scanner fetches and validates all 18 current type rows, then replaces
+the chart and appends per-attacking-type history in one transaction. A missing or
+invalid row leaves the entire old chart intact. No API restart is needed. The bundled
+app snapshot remains the pure optimizer's offline/test default. Historical game charts
+and nonstandard types remain outside the model.
+
+## Scanner and history
+
+The `scanner` Compose service uses the backend image with a separate command:
+`python -m app.scanner --schedule`. It starts after the API has applied migrations
+and passed its health check. The API process never starts schedules or scrapes data.
+Scans use only PokéAPI: Pokémon details and the 18 standard type relationships.
+
+Configure `.env` (defaults shown in `.env.example`), then recreate affected services:
+
+- `CATALOG_SCAN_INTERVAL_HOURS=24`: positive integer; scan immediately on scanner
+  startup, then wait this interval after completion. Restarting starts a fresh scan.
+- `CHANGE_ALERT_WINDOW_DAYS=7`: positive integer, validated and available in backend
+  settings for the next alert increment. It does not prune history or affect scans.
+
+Run once with `docker compose run --rm scanner python -m app.scanner`.
+The existing `python -m app.ingest [--limit N]` command remains a Pokémon-only import,
+now sharing scan audit and overlap protection. Manual import stdout retains its
+Pokémon counts with a status field. A one-shot failed/partial scan exits nonzero;
+overlapping attempts are audited as skipped and exit successfully.
+
+A session-level PostgreSQL advisory lock protects the entire scan. All scan writes
+use the physical connection holding that lock, with short per-record transactions;
+connection loss aborts writes rather than silently reconnecting without a lock.
+Fetches remain bounded/retried by the existing importer. The scheduler releases the
+lock while waiting, handles termination by cancelling current work, and continues
+scheduled attempts after an ordinary scan failure. Abruptly stopped `running` audits
+are marked interrupted by the next lock holder; committed records remain intact.
+
+`scan_runs` records start/end, outcome, resource summaries, per-ID failures, and absent
+IDs. Interrupted runs may have only completed-resource summaries. `catalog_changes`
+appends entity kind/key/name, detected time, changed field paths and before/after
+values, plus the originating scan ID. New Pokémon establish a baseline; only actual
+used-field differences create history. Repeats do not duplicate history. Failed
+fetches, invalid details, and absent upstream IDs never delete local data. Successful
+records still commit when others fail; per-record catalog/history changes are atomic.
+
+Alerts and the isolated deterministic demo are intentionally the next increments;
+there is no alert/history HTTP endpoint or frontend in this increment. Type-chart
+changes can later be matched to the involved attack/defense types in saved teams.
 
 ## Review and remaining scope
 
@@ -253,6 +296,6 @@ then `frontend/src/App.tsx` (session check, form actions, account screens),
 `frontend/vite.config.ts` (development proxy), and `frontend/nginx.conf` (Compose proxy).
 No frontend authentication package or global state library is needed for these screens.
 
-Next: change scanner/alerts/demo, session cleanup, login rate limiting before public deployment,
+Next: alerts and deterministic demo, session cleanup, login rate limiting before public deployment,
 deployment, and final one-page README. Password recovery and
 email verification are outside scope. Health currently reports process liveness only.

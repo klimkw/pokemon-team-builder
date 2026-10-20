@@ -6,3 +6,14 @@ APP_ORIGIN = os.environ.get("APP_ORIGIN", "http://localhost:8000")
 COOKIE_SECURE = os.environ.get("COOKIE_SECURE", "false").lower() == "true"
 COOKIE_NAME = "pokemon_session"
 SESSION_SECONDS = 60 * 60 * 24 * 7
+
+
+def positive_setting(name: str, default: int) -> int:
+    value = os.environ.get(name, str(default))
+    if not value.isascii() or not value.isdecimal() or int(value) <= 0:
+        raise ValueError(f"{name} must be a positive integer")
+    return int(value)
+
+
+CATALOG_SCAN_INTERVAL_HOURS = positive_setting("CATALOG_SCAN_INTERVAL_HOURS", 24)
+CHANGE_ALERT_WINDOW_DAYS = positive_setting("CHANGE_ALERT_WINDOW_DAYS", 7)

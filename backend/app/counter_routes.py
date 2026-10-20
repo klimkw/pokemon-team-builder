@@ -4,7 +4,7 @@ from sqlalchemy import select
 from starlette.concurrency import run_in_threadpool
 from .counter_schemas import CounterPreview, CounterRequest
 from .counters import generate_counter
-from .models import Pokemon
+from .models import Pokemon, TypeChart
 from .security import require_same_origin
 from .team_schemas import PokemonRead
 from .teams import Database, Owner
@@ -23,4 +23,8 @@ async def counter_preview(payload: CounterRequest, db: Database, user: Owner):
     if len(catalog) < len(payload.pokemon_ids):
         raise HTTPException(409, {"code": "INSUFFICIENT_CATALOG"})
     opponents = [by_id[identifier] for identifier in payload.pokemon_ids]
-    return await run_in_threadpool(generate_counter, opponents, catalog)
+    active_chart = await db.get(TypeChart, 1)
+    if active_chart is None:
+        raise HTTPException(503, {"code": "TYPE_CHART_UNAVAILABLE"})
+    chart = {"damage_to": active_chart.damage_to, "version": active_chart.version}
+    return await run_in_threadpool(generate_counter, opponents, catalog, chart)
