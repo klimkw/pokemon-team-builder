@@ -24,6 +24,7 @@ The first run downloads/builds images, including the Playwright browser image.
 docker compose -p pokemon-team-builder-tests -f compose.test.yaml build
 docker compose -p pokemon-team-builder-tests -f compose.test.yaml up -d --wait db-test api-test frontend-test
 docker compose -p pokemon-team-builder-tests -f compose.test.yaml run --rm backend-tests
+docker compose -p pokemon-team-builder-tests -f compose.test.yaml run --rm frontend-tests
 docker compose -p pokemon-team-builder-tests -f compose.test.yaml run --rm e2e
 docker compose -p pokemon-team-builder-tests -f compose.test.yaml down
 ```
@@ -114,7 +115,7 @@ npm run build
 
 The default backend suite uses temporary SQLite databases: 49 tests pass, with the
 two PostgreSQL-only tests skipped. It is a fast check, not a PostgreSQL substitute.
-The frontend has seven component tests using mocked HTTP responses. Vitest discovers
+The frontend has 13 component tests using mocked HTTP responses. Vitest discovers
 only src/**/*.test files; Playwright discovers e2e files separately.
 
 ## Run PostgreSQL tests or Playwright from the host
@@ -146,17 +147,18 @@ npm run test:e2e
 The origin override is for host-browser runs. Remove TEST_APP_ORIGIN from your shell
 before using the default container E2E runner, whose browser origin is http://frontend-test.
 No E2E data-reset endpoint exists; unique test accounts remain until the disposable
-database container is stopped. The container runner needs no PokéAPI ingestion for accounts.
+database container is stopped. The container runner seeds its small deterministic catalog automatically.
 
 ## Verification in this workspace
 
 - PostgreSQL 17.11: all 51 backend tests passed, including migrations, JSONB and locks.
 - SQLite: 49 passed, two PostgreSQL-specific tests skipped.
-- React: seven component tests passed; TypeScript check and production build passed.
+- React: 13 component tests passed; TypeScript check and production build passed.
 - Chromium: the account E2E test passed against the real PostgreSQL-backed API and
   production React build, served through Vite's preview proxy on isolated test ports.
-- Docker verification completed October 19, 2026: all 51 PostgreSQL backend tests and
-  the Chromium account E2E test passed using the isolated Compose stack and Nginx.
+- Docker verification completed October 19, 2026: all 51 PostgreSQL backend tests,
+  13 component tests, and both Chromium E2E tests passed using the isolated Compose
+  stack and Nginx.
   All service health checks passed, and the test containers/network were removed.
 - Building directly from the Windows-mounted checkout failed because Docker could not
   read metadata for backend/.pytest_cache, despite its .dockerignore exclusion. A
@@ -165,3 +167,35 @@ database container is stopped. The container runner needs no PokéAPI ingestion 
   remained installed inside the images; development data was untouched.
 - Existing report files were not writable, so this run was saved under
   test-artifacts/docker-verification-20261019/.
+
+
+## Team editor tests
+
+`frontend-tests` runs Vitest inside the frontend build stage, which also checks
+TypeScript and the production build. Six team-editor component tests cover the
+six-member limit with duplicates, whole-team request order, failed-save draft
+retention, discard cancellation, delete confirmation, empty teams, duplicate-submit
+prevention, search/type query parameters, and visibility of all six stats.
+
+`catalog-fixture` runs before container E2E and seeds 25 deterministic test records
+into the disposable database's public schema, after API migrations. Its database
+name/driver guard refuses anything other than PostgreSQL `pokemon_test`. Fixture
+stats/types are intentionally synthetic and sprite URLs are null; the browser test
+needs no live PokéAPI or image host. This service exists only in compose.test.yaml.
+
+`frontend/e2e/teams.spec.ts` uses a separate unique account, real HTTP and database
+calls, and the production UI. It verifies pagination, search/type filtering,
+duplicates, capacity, explicit saves, reload persistence, rename/reorder/remove,
+sign-out/sign-in persistence, multiple teams including empty ones, cancelled draft
+discard, deletion, and mobile jump navigation without horizontal overflow. Desktop
+and mobile screenshots are saved alongside the account screenshot. Tests use only
+the disposable database and never populate the development catalog.
+
+Latest UI reports/screenshots are retained under test-artifacts/team-builder-ui/.
+
+
+Dependency follow-up: npm audit during this increment reported three findings in
+existing development-only Vitest tooling (Vitest, @vitest/mocker, and tinypool;
+one moderate and two critical package entries). The suggested fix is a major
+Vitest upgrade. These dependencies are not copied into the final Nginx image;
+resolve them in a separate tooling increment and rerun the component suite.

@@ -14,6 +14,7 @@ try {
     Invoke-TestCompose -ComposeArguments @('build')
     Invoke-TestCompose -ComposeArguments @('up', '-d', '--wait', 'db-test', 'api-test', 'frontend-test')
     Invoke-TestCompose -ComposeArguments @('run', '--rm', 'backend-tests')
+    Invoke-TestCompose -ComposeArguments @('run', '--rm', 'frontend-tests')
     Invoke-TestCompose -ComposeArguments @('run', '--rm', 'e2e')
 } finally {
     # Only this explicitly named disposable project is stopped. Bind-mounted reports remain.

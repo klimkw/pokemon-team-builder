@@ -1,7 +1,7 @@
 # Pokemon Team Builder
 
-Take-home project built in reviewable increments. Current increment: PostgreSQL
-integration tests and a real-browser account E2E test. The UI still covers accounts only.
+Take-home project built in reviewable increments. Current increment: responsive catalog
+and persistent team editor, verified through Docker and real-browser tests.
 
 ## Run and test
 
@@ -19,12 +19,9 @@ return the library's 400 responses; protected routes return 401 without valid ac
 From `backend`, install `pip install -r requirements-dev.txt` and run `python -m pytest tests -q`.
 From `frontend`, use Node 22.12+ (Node 24 recommended), run `npm ci`, `npm test`, and
 `npm run build`. Fifty-one backend tests pass against PostgreSQL; the fast SQLite run has
-49 passes and two PostgreSQL-only skips. Seven frontend component tests pass. The frontend tests
-exercise component behavior and API request formats with mocked HTTP responses.
-The production build was also checked in a browser against the real API with temporary
-SQLite storage: register, login, reload with the session cookie, and logout all worked.
-The Playwright account E2E test also passed against real PostgreSQL and the built
-frontend through the preview proxy. Docker/Nginx orchestration remains unverified here.
+49 passes and two PostgreSQL-only skips. All 13 frontend component tests pass. Both
+Chromium E2E tests pass against PostgreSQL, FastAPI, and the production build served
+through Nginx in the isolated Docker stack. TypeScript and production build pass.
 See [TESTING.md](TESTING.md) for isolated Compose tests, setup, cleanup, and reports.
 
 For development without Docker, set APP_ORIGIN=http://127.0.0.1:5173 and DATABASE_URL,
@@ -47,8 +44,16 @@ not require these sandbox-specific flags.
 - Nginx serves the built frontend and forwards `/api` to FastAPI in Compose. Vite supplies
   the equivalent proxy for development. Requests stay on the browser's origin, so no
   cross-origin cookie configuration or CORS middleware is required for this topology.
-- The UI uses responsive CSS and Google Fonts with system-font fallbacks. The signed-in
-  view is an account confirmation; team browsing and editing are the next increment.
+- The UI uses responsive CSS and Google Fonts with system-font fallbacks. Signed-in
+  users see a searchable, type-filtered catalog (24 per page), with sprites and all six
+  stats, beside a team editor. On smaller screens the sections stack with jump links.
+- Drafts live in React memory. Save sends the name and complete ordered ID array in
+  one request. Failed saves retain edits; switching teams, starting a new team, or
+  signing out prompts before discarding edits. Refresh/close uses the browser warning.
+  A confirmed navigation discards the draft; there is no autosave or browser storage.
+- Users can create, rename, delete, select, add/remove members, and reorder with accessible
+  arrow buttons. Empty teams and duplicates are allowed. Add is disabled at six members;
+  mutation controls are locked during a save. A missing sprite shows a placeholder.
 - FastAPI Users owns registration, password hashing, authentication, token issuance,
   expiry checks, and logout revocation. CookieTransport plus DatabaseStrategy supplies
   browser sessions. The project is in maintenance mode, including security/dependency updates.
@@ -178,10 +183,11 @@ assembles routers. The existing authentication API behavior is preserved.
 
 For the frontend, read `frontend/src/api.ts` (HTTP requests and error translation),
 then `frontend/src/App.tsx` (session check, form actions, account screens),
+`frontend/src/TeamBuilder.tsx` (catalog requests and explicit-save draft state),
 `frontend/vite.config.ts` (development proxy), and `frontend/nginx.conf` (Compose proxy).
 No frontend authentication package or global state library is needed for these screens.
 
-Next: team builder UI, explainable counter teams,
+Next: explainable counter teams,
 change scanner/alerts/demo, session cleanup, login rate limiting before public deployment,
-Docker-stack verification, deployment, and final one-page README. Password recovery and
+deployment, and final one-page README. Password recovery and
 email verification are outside scope. Health currently reports process liveness only.

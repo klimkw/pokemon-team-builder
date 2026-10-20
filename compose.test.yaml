@@ -54,6 +54,21 @@ services:
       interval: 2s
       timeout: 5s
       retries: 30
+  frontend-tests:
+    build:
+      context: ./frontend
+      target: build
+    command: ["npm", "test"]
+  catalog-fixture:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.test
+    command: ["python", "-m", "tests.seed_catalog"]
+    environment:
+      TEST_DATABASE_URL: postgresql+asyncpg://pokemon_test:disposable_test_password@db-test:5432/pokemon_test
+    depends_on:
+      api-test:
+        condition: service_healthy
   e2e:
     build:
       context: ./frontend
@@ -69,3 +84,5 @@ services:
     depends_on:
       frontend-test:
         condition: service_healthy
+      catalog-fixture:
+        condition: service_completed_successfully

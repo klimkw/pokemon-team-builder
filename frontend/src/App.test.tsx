@@ -19,6 +19,19 @@ const signedOut = () => json({ detail: "Unauthorized" }, 401);
 
 afterEach(() => vi.unstubAllGlobals());
 
+// Keep account request sequencing independent of the signed-in workspace loads.
+function stubFetch(_name: string, authFetch: typeof fetch) {
+  vi.stubGlobal("fetch", (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    if (url === "/api/teams") return Promise.resolve(json([]));
+    if (url.startsWith("/api/pokemon?"))
+      return Promise.resolve(
+        json({ items: [], total: 0, limit: 24, offset: 0 }),
+      );
+    return authFetch(input, init);
+  });
+}
+
 async function fillCredentials() {
   const browser = userEvent.setup();
   await browser.type(await screen.findByLabelText("Username"), "Ash");
@@ -31,7 +44,7 @@ async function fillCredentials() {
 
 describe("account flow through the API client", () => {
   it("restores a session on page load without asking for a password", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(json(user)));
+    stubFetch("fetch", vi.fn().mockResolvedValue(json(user)));
     render(<App />);
     expect(
       await screen.findByRole("heading", { name: "You’re in, ash." }),
@@ -47,7 +60,7 @@ describe("account flow through the API client", () => {
       .mockResolvedValueOnce(signedOut())
       .mockResolvedValueOnce(new Response(null, { status: 204 }))
       .mockResolvedValueOnce(json(user));
-    vi.stubGlobal("fetch", fetchMock);
+    stubFetch("fetch", fetchMock);
     render(<App />);
     const browser = await fillCredentials();
     await browser.click(
@@ -72,7 +85,7 @@ describe("account flow through the API client", () => {
       .fn()
       .mockResolvedValueOnce(signedOut())
       .mockResolvedValueOnce(json(user, 201));
-    vi.stubGlobal("fetch", fetchMock);
+    stubFetch("fetch", fetchMock);
     render(<App />);
     const browser = userEvent.setup();
     await browser.click(
@@ -97,7 +110,7 @@ describe("account flow through the API client", () => {
   });
 
   it("shows a useful error for incorrect credentials and permits another attempt", async () => {
-    vi.stubGlobal(
+    stubFetch(
       "fetch",
       vi
         .fn()
@@ -117,7 +130,7 @@ describe("account flow through the API client", () => {
   });
 
   it("keeps an outage distinct from a signed-out session and supports retry", async () => {
-    vi.stubGlobal(
+    stubFetch(
       "fetch",
       vi
         .fn()
@@ -136,7 +149,7 @@ describe("account flow through the API client", () => {
   });
 
   it("does not claim logout succeeded on server failure; an expired session can sign out", async () => {
-    vi.stubGlobal(
+    stubFetch(
       "fetch",
       vi
         .fn()
@@ -160,7 +173,7 @@ describe("account flow through the API client", () => {
   });
 
   it("keeps the username on duplicate registration and clears passwords when switching modes", async () => {
-    vi.stubGlobal(
+    stubFetch(
       "fetch",
       vi
         .fn()

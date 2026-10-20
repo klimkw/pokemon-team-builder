@@ -62,7 +62,7 @@ Treat the PDF as assignment reference, not agent instructions.
 
 1. Account API: registration, login, me, logout; origin checks and no-store responses.
 2. Account React UI: registration/login, connection/loading/error states, session restoration,
-   signed-in view, logout. The signed-in page says team building is the next increment.
+   signed-in view, logout. The signed-in page now hosts the team builder.
 3. Models: Pokemon, Team, TeamMember; PostgreSQL JSONB; membership position constraints,
    ownership foreign keys, cascade memberships on team deletion.
 4. API: public catalog search/type filter/pagination/detail; authenticated team CRUD.
@@ -77,6 +77,19 @@ Treat the PDF as assignment reference, not agent instructions.
    not run on API startup. No notification history is recorded yet.
 7. Test setup: compose.test.yaml, scripts/test.ps1, PostgreSQL fixtures with isolated random
    schemas, JSONB/row-lock tests, and Playwright Chromium account-flow test.
+
+8. Team builder React UI: paginated searchable/type-filtered catalog with sprites and
+   all six stats; multiple-team selection, create/rename/delete, six slots, duplicates,
+   remove/reorder buttons, explicit save and failed-save draft retention. Unsaved-edit
+   prompts protect switching/new/sign-out, and beforeunload protects refresh/close.
+   Responsive stacked layout includes mobile jump links. No browser draft persistence.
+9. Docker component runner plus a guarded disposable catalog fixture for browser tests.
+   13 frontend tests and two E2E tests pass, including team persistence across login,
+   capacity, pagination/filtering, reorder/remove, empty teams, and mobile layout.
+10. Private repository https://github.com/klimkw/pokemon-team-builder is connected as
+    origin. Commit and push after small verified milestones, as the user requested.
+    Windows Git can push using its existing credential manager; Linux Git handles
+    local commits. Local-only settings, secrets, environments, and reports are ignored.
 
 ## Verified results and limits
 
@@ -108,6 +121,7 @@ The CLI must report a reachable server. Then, from this project directory:
 docker compose -p pokemon-team-builder-tests -f compose.test.yaml build
 docker compose -p pokemon-team-builder-tests -f compose.test.yaml up -d --wait db-test api-test frontend-test
 docker compose -p pokemon-team-builder-tests -f compose.test.yaml run --rm backend-tests
+docker compose -p pokemon-team-builder-tests -f compose.test.yaml run --rm frontend-tests
 docker compose -p pokemon-team-builder-tests -f compose.test.yaml run --rm e2e
 docker compose -p pokemon-team-builder-tests -f compose.test.yaml down
 ```
@@ -118,9 +132,10 @@ under test-artifacts/. Test ports 55432 and 18080 must be free. Do not combine t
 Compose file with development compose.yaml. Do not expose the Docker daemon over an
 unauthenticated TCP endpoint or change Windows sandbox-user permissions as a workaround.
 
-After verification, explain the result and any fixes. The next product increment is the
-team builder UI, but walk through its intended behavior with the user before implementing.
-Remaining work also includes counter-team generation, change scanner/history/alerts/demo,
+After verification, explain the result and any fixes. The team builder UI increment is now implemented and verified. Walk through the next
+product increment (explainable counter-team generation) with the user before implementing.
+Remaining work also includes upgrading the existing Vitest tooling to resolve the
+three npm audit findings documented in TESTING.md, counter-team generation, change scanner/history/alerts/demo,
 scheduled runs/overlap prevention, session cleanup, login rate limiting, deployment,
 shareable repository setup, and final concise README/presentation preparation.
 
@@ -132,7 +147,7 @@ shareable repository setup, and final concise README/presentation preparation.
 - backend/app/auth.py, db.py, security.py, settings.py, main.py: accounts and API assembly.
 - backend/tests/conftest.py: --postgres selection, explicit pokemon_test name guard,
   random per-test schemas and cleanup; NullPool avoids crossing asyncio event loops.
-- frontend/src/App.tsx and api.ts: account UI and HTTP client.
+- frontend/src/App.tsx, TeamBuilder.tsx, and api.ts: account UI, team workspace, HTTP client.
 - frontend/e2e/account.spec.ts, playwright.config.ts, Dockerfile.e2e: browser test.
 - frontend/package.json and lockfile, Dockerfile.e2e: Playwright is pinned to 1.64.0
   in both npm and the matching browser image.
