@@ -55,6 +55,7 @@ function setup(
         return mutate
           ? mutate(url, init)
           : json({ ...team, ...JSON.parse(String(init.body)), members: [] });
+      if (url.startsWith("/api/alerts?")) return json({ items: [], total: 0, limit: 10, offset: 0, window_days: 7, latest_scan: null });
       if (url === "/api/teams") return json(teams);
       return json({
         items: [bulbasaur, charmander],

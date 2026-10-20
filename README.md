@@ -1,7 +1,7 @@
 # Pokemon Team Builder
 
-Take-home project built in reviewable increments. Current increment: separately scheduled catalog scanning with atomic change history,
-alongside the catalog, persistent teams, and explainable counter-team generator.
+Take-home project built in reviewable increments. Current increment: recent-change alerts and an isolated deterministic scanner demo,
+alongside the catalog, persistent teams, explainable counters, and change history.
 
 ## Run and test
 
@@ -20,8 +20,8 @@ From `backend`, use Python 3.12 with uv: `uv sync --locked`, then
 `uv run --locked python -m pytest tests -q`. Runtime/test Docker images install the committed
 `uv.lock` with uv; no host Python environment is reused.
 From `frontend`, use Node 22.12+ (Node 24 recommended), run `npm ci`, `npm test`, and
-`npm run build`. Ninety-three backend tests pass against PostgreSQL; the fast SQLite option
-skips the two PostgreSQL-only checks. All 18 frontend component tests pass. Three
+`npm run build`. 106 backend tests pass against PostgreSQL; the fast SQLite option
+passes 96 with ten PostgreSQL-only skips. All 22 frontend component tests pass. Three
 Chromium E2E tests pass against PostgreSQL, FastAPI, and the production build served
 through Nginx in the isolated Docker stack. TypeScript and production build pass.
 See [TESTING.md](TESTING.md) for isolated Compose tests, setup, cleanup, and reports.
@@ -286,9 +286,22 @@ used-field differences create history. Repeats do not duplicate history. Failed
 fetches, invalid details, and absent upstream IDs never delete local data. Successful
 records still commit when others fail; per-record catalog/history changes are atomic.
 
-Alerts and the isolated deterministic demo are intentionally the next increments;
-there is no alert/history HTTP endpoint or frontend in this increment. Type-chart
-changes can later be matched to the involved attack/defense types in saved teams.
+## Recent-change alerts and reproducible demo
+
+The signed-in workspace shows recent changes to Pokémon in your current saved teams.
+GET `/api/alerts` groups affected Pokémon, owned teams, and duplicate slots; it includes
+before/after values, detection timestamps, pagination and the latest scanner status.
+Type-chart changes match both a Pokémon's attacking types and its defensive types.
+The backend's `CHANGE_ALERT_WINDOW_DAYS` controls the window (default seven days).
+Alerts refresh on saved-team changes or with **Refresh alerts**; drafts are preserved.
+There are no unread/dismissal flags. History is retained independently of the window.
+
+The standalone `compose.demo.yaml` provides an offline, disposable demonstration on
+http://localhost:8081. Its baseline/change/repeat stages run the real scanner against
+local fixture responses, yielding zero, two, then still two history events. It never
+uses the development database. The demo's Fire-versus-Grass change is fictional.
+See [the complete walkthrough](agent-process/04-alerts-and-demo.md) for commands,
+fixture login, expected UI, reset instructions, and the planned hosted adaptation.
 
 ## Review and remaining scope
 
@@ -313,6 +326,6 @@ then `frontend/src/App.tsx` (session check, form actions, account screens),
 `frontend/vite.config.ts` (development proxy), and `frontend/nginx.conf` (Compose proxy).
 No frontend authentication package or global state library is needed for these screens.
 
-Next: alerts and deterministic demo, session cleanup, login rate limiting before public deployment,
+Next: public hosting and browser-controlled demo adaptation, session cleanup, login rate limiting before public deployment,
 deployment, and final one-page README. Password recovery and
 email verification are outside scope. Health currently reports process liveness only.

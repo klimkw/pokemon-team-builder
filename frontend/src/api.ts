@@ -228,3 +228,31 @@ export async function getCounterPreview(
     })
   ).json();
 }
+
+export type ChangeAlert = {
+  id: string;
+  entity_kind: "pokemon" | "type";
+  entity_name: string;
+  detected_at: string;
+  changes: Record<string, { before: unknown; after: unknown }>;
+  affected: {
+    id: number;
+    name: string;
+    reasons: ("catalog" | "attacking_type" | "defending_type")[];
+    teams: { id: string; name: string; positions: number[] }[];
+  }[];
+};
+export type AlertPage = {
+  is_demo: boolean;
+  items: ChangeAlert[];
+  total: number;
+  limit: number;
+  offset: number;
+  window_days: number;
+  since: string;
+  as_of: string;
+  latest_scan: { status: string; started_at: string; finished_at: string | null } | null;
+};
+export async function getAlerts(offset: number, signal?: AbortSignal): Promise<AlertPage> {
+  return (await request(`alerts?limit=10&offset=${offset}`, { signal })).json();
+}

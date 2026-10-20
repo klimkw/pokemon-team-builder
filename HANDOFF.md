@@ -259,4 +259,57 @@ Reports: test-artifacts/backend-refactor/. Test stack cleaned up. Development AP
 and scanner refreshed; health and alembic check passed. Full startup scan succeeded,
 1,351 Pokémon and all 18 type rows unchanged; 2 teams, 1 account, 0 changes and
 migration head 0003 preserved. The clean build source is /tmp/pokemon-backend-refactor.
-Next remain alerts and the deterministic demo, after user discussion/authorization.
+Next: public hosting, a hosted browser-controlled demo adaptation, and the final one-page README.
+
+
+## Latest increment: alerts and deterministic demo
+
+Alerts and the local deterministic demo are implemented. GET /api/alerts authenticates
+and matches recent changes to the current user's saved team memberships, grouping
+repeated slots and teams. It matches Pokémon IDs and both attacking/defensive type
+relevance, includes field differences/detection times/latest scan status, paginates,
+and sets no-store. The configurable window includes its exact cutoff and excludes
+future timestamps. History is not pruned and there are no unread/dismissal flags.
+Current membership determines visibility, including changes predating a team save.
+
+The React Alerts panel refreshes after saved team changes and explicitly with Refresh
+alerts. It preserves drafts and reports loading, empty, errors, retry and scan freshness.
+DEMO_MODE labels the fixture environment; COOKIE_NAME is configurable with the existing
+pokemon_session default. Demo uses pokemon_demo_session to avoid login collisions.
+
+compose.demo.yaml is standalone, project pokemon-team-builder-demo, ports 8081/8001,
+private tmpfs PostgreSQL pokemon_demo, fixture credentials, no development volumes.
+app.jobs.demo requires DEMO_MODE=true and exactly that PostgreSQL database name at the
+CLI boundary. Baseline/change/repeat use fixture HTTP responses with the real scanner,
+normalization, atomic history and lock. Baseline yields 0 changes; change yields 2
+(Bulbasaur Attack 49->60, fire damage_to.grass 2->1); repeat remains at 2, no writes to
+history. CLI asserts counts; baseline refuses to reset an already-changed demo. There
+is no demo HTTP mutation endpoint. See agent-process/04-alerts-and-demo.md for commands.
+
+Verification: 106 PostgreSQL tests, 96 SQLite tests (10 skips), 22 component tests,
+3 ordinary Chromium flows and a separate demo Chromium flow. The normal E2E runner
+skips demo.spec.ts; run it explicitly with E2E_DEMO=true on the demo network after
+change/repeat. Browser evidence is under test-artifacts/alerts/ and alerts-demo/.
+The demo browser selector was corrected to scope Sign in to its form. No application
+behavior fixes were needed. Clean build source: /tmp/pokemon-alerts-demo.
+
+The user asked about free public hosting during implementation. We recommended a
+guided browser demo with per-visitor temporary isolated scenario data, reusing the API
+and DB server, and a small request-triggered fixture scan. This is future deployment
+work, not a hosted capability already built. Keep the full catalog scanner a separate
+job. Do not expose a shared reset endpoint that changes the live catalog or other
+visitors' scenario. Public deployment and final one-page README are still outstanding.
+
+
+Development API/frontend/scanner refreshed with tested images. The ordinary app
+remains http://localhost:8080. Demo is intentionally left running at
+http://localhost:8081, docs at :8001/docs; login demo_trainer /
+Demo-only-password-2026 (fixture credentials only). It is at the changed/repeated
+stage with 2 alerts. Its saved lineup was restored after browser testing. Demo API
+APP_ORIGIN has been restored to http://localhost:8081 for manual use. Leave the
+owner's browser/drafts alone; they can refresh when ready for the rebuilt frontend.
+
+Final smoke checks confirmed 1,351 catalog records, 2 teams, 1 account, 0 development
+change rows and migration head 0003 unchanged; refreshed scanner succeeded. Demo login
+through its localhost:8081 origin returned its distinct session cookie and 2 no-store
+alerts with is_demo=true. The demo browser test restores the original saved lineup.

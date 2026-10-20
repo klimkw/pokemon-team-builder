@@ -8,6 +8,8 @@ owner review the decisions and explain the application from browser to database.
   implementation increments, verification, and Git milestones.
 - [PostgreSQL and Alembic walkthrough](02-postgres-and-alembic.md): what creates the
   database, what creates the tables, how requests use them, and how upgrades preserve data.
+- [Alerts and demo](04-alerts-and-demo.md): relevance rules, fixture stages, expected UI,
+  isolation, and the future hosted walkthrough.
 - [Python workflow with uv](03-python-with-uv.md): project metadata, the lockfile,
   virtual environments, Docker installation, and everyday development commands.
 
@@ -23,7 +25,7 @@ increments, ran verification, reported results, and committed/pushed completed w
 This is a record of decisions and observable work, not a verbatim chat transcript.
 Credentials, cookies, local environment files, and raw browser traces do not belong here.
 
-Alerts, the dedicated deterministic demo, public hosting, and the final one-page
+Public hosting, browser controls for the hosted demo, and the final one-page
 submission README remain unfinished. See HANDOFF.md for the current continuation state.
 
 For future increments, add the concrete requirement, the chosen behavior and reason,

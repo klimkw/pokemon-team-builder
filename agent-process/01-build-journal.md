@@ -232,11 +232,41 @@ succeeded with all 1,351 Pokémon and 18 type rows unchanged. The existing two t
 one account, zero catalog-change rows, and migration head 0003 were preserved.
 This increment is committed as “Separate backend API, database, services and jobs”.
 
+## Recent-change alerts and deterministic demo
+
+The owner approved alerts and the deterministic demonstration after the scanner and
+history foundation. Alerts are computed from the user's current saved memberships
+and recent append-only changes; they are not copied into per-user notification rows.
+The response includes grouped affected slots/teams, field differences and observation
+timestamps. Type changes match both offensive and defensive relevance under the
+existing model. The UI refreshes after a successful team change and supports explicit
+refresh, loading, empty/error states, pagination and scanner freshness context without
+replacing drafts. No dismissal/unread workflow was introduced.
+
+The offline demonstration uses the actual PokéAPI client's normalization and scanner,
+with fixture HTTP responses. It runs in a separate memory-backed PostgreSQL Compose
+stack. Baseline records three Pokémon and no change events; the changed fixtures
+alter Bulbasaur's Attack and Fire-versus-Grass effectiveness. The repeat stage proves
+that identical inputs do not add history. The CLI rejects non-demo database targets,
+and a distinct session cookie lets the owner stay logged into both local apps.
+The UI labels the demo's changes as fictional.
+
+The owner then asked how the demo should work on free public hosting. The recommended
+future adaptation is a browser-guided scenario with temporary data isolated per visitor,
+reusing the deployed API/database server. That public control flow is not implemented
+in this increment; the offline scenario is the reusable foundation. The full scanner
+remains a separate job, independent from the small on-demand fixture demonstration.
+
+Verification passed 106 PostgreSQL tests, 96 SQLite tests with ten skips, 22 component
+tests, and the three ordinary Chromium flows. The separate Docker demo ran baseline,
+change, repeat and its dedicated real-browser flow. The initial browser selector
+ambiguously matched two sign-in buttons; narrowing it to the form submit button fixed
+the test without application changes. The walkthrough in 04-alerts-and-demo.md explains
+the commands, expected evidence and isolation boundaries.
+The milestone is committed as “Add saved-team change alerts and isolated deterministic demo”.
+
 ## Remaining assignment work
 
-History and scanner execution are complete. Alerts still need the API query and UI
-using current saved-team membership and the configured window. The isolated demo
-still needs controlled upstream responses that exercise the same scanner and prove
-no duplicate changes on repeat. Public deployment and the final one-page technical
-README remain. Known Vitest development-tool advisories, session cleanup, and login
-rate limiting are also documented follow-ups.
+Public deployment, the browser-controlled hosted demo adaptation, and the final
+one-page technical README remain. Known Vitest development-tool advisories, session
+cleanup, and login rate limiting are also documented follow-ups.

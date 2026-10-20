@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import * as api from "./api";
 import CounterPreview from "./CounterPreview";
+import Alerts from "./Alerts";
 import type { Pokemon, PokemonPage, Team, User } from "./api";
 
 const message = (error: unknown) =>
@@ -237,6 +238,7 @@ export default function TeamBuilder({
         <a href="#catalog-title">Browse Pokémon</a>
         <a href="#team-title">Your team · {members.length} / 6</a>
       </nav>
+      {!teamsLoading && !teamsError && <Alerts membershipKey={JSON.stringify(teams.map(team => [team.id, team.name, team.members.map(member => member.pokemon.id)]))} />}
       <div className="builder-columns">
         <section className="catalog-panel" aria-labelledby="catalog-title">
           <div className="panel-heading">

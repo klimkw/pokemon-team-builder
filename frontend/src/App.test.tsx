@@ -23,6 +23,7 @@ afterEach(() => vi.unstubAllGlobals());
 function stubFetch(_name: string, authFetch: typeof fetch) {
   vi.stubGlobal("fetch", (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
+    if (url.startsWith("/api/alerts?")) return Promise.resolve(json({ items: [], total: 0, limit: 10, offset: 0, window_days: 7, latest_scan: null }));
     if (url === "/api/teams") return Promise.resolve(json([]));
     if (url.startsWith("/api/pokemon?"))
       return Promise.resolve(

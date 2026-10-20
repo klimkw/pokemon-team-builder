@@ -1,0 +1,55 @@
+# Standalone offline demo: never merge with the development compose.yaml.
+name: pokemon-team-builder-demo
+services:
+  demo-db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: pokemon_demo
+      POSTGRES_USER: pokemon_demo
+      POSTGRES_PASSWORD: demo_only_password
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pokemon_demo -d pokemon_demo"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+  demo-api:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+asyncpg://pokemon_demo:demo_only_password@demo-db:5432/pokemon_demo
+      APP_ORIGIN: ${DEMO_APP_ORIGIN:-http://localhost:8081}
+      COOKIE_NAME: pokemon_demo_session
+      DEMO_MODE: "true"
+      COOKIE_SECURE: "false"
+      CHANGE_ALERT_WINDOW_DAYS: ${CHANGE_ALERT_WINDOW_DAYS:-7}
+    networks:
+      default:
+        aliases: [api]
+    ports:
+      - "127.0.0.1:8001:8000"
+    depends_on:
+      demo-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health')"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+  demo-frontend:
+    build: ./frontend
+    ports:
+      - "127.0.0.1:8081:80"
+    depends_on:
+      demo-api:
+        condition: service_healthy
+  demo-run:
+    build: ./backend
+    command: ["python", "-m", "app.jobs.demo", "all"]
+    environment:
+      DEMO_MODE: "true"
+      DATABASE_URL: postgresql+asyncpg://pokemon_demo:demo_only_password@demo-db:5432/pokemon_demo
+      CHANGE_ALERT_WINDOW_DAYS: ${CHANGE_ALERT_WINDOW_DAYS:-7}
+    depends_on:
+      demo-api:
+        condition: service_healthy

@@ -113,9 +113,9 @@ npm test
 npm run build
 ```
 
-The default backend suite uses temporary SQLite databases: 84 tests pass, with
-nine PostgreSQL-only tests skipped. It is a fast check, not a PostgreSQL substitute.
-The frontend has 18 component tests using mocked HTTP responses. Vitest discovers
+The default backend suite uses temporary SQLite databases: 96 tests pass, with
+ten PostgreSQL-only tests skipped. It is a fast check, not a PostgreSQL substitute.
+The frontend has 22 component tests using mocked HTTP responses. Vitest discovers
 only src/**/*.test files; Playwright discovers e2e files separately.
 
 ## Run PostgreSQL tests or Playwright from the host
@@ -282,3 +282,39 @@ Alembic metadata imports now use app.db.session and app.db.models. Historical re
 files are unchanged; development startup still applies migrations before serving HTTP.
 The original app.ingest/app.scanner CLI wrappers preserve their exit codes and were
 smoke-checked with --help. Compose uses the canonical app.jobs.scanner entry point.
+
+
+## Alerts and deterministic demo verification
+
+The current suite passes 106 PostgreSQL tests, 96 SQLite tests with 10 PostgreSQL-only
+skips, and 22 component tests. Three normal Chromium flows pass; the separate demo
+flow is skipped in that stack and run explicitly against compose.demo.yaml instead.
+The added backend tests cover authentication, no-store headers, ownership, grouped
+slots, configurable window/exact cutoff/future exclusion, attack and defense type
+relevance, current saved membership, pagination, and scan status without raw errors.
+
+The real PostgreSQL demo test invokes the scanner with a fixture HTTP transport and
+checks baseline/change/repeat: zero, two, then still two history entries and alerts.
+The CLI separately refuses non-demo database targets or a missing DEMO_MODE flag.
+The standalone Docker stack also ran each stage successfully without live upstream
+requests. Its dedicated Chromium flow checks visible before/after values, grouped
+slots, saved versus unsaved membership, attacking-type relevance after a save, and
+mobile width. A first browser selector matched the sign-in tab and submit button;
+it was narrowed to the form submit button, then the test passed.
+
+Normal browser reports: test-artifacts/alerts/.
+Demo screenshots and browser report: test-artifacts/alerts-demo/.
+The demo uses its own cookie name, database, network, and ports 8081/8001. Its
+fictional changes are visibly labelled. See agent-process/04-alerts-and-demo.md for
+manual steps, expected results, and resetting only the disposable demo project.
+
+To run just its browser test after change/repeat, build the e2e image with the normal
+test Compose file, then run it on the demo network with E2E_DEMO=true and
+E2E_BASE_URL=http://demo-frontend, selecting demo.spec.ts. For that container-browser
+run only, start demo-api with DEMO_APP_ORIGIN=http://demo-frontend; restore the default
+http://localhost:8081 origin afterward for manual browser use. No development origin
+or database settings need to change.
+
+Development refresh passed health and Alembic metadata checks, preserved all 1,351
+Pokémon, two teams and one account, and the full scanner succeeded without new change
+history. Manual demo-origin login confirmed its separate cookie and two no-store alerts.
