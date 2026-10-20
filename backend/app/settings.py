@@ -20,3 +20,5 @@ CHANGE_ALERT_WINDOW_DAYS = positive_setting("CHANGE_ALERT_WINDOW_DAYS", 7)
 
 # Labels the isolated fixture environment; does not enable demo HTTP mutations.
 DEMO_MODE = os.environ.get("DEMO_MODE", "false") == "true"
+
+ENABLE_DEMO_CONTROLS = os.environ.get("ENABLE_DEMO_CONTROLS", "false") == "true"

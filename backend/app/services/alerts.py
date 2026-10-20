@@ -22,12 +22,12 @@ async def get_alerts(session, user_id, *, limit=20, offset=0, now=None,
     latest = await session.scalar(select(ScanRun).order_by(ScanRun.started_at.desc(), ScanRun.id.desc()).limit(1))
     alerts = []
     if members:
-        candidates = await session.scalars(select(CatalogChange).where(
+        candidates = await session.execute(select(CatalogChange, ScanRun.summary).outerjoin(ScanRun, ScanRun.id == CatalogChange.scan_run_id).where(
             CatalogChange.detected_at >= since, CatalogChange.detected_at <= now,
             or_(CatalogChange.entity_kind == "type", and_(CatalogChange.entity_kind == "pokemon",
                 CatalogChange.entity_key.in_([str(key) for key in members]))))
             .order_by(CatalogChange.detected_at.desc(), CatalogChange.id.desc()))
-        for change in candidates:
+        for change, scan_summary in candidates:
             affected, relevant_fields = [], set()
             for pokemon_id, member in members.items():
                 pokemon = member["pokemon"]
@@ -48,7 +48,7 @@ async def get_alerts(session, user_id, *, limit=20, offset=0, now=None,
                     affected.append({"id": pokemon_id, "name": pokemon.name, "reasons": reasons,
                                      "teams": list(member["teams"].values())})
             if affected:
-                alerts.append(ChangeAlert(id=change.id, entity_kind=change.entity_kind,
+                alerts.append(ChangeAlert(is_manual_demo=(scan_summary or {}).get("source") == "manual_demo", id=change.id, entity_kind=change.entity_kind,
                     entity_name=change.entity_name, detected_at=change.detected_at,
                     changes={key: value for key, value in change.changes.items() if key in relevant_fields},
                     affected=affected))

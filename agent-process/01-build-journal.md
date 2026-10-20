@@ -265,8 +265,43 @@ the test without application changes. The walkthrough in 04-alerts-and-demo.md e
 the commands, expected evidence and isolation boundaries.
 The milestone is committed as “Add saved-team change alerts and isolated deterministic demo”.
 
+## Same-app API-doc scanner controls
+
+The owner asked to apply changes and run full source refreshes through API docs, then
+clarified that the existing app should be used instead of a separate demo page. This
+supersedes the earlier plan for a browser-controlled isolated demo. The existing full
+catalog and sprites remain the normal user experience. The older isolated scenario
+is retained for historical/offline testing, and its running stack was stopped.
+
+Admin-only endpoints now queue bounded stat/type changes, reset the active scenario,
+request a full live refresh, and report job status. Migration 0004 adds a durable job
+queue and a snapshot of only the demo-owned fields. The separate scanner worker polls
+the queue and retains scheduled scans. Shared advisory locks serialize operations;
+restart and cancellation expose interrupted jobs instead of silently replaying them.
+
+Manual inputs pass through normal scanner synchronization and tagged history. Repeat
+inputs produce no additional history. Reset restores captured fields and removes only
+tagged demo events, preserving teams, accounts, unrelated data and normal history.
+It refuses to overwrite values changed by a later scan. A live refresh records source
+differences and reversals as ordinary history. The UI labels manually generated events.
+
+The same frontend now proxies docs/OpenAPI. Existing cookies authorize the docs after
+normal app login; a local CLI explicitly grants/revokes admin access and registration
+never grants it. Demo writes require a separate configuration flag in both processes.
+The owner account was granted admin access for local review, without adding a new
+account or changing its password. The implementation is committed as “Add same-app
+admin scanner controls and durable refresh jobs”.
+
+Verification passed 114 PostgreSQL tests, 99 SQLite tests with 15 skips, 22 component
+tests and four regular Chromium flows. The new browser test proves real API-to-worker
+execution, same-app alerts, idempotence and safe reset; the isolated test stack is
+cleaned up. The deployed queued live refresh also succeeded with 1,351 Pokémon and
+all 18 type rows unchanged, zero failures, and existing accounts/teams preserved.
+No fictional changes are active in the development app. See 05-admin-scanner-controls.md
+for review steps and operational details.
+
 ## Remaining assignment work
 
-Public deployment, the browser-controlled hosted demo adaptation, and the final
-one-page technical README remain. Known Vitest development-tool advisories, session
-cleanup, and login rate limiting are also documented follow-ups.
+Public deployment and the final one-page technical README remain. Known Vitest
+development-tool advisories, session cleanup, and login rate limiting are also
+recorded follow-ups. A separate public demo page is no longer requested.

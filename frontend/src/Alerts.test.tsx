@@ -6,7 +6,7 @@ import type { AlertPage } from "./api";
 
 const page: AlertPage = {
   is_demo: false,
-  items: [{ id: "change-1", entity_kind: "pokemon", entity_name: "bulbasaur",
+  items: [{ is_manual_demo: true, id: "change-1", entity_kind: "pokemon", entity_name: "bulbasaur",
     detected_at: "2026-10-20T12:00:00Z", changes: { "stats.attack": { before: 49, after: 60 } },
     affected: [{ id: 1, name: "bulbasaur", reasons: ["catalog"], teams: [{ id: "team-1", name: "My lineup", positions: [0, 2] }] }] }],
   total: 1, limit: 10, offset: 0, window_days: 7, since: "2026-10-13T12:00:00Z", as_of: "2026-10-20T12:00:00Z",
@@ -19,6 +19,7 @@ it("shows field differences, observation time and grouped saved slots", async ()
   render(<Alerts membershipKey="one" />);
   expect(await screen.findByText("bulbasaur changed")).toBeVisible();
   expect(screen.getByText("Attack: 49 → 60")).toBeVisible();
+  expect(screen.getByText(/Demo change · applied manually/)).toBeVisible();
   expect(screen.getByText("My lineup · slots 1, 3")).toBeVisible();
   expect(screen.getByText(/last 7 days/)).toBeVisible();
   expect(screen.getByText(/Unsaved drafts are not included/)).toBeVisible();

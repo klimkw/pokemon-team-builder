@@ -230,6 +230,7 @@ export async function getCounterPreview(
 }
 
 export type ChangeAlert = {
+  is_manual_demo?: boolean;
   id: string;
   entity_kind: "pokemon" | "type";
   entity_name: string;

@@ -6,6 +6,7 @@ from app.db import session as db
 from app.api.auth import UserCreate, UserRead, current_user, fastapi_users, auth_backend
 from app.api.catalog import router as catalog_router
 from app.api.alerts import router as alerts_router
+from app.api.admin import router as admin_router
 from app.api.counters import router as counter_router
 from app.db.models import User
 from app.api.security import require_same_origin
@@ -26,7 +27,7 @@ app = FastAPI(title="Pokemon Team Builder", lifespan=lifespan)
 @app.middleware("http")
 async def prevent_private_caching(request: Request, call_next):
     response = await call_next(request)
-    if request.url.path.startswith(("/api/auth/", "/api/teams", "/api/alerts")):
+    if request.url.path.startswith(("/api/auth/", "/api/teams", "/api/alerts", "/api/admin")):
         response.headers["Cache-Control"] = "no-store"
     return response
 
@@ -39,6 +40,7 @@ app.include_router(fastapi_users.get_auth_router(auth_backend),
                    dependencies=[Depends(require_same_origin)])
 app.include_router(catalog_router)
 app.include_router(alerts_router)
+app.include_router(admin_router)
 app.include_router(teams_router)
 app.include_router(counter_router)
 

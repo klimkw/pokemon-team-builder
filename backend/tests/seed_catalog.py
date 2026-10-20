@@ -1,9 +1,10 @@
 """Deterministic browser-test fixtures, exclusively for the disposable test DB."""
 import asyncio
 import os
-from sqlalchemy import make_url
+from sqlalchemy import make_url, select
+from fastapi_users.password import PasswordHelper
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
-from app.db.models import Pokemon, utc_now
+from app.db.models import Pokemon, User, utc_now
 
 
 async def main():
@@ -21,6 +22,9 @@ async def main():
                     session.add(Pokemon(id=identifier, name=name, types=[type_name],
                         stats=dict(hp=45, attack=49, defense=49, special_attack=65, special_defense=65, speed=45),
                         sprite_url=None, synced_at=utc_now()))
+            if await session.scalar(select(User).where(User.email == 'review_admin')) is None:
+                session.add(User(email='review_admin', hashed_password=PasswordHelper().hash('Disposable-admin-password-2026'),
+                    is_active=True, is_superuser=True, is_verified=False))
             await session.commit()
     finally:
         await engine.dispose()

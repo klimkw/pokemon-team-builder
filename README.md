@@ -1,14 +1,14 @@
 # Pokemon Team Builder
 
-Take-home project built in reviewable increments. Current increment: recent-change alerts and an isolated deterministic scanner demo,
+Take-home project built in reviewable increments. Current increment: admin API-doc controls for live refresh and reversible demo changes,
 alongside the catalog, persistent teams, explainable counters, and change history.
 
 ## Run and test
 
 Copy `.env.example` to `.env` and choose a long random alphanumeric database password.
 Run `docker compose up --build`, then open http://localhost:8080 for the application.
-API documentation remains available at http://localhost:8000/docs (read-only browsing;
-use the frontend origin for authentication requests). If you already have a `.env`
+API documentation is available at http://localhost:8080/docs and http://localhost:8000/docs.
+Sign in through the app first; admin operations reuse your session. If you already have a `.env`
 from the previous increment, change APP_ORIGIN to http://localhost:8080.
 Register with JSON `{"username":"Ash","password":"long-example-password"}`.
 Login uses form fields `username` and `password` (not JSON), returning 204 and a cookie.
@@ -20,8 +20,8 @@ From `backend`, use Python 3.12 with uv: `uv sync --locked`, then
 `uv run --locked python -m pytest tests -q`. Runtime/test Docker images install the committed
 `uv.lock` with uv; no host Python environment is reused.
 From `frontend`, use Node 22.12+ (Node 24 recommended), run `npm ci`, `npm test`, and
-`npm run build`. 106 backend tests pass against PostgreSQL; the fast SQLite option
-passes 96 with ten PostgreSQL-only skips. All 22 frontend component tests pass. Three
+`npm run build`. 114 backend tests pass against PostgreSQL; the fast SQLite option
+passes 99 with 15 PostgreSQL-only skips. All 22 frontend component tests pass. Four
 Chromium E2E tests pass against PostgreSQL, FastAPI, and the production build served
 through Nginx in the isolated Docker stack. TypeScript and production build pass.
 See [TESTING.md](TESTING.md) for isolated Compose tests, setup, cleanup, and reports.
@@ -253,7 +253,7 @@ and nonstandard types remain outside the model.
 ## Scanner and history
 
 The `scanner` Compose service uses the backend image with a separate command:
-`python -m app.jobs.scanner --schedule`. It starts after the API has applied migrations
+`python -m app.jobs.worker --schedule`. It starts after the API has applied migrations
 and passed its health check. The API process never starts schedules or scrapes data.
 Scans use only PokéAPI: Pokémon details and the 18 standard type relationships.
 
@@ -296,12 +296,17 @@ The backend's `CHANGE_ALERT_WINDOW_DAYS` controls the window (default seven days
 Alerts refresh on saved-team changes or with **Refresh alerts**; drafts are preserved.
 There are no unread/dismissal flags. History is retained independently of the window.
 
-The standalone `compose.demo.yaml` provides an offline, disposable demonstration on
-http://localhost:8081. Its baseline/change/repeat stages run the real scanner against
-local fixture responses, yielding zero, two, then still two history events. It never
-uses the development database. The demo's Fire-versus-Grass change is fictional.
-See [the complete walkthrough](agent-process/04-alerts-and-demo.md) for commands,
-fixture login, expected UI, reset instructions, and the planned hosted adaptation.
+Admin controls in the same app provide POST `/api/admin/demo/changes`,
+POST `/api/admin/demo/reset`, POST `/api/admin/refresh`, and GET `/api/admin/jobs`.
+Writes return a durable job ID; the separate scanner worker performs the work.
+Manual changes use your existing full catalog and saved teams, and alerts label them
+as demo changes. Reset restores only recorded fields and removes only tagged demo
+history. Full refresh records real source differences normally, including reversals.
+
+See [the API-doc walkthrough](agent-process/05-admin-scanner-controls.md) for admin
+setup, example requests, status polling and reset semantics. Local Compose enables
+manual controls explicitly; standalone application defaults disable them. Older
+isolated fixture tooling remains in compose.demo.yaml but is not needed for this flow.
 
 ## Review and remaining scope
 
@@ -326,6 +331,6 @@ then `frontend/src/App.tsx` (session check, form actions, account screens),
 `frontend/vite.config.ts` (development proxy), and `frontend/nginx.conf` (Compose proxy).
 No frontend authentication package or global state library is needed for these screens.
 
-Next: public hosting and browser-controlled demo adaptation, session cleanup, login rate limiting before public deployment,
+Next: public hosting, session cleanup, login rate limiting before public deployment,
 deployment, and final one-page README. Password recovery and
 email verification are outside scope. Health currently reports process liveness only.

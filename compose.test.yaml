@@ -31,6 +31,7 @@ services:
       DATABASE_URL: postgresql+asyncpg://pokemon_test:disposable_test_password@db-test:5432/pokemon_test
       APP_ORIGIN: ${TEST_APP_ORIGIN:-http://frontend-test}
       COOKIE_SECURE: "false"
+      ENABLE_DEMO_CONTROLS: "true"
     networks:
       default:
         aliases: [api]
@@ -69,6 +70,15 @@ services:
     depends_on:
       api-test:
         condition: service_healthy
+  scanner-test:
+    build: ./backend
+    command: ["python", "-m", "app.jobs.worker"]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://pokemon_test:disposable_test_password@db-test:5432/pokemon_test
+      ENABLE_DEMO_CONTROLS: "true"
+    depends_on:
+      api-test:
+        condition: service_healthy
   e2e:
     build:
       context: ./frontend
@@ -86,3 +96,5 @@ services:
         condition: service_healthy
       catalog-fixture:
         condition: service_completed_successfully
+      scanner-test:
+        condition: service_started

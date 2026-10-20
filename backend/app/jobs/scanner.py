@@ -60,13 +60,13 @@ class LockedSessions:
 
 
 @asynccontextmanager
-async def scan_lock(engine):
+async def scan_lock(engine, *, key=SCAN_LOCK_KEY):
     if engine.dialect.name != "postgresql":
         raise RuntimeError("The scanner requires PostgreSQL advisory locks")
     async with engine.connect() as connection:
         acquired = False
         try:
-            acquired = await connection.scalar(text("SELECT pg_try_advisory_lock(:key)"), {"key": SCAN_LOCK_KEY})
+            acquired = await connection.scalar(text("SELECT pg_try_advisory_lock(:key)"), {"key": key})
             await connection.commit()
             yield LockedSessions(connection) if acquired else None
         finally:
@@ -76,7 +76,7 @@ async def scan_lock(engine):
                 await connection.invalidate()
             elif not connection.invalidated and not connection.closed:
                 try:
-                    await connection.execute(text("SELECT pg_advisory_unlock(:key)"), {"key": SCAN_LOCK_KEY})
+                    await connection.execute(text("SELECT pg_advisory_unlock(:key)"), {"key": key})
                     await connection.commit()
                 except BaseException:
                     # Never return a potentially locked physical connection to its pool.
@@ -100,38 +100,42 @@ async def run_scan(engine, *, api=None, limit=None, include_types=True):
                 now = utc_now()
                 session.add(ScanRun(status="skipped", started_at=now, finished_at=now, summary={"reason": "scan_already_running"}))
             return ScanResult("skipped", {"reason": "scan_already_running"})
-        run_id = uuid.uuid4()
-        async with sessions.begin() as session:
-            # The previous process can no longer hold this lock. Its unfinished audit
-            # represents an interrupted scan, including abrupt container termination.
-            for previous in await session.scalars(select(ScanRun).where(ScanRun.status == "running")):
-                previous.status, previous.finished_at = "interrupted", utc_now()
-                previous.error = "Previous scanner stopped before recording completion"
-            session.add(ScanRun(id=run_id, status="running", summary={"scope": "sample" if limit else "full"}))
-        summary = {"scope": "sample" if limit else "full"}
-        try:
-            if api is None:
-                async with httpx.AsyncClient(timeout=httpx.Timeout(20, connect=10),
-                        limits=httpx.Limits(max_connections=5), follow_redirects=False,
-                        headers={"User-Agent": "PokemonTeamBuilder/0.1 (catalog scanner)"}) as http:
-                    result = await scan_resources(PokeAPIClient(http), sessions, run_id, summary, limit, include_types)
-            else:
-                result = await scan_resources(api, sessions, run_id, summary, limit, include_types)
-            await finish_run(sessions, run_id, result.status, result.summary)
-            return result
-        except asyncio.CancelledError:
-            await finish_run(sessions, run_id, "interrupted", summary, "Scan cancelled during shutdown")
-            raise
-        except Exception as error:
-            # Do not persist/log connection strings, credentials, or raw SQL errors.
-            error_name = type(error).__name__
-            try:
-                await finish_run(sessions, run_id, "failed", summary, error_name)
-            except Exception:
-                # A later lock owner marks this run interrupted after connection loss.
-                pass
-            return ScanResult("failed", {**summary, "error": error_name})
+        return await run_locked_scan(sessions, api=api, limit=limit, include_types=include_types)
 
+
+async def run_locked_scan(sessions, *, api=None, limit=None, include_types=True, metadata=None):
+    """Caller must hold scan_lock for the entire call, including demo state changes."""
+    run_id = uuid.uuid4()
+    async with sessions.begin() as session:
+        # The previous process can no longer hold this lock. Its unfinished audit
+        # represents an interrupted scan, including abrupt container termination.
+        for previous in await session.scalars(select(ScanRun).where(ScanRun.status == "running")):
+            previous.status, previous.finished_at = "interrupted", utc_now()
+            previous.error = "Previous scanner stopped before recording completion"
+        session.add(ScanRun(id=run_id, status="running", summary={"scope": "sample" if limit else "full", **(metadata or {})}))
+    summary = {"scope": "sample" if limit else "full", **(metadata or {})}
+    try:
+        if api is None:
+            async with httpx.AsyncClient(timeout=httpx.Timeout(20, connect=10),
+                    limits=httpx.Limits(max_connections=5), follow_redirects=False,
+                    headers={"User-Agent": "PokemonTeamBuilder/0.1 (catalog scanner)"}) as http:
+                result = await scan_resources(PokeAPIClient(http), sessions, run_id, summary, limit, include_types)
+        else:
+            result = await scan_resources(api, sessions, run_id, summary, limit, include_types)
+        await finish_run(sessions, run_id, result.status, result.summary)
+        return result
+    except asyncio.CancelledError:
+        await finish_run(sessions, run_id, "interrupted", summary, "Scan cancelled during shutdown")
+        raise
+    except Exception as error:
+        # Do not persist/log connection strings, credentials, or raw SQL errors.
+        error_name = type(error).__name__
+        try:
+            await finish_run(sessions, run_id, "failed", summary, error_name)
+        except Exception:
+            # A later lock owner marks this run interrupted after connection loss.
+            pass
+        return ScanResult("failed", {**summary, "error": error_name})
 
 async def scan_resources(api, sessions, run_id, summary, limit, include_types):
     errors = {}

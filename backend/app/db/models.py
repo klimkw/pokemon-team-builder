@@ -91,3 +91,30 @@ class TypeChart(Base):
     damage_to: Mapped[dict] = mapped_column(JSON().with_variant(JSONB(), "postgresql"))
     version: Mapped[str] = mapped_column(String(71))
     synced_at: Mapped[datetime] = mapped_column(TIMESTAMPAware(timezone=True), default=utc_now)
+
+
+class AdminJob(Base):
+    __tablename__ = "admin_jobs"
+    __table_args__ = (
+        CheckConstraint("action IN ('refresh','demo_apply','demo_reset')", name="ck_admin_job_action"),
+        CheckConstraint("status IN ('queued','running','succeeded','partial','failed','interrupted')", name="ck_admin_job_status"),
+    )
+    id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    requested_by: Mapped[uuid.UUID] = mapped_column(GUID, ForeignKey("user.id", ondelete="CASCADE"))
+    action: Mapped[str] = mapped_column(String(20))
+    status: Mapped[str] = mapped_column(String(20), index=True, default="queued")
+    payload: Mapped[dict] = mapped_column(JSON().with_variant(JSONB(), "postgresql"), default=dict)
+    result: Mapped[dict] = mapped_column(JSON().with_variant(JSONB(), "postgresql"), default=dict)
+    error: Mapped[str | None] = mapped_column(String(500))
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMPAware(timezone=True), default=utc_now)
+    started_at: Mapped[datetime | None] = mapped_column(TIMESTAMPAware(timezone=True))
+    finished_at: Mapped[datetime | None] = mapped_column(TIMESTAMPAware(timezone=True))
+
+
+class DemoState(Base):
+    __tablename__ = "demo_state"
+    __table_args__ = (CheckConstraint("id = 1", name="ck_demo_state_singleton"),)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=False)
+    demo_id: Mapped[uuid.UUID] = mapped_column(GUID)
+    payload: Mapped[dict] = mapped_column(JSON().with_variant(JSONB(), "postgresql"))
+    originals: Mapped[dict] = mapped_column(JSON().with_variant(JSONB(), "postgresql"))

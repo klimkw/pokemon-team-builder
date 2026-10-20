@@ -113,8 +113,8 @@ npm test
 npm run build
 ```
 
-The default backend suite uses temporary SQLite databases: 96 tests pass, with
-ten PostgreSQL-only tests skipped. It is a fast check, not a PostgreSQL substitute.
+The default backend suite uses temporary SQLite databases: 99 tests pass, with
+15 PostgreSQL-only tests skipped. It is a fast check, not a PostgreSQL substitute.
 The frontend has 22 component tests using mocked HTTP responses. Vitest discovers
 only src/**/*.test files; Playwright discovers e2e files separately.
 
@@ -318,3 +318,35 @@ or database settings need to change.
 Development refresh passed health and Alembic metadata checks, preserved all 1,351
 Pokémon, two teams and one account, and the full scanner succeeded without new change
 history. Manual demo-origin login confirmed its separate cookie and two no-store alerts.
+
+
+## Same-app admin controls verification
+
+Current results: 114 PostgreSQL tests, 99 SQLite tests with 15 PostgreSQL-only skips,
+22 component tests, and four regular Chromium flows. The historical separate-demo
+browser test remains skipped unless explicitly enabled. Added checks cover superuser
+access, disabled demo controls, strict input validation, same-origin docs and cross-site
+rejection, durable 202 responses, queue exclusivity, scanner-lock contention, safe
+reset, unrelated field/history preservation, conflicting newer values, partial refresh,
+shutdown cancellation and interrupted-job recovery. Migration upgrade/check/downgrade
+round trips cover the new admin_jobs and demo_state tables.
+
+The test Compose stack now includes a separate scanner-test worker with periodic live
+scans disabled. Its DB remains disposable pokemon_test. The fixture seeds a test-only
+superuser. The Chromium admin flow signs into the normal frontend, validates the docs
+and OpenAPI routes, queues manual changes and polls the real worker, checks visible
+labelled alerts, repeats without duplicate history and resets back to the original
+stats. The fixture team is removed afterward. No live upstream service is needed.
+All test containers and their network were removed. Reports/screenshots are under
+`test-artifacts/admin-controls/`.
+
+The running development stack uses the same tested images and Alembic check reports
+no schema drift. Existing account/team/catalog data was preserved. The old separate
+demo stack was stopped at the user's request; the same-app walkthrough is documented
+in agent-process/05-admin-scanner-controls.md. Its owner account was explicitly granted
+admin access, and a full-refresh job was queued for deployed-worker verification.
+
+The deployed refresh job completed successfully with all 1,351 Pokémon and 18 type
+rows unchanged and zero failures. Two teams, one account and zero existing change rows
+were preserved; migration head is 0004_admin_jobs. No fictional data is active in the
+main app. The owner can now perform the walkthrough through the same app's docs.

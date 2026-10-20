@@ -55,6 +55,7 @@ export default function Alerts({ membershipKey }: { membershipKey: string }) {
         {data.total === 0 ? <p>No recent changes affecting your saved teams.</p> : <>
           <ul className="change-list">
             {data.items.map(alert => <li key={alert.id}>
+              {alert.is_manual_demo && <p className="save-hint">Demo change · applied manually through the scanner</p>}
               <h3>{alert.entity_kind === "type" ? `${alert.entity_name} type matchups changed` : `${alert.entity_name} changed`}</h3>
               <p className="save-hint">Detected <time dateTime={alert.detected_at}>{dateText(alert.detected_at)}</time></p>
               <ul>{Object.entries(alert.changes).map(([field, change]) => <li key={field}>

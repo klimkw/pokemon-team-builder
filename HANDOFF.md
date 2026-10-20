@@ -313,3 +313,49 @@ Final smoke checks confirmed 1,351 catalog records, 2 teams, 1 account, 0 develo
 change rows and migration head 0003 unchanged; refreshed scanner succeeded. Demo login
 through its localhost:8081 origin returned its distinct session cookie and 2 no-store
 alerts with is_demo=true. The demo browser test restores the original saved lineup.
+
+
+## Current direction: same-app admin docs controls (supersedes separate demo)
+
+The user explicitly said they do not need a separate demo page: use the same app.
+Do not build a separate public sandbox/page. The existing 1,351-record catalog and
+sprites remain in use; no new snapshot/catalog relocation was needed. The old separate
+demo stack was stopped; legacy fixture files remain as historical/offline tooling.
+
+Current controls under /api/admin require active superuser sessions. POST /refresh
+queues a full live Pokemon+18-type refresh. POST /demo/changes accepts up to six
+Pokemon stat/type patches and twelve type matchup patches. Identical payload repeats
+are idempotent; a different active scenario must be reset first. POST /demo/reset
+restores only captured fields and removes only tagged demo history, refusing newer
+conflicting source values. Accounts, teams, unrelated fields and normal history are
+preserved. GET /jobs and /jobs/{id} expose queued/running/final status and final counts.
+All writes return 202/Location and the API does not execute scans in-process.
+
+Migration 0004_admin_jobs adds admin_jobs and singleton demo_state. The separate
+Compose scanner now runs app.jobs.worker --schedule, polling the durable queue while
+retaining scheduled full scans. A worker advisory lock serializes queue consumers;
+the existing scan lock serializes actual writes with other CLI/live scans. Unfinished
+running jobs become interrupted after restart. Manual changes carry source/manual_demo
+and a scenario ID in ScanRun.summary; alert responses/UI label those events explicitly.
+Reset is atomic and deletes only history associated with that scenario's tagged scans.
+
+ENABLE_DEMO_CONTROLS defaults false in application settings; local compose.yaml
+explicitly enables it by default for API and worker, configurable via .env. Do not
+overwrite existing .env. The existing single owner account was granted is_superuser
+for local review, with no new account/password changes. Registration cannot grant
+admin access. CLI: python -m app.jobs.admin grant|revoke username. The frontend proxies
+/docs and /openapi.json, so use http://localhost:8080/docs after logging into the normal
+app. Direct :8000/docs also works using the existing localhost cookie. Cross-site
+admin writes remain blocked; the API's own docs origin is allowed for admin routes.
+
+Tests passed: 114 PostgreSQL, 99 SQLite (15 skips), 22 component, 4 ordinary Chromium
+flows. The new admin browser test uses a real separate scanner-test worker, checking
+queue/status, visible tagged alerts, repeat and reset. Old separate demo E2E remains
+opt-in/skipped. Test containers/network removed. Reports: test-artifacts/admin-controls/.
+Clean source build context: /tmp/pokemon-admin-controls. Detailed walkthrough:
+agent-process/05-admin-scanner-controls.md. Development API/frontend/scanner refreshed,
+Alembic check passed. A queued live-refresh job succeeded: all 1,351 Pokemon and all 18 type rows
+unchanged, zero failures. Counts remain 1,351 Pokemon, 2 teams, 1 account and zero
+catalog changes; migration head is 0004_admin_jobs. No fictional changes are active
+in development. Same-app Swagger and OpenAPI paths were verified. Next remain public
+hosting, one-page README, and the previously recorded pre-deployment cleanup tasks.

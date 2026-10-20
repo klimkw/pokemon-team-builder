@@ -24,6 +24,7 @@ class AffectedPokemon(BaseModel):
 
 
 class ChangeAlert(BaseModel):
+    is_manual_demo: bool = False
     id: UUID
     entity_kind: Literal["pokemon", "type"]
     entity_name: str

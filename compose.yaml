@@ -18,6 +18,7 @@ services:
       DATABASE_URL: postgresql+asyncpg://pokemon:${POSTGRES_PASSWORD}@db:5432/pokemon
       APP_ORIGIN: ${APP_ORIGIN:-http://localhost:8080}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      ENABLE_DEMO_CONTROLS: ${ENABLE_DEMO_CONTROLS:-true}
       CHANGE_ALERT_WINDOW_DAYS: ${CHANGE_ALERT_WINDOW_DAYS:-7}
       CATALOG_SCAN_INTERVAL_HOURS: ${CATALOG_SCAN_INTERVAL_HOURS:-24}
     ports:
@@ -32,12 +33,13 @@ services:
       retries: 30
   scanner:
     build: ./backend
-    command: ["python", "-m", "app.jobs.scanner", "--schedule"]
+    command: ["python", "-m", "app.jobs.worker", "--schedule"]
     restart: unless-stopped
     stop_grace_period: 30s
     environment:
       DATABASE_URL: postgresql+asyncpg://pokemon:${POSTGRES_PASSWORD}@db:5432/pokemon
       CATALOG_SCAN_INTERVAL_HOURS: ${CATALOG_SCAN_INTERVAL_HOURS:-24}
+      ENABLE_DEMO_CONTROLS: ${ENABLE_DEMO_CONTROLS:-true}
       CHANGE_ALERT_WINDOW_DAYS: ${CHANGE_ALERT_WINDOW_DAYS:-7}
     depends_on:
       api:
