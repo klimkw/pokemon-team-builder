@@ -1,0 +1,23 @@
+name: Terraform checks
+on:
+  pull_request:
+    paths: ['infra/**', 'scripts/terraform/**', '.github/workflows/*terraform*', '.github/workflows/infrastructure.yml']
+  push:
+    branches: [main]
+    paths: ['infra/**', 'scripts/terraform/**', '.github/workflows/*terraform*', '.github/workflows/infrastructure.yml']
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.13.5'
+          terraform_wrapper: false
+      - run: terraform -chdir=infra/terraform fmt -check
+      - run: terraform -chdir=infra/terraform init -backend=false -input=false -lockfile=readonly
+      - run: terraform -chdir=infra/terraform validate
+      - run: terraform -chdir=infra/terraform test -test-directory=tests
+      - run: python -m unittest discover -s scripts/terraform -p 'test_*.py'

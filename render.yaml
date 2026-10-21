@@ -1,3 +1,5 @@
+# Legacy bootstrap reference. For existing resources use infra/terraform/README.md.
+# Disconnect Blueprint syncing before Terraform takes ownership of this service.
 services:
   - type: web
     name: pokemon-team-builder

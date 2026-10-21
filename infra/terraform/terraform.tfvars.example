@@ -1,0 +1,8 @@
+# Reference only: GitHub environment Variables supply these in the workflow.
+# Match actual names, region, and URL before importing.
+render_service_name = "pokemon-team-builder"
+render_region       = "REPLACE_WITH_EXISTING_REGION"
+render_plan         = "free"
+neon_project_name   = "REPLACE_WITH_EXISTING_PROJECT_NAME"
+app_origin          = "https://REPLACE_WITH_ACTUAL_HOST.onrender.com"
+# Never put the database URL or API keys here.

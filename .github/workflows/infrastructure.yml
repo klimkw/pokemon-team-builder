@@ -1,0 +1,58 @@
+name: Production infrastructure
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Import existing resources, inspect a plan, or apply a reviewed plan'
+        type: choice
+        required: true
+        options: [plan, import, apply]
+        default: plan
+      expected_plan_sha:
+        description: 'For apply: fingerprint from the reviewed plan run'
+        type: string
+        required: false
+permissions:
+  contents: read
+concurrency:
+  group: production-infrastructure
+  cancel-in-progress: false
+jobs:
+  terraform:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: infrastructure-production
+    env:
+      TF_IN_AUTOMATION: 'true'
+      TF_INPUT: 'false'
+      TF_CLOUD_ORGANIZATION: ${{ vars.TF_CLOUD_ORGANIZATION }}
+      TF_WORKSPACE: ${{ vars.TF_WORKSPACE }}
+      TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      RENDER_OWNER_ID: ${{ vars.RENDER_OWNER_ID }}
+      NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+      RENDER_SERVICE_ID: ${{ vars.RENDER_SERVICE_ID }}
+      NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+      TF_VAR_render_service_name: ${{ vars.RENDER_SERVICE_NAME }}
+      TF_VAR_render_region: ${{ vars.RENDER_REGION }}
+      TF_VAR_render_plan: ${{ vars.RENDER_PLAN || 'free' }}
+      TF_VAR_app_origin: ${{ vars.APP_ORIGIN }}
+      TF_VAR_neon_project_name: ${{ vars.NEON_PROJECT_NAME }}
+      TF_VAR_database_url: ${{ secrets.PRODUCTION_DATABASE_URL }}
+      TF_VAR_additional_render_env_vars: ${{ secrets.RENDER_EXTRA_ENV_VARS_JSON || '{}' }}
+      INFRA_ACTION: ${{ inputs.action }}
+      EXPECTED_PLAN_SHA: ${{ inputs.expected_plan_sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.13.5'
+          terraform_wrapper: false
+      - name: Check formatting
+        run: terraform -chdir=infra/terraform fmt -check
+      - name: Import, plan, or apply
+        run: python scripts/terraform/production.py

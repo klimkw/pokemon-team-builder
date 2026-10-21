@@ -126,3 +126,10 @@ Before opening registration widely, add login abuse protection/rate limiting.
 Maintain database backups appropriate to the data's importance. Application rollback
 on Render does not roll back database migrations; prefer forward fixes and never
 blindly downgrade or delete the production database.
+
+## Adopt existing infrastructure into Terraform
+
+For an existing Render/Neon deployment, follow [infra/terraform/README.md](infra/terraform/README.md).
+It keeps production credentials in GitHub secret settings and persistent state in
+HCP Terraform. Disconnect Blueprint syncing before Terraform applies service changes;
+keep Docker Compose for local development.

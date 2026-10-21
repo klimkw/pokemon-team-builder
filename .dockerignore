@@ -18,3 +18,9 @@
 .codex
 .aws
 test-artifacts
+infra
+**/.terraform
+**/*.tfstate*
+**/*.tfplan*
+**/*.tfvars
+**/*.tfvars.json

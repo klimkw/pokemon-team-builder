@@ -439,3 +439,9 @@ mobile widths without modifying account or team data on the backend.
 
 See [DEPLOYMENT.md](DEPLOYMENT.md) for the GitHub → Render + Neon setup and the
 separate GitHub Actions scanner. Local Docker Compose remains unchanged.
+
+## Production infrastructure as code
+
+See [infra/terraform/README.md](infra/terraform/README.md) to adopt the existing Render
+service and Neon project into Terraform, using GitHub secrets and HCP remote state.
+Docker Compose remains the local development setup.

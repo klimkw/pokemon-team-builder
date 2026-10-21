@@ -19,3 +19,16 @@ account-preview.png
 coverage/
 coverage.xml
 htmlcov/
+
+# Terraform: state and plans may contain production credentials.
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfplan.*
+*.tfvars
+*.tfvars.json
+*.tfbackend
+crash.log
+crash.*.log
+# .terraform.lock.hcl is intentionally committed.
