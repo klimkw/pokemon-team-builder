@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import * as api from "./api";
+import AppInfo from "./AppInfo";
 import ModelGuide from "./ModelGuide";
 import TeamBuilder from "./TeamBuilder";
 import type { User } from "./api";
@@ -123,7 +124,7 @@ function WorkspaceApp() {
             Pokémon<span className="brand-subtitle">TEAM BUILDER</span>
           </span>
         </a>
-        <div id="workspace-actions" />
+        <div className="header-tools"><AppInfo /><div id="workspace-actions" /></div>
       </header>
 
       {user ? (

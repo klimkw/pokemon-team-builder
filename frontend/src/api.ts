@@ -290,3 +290,13 @@ export async function markAlertsRead(changeIds: string[]): Promise<void> {
 export async function updateProfile(payload: { current_password: string; username?: string; new_password?: string }): Promise<{ user: User; session_revoked: boolean }> {
   return (await request("profile", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })).json();
 }
+
+export type RefreshStatus = { status: string; started_at: string; finished_at: string | null };
+export type AppInfo = {
+  app_version: string; counter_model: string; simulation_model: string; repository_url: string;
+  catalog_count: number; scan_interval_hours: number; alert_window_days: number;
+  latest_live_refresh: RefreshStatus | null; last_successful_live_refresh: RefreshStatus | null; checked_at: string;
+};
+export async function getAppInfo(signal?: AbortSignal): Promise<AppInfo> {
+  return (await request("info", { signal })).json();
+}

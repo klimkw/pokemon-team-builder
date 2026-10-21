@@ -4,6 +4,8 @@ from typing import Annotated
 from fastapi import Depends, FastAPI, Request
 from app.db import session as db
 from app.api.auth import UserCreate, UserRead, current_user, fastapi_users, auth_backend
+from app.api.info import router as info_router
+from app.version import APP_VERSION
 from app.api.catalog import router as catalog_router
 from app.api.alerts import router as alerts_router
 from app.api.admin import router as admin_router
@@ -22,7 +24,7 @@ async def lifespan(app: FastAPI):
         await db.engine.dispose()
 
 
-app = FastAPI(title="Pokemon Team Builder", lifespan=lifespan)
+app = FastAPI(title="Pokemon Team Builder", version=APP_VERSION, lifespan=lifespan)
 
 
 @app.middleware("http")
@@ -39,6 +41,7 @@ app.include_router(fastapi_users.get_register_router(UserRead, UserCreate),
 app.include_router(fastapi_users.get_auth_router(auth_backend),
                    prefix="/api/auth", tags=["auth"],
                    dependencies=[Depends(require_same_origin)])
+app.include_router(info_router)
 app.include_router(catalog_router)
 app.include_router(alerts_router)
 app.include_router(admin_router)

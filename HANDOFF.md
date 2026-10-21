@@ -578,3 +578,28 @@ and chart. Counts before/after stayed 1,351 Pokémon, three teams, one account, 
 change events and zero active scenarios. Worker retained its remaining scan interval.
 Reports: test-artifacts/counter-duplicates/. Existing saved teams are not regenerated.
 Commit: “Allow duplicate Pokemon in optimal counter teams”.
+
+## Latest: app info and calculation/secret review
+
+Added top-right App info icon, including signed-out pages. Native dialog lazily loads
+public /api/info allowlisted metadata: release version from backend/pyproject.toml,
+model versions, repo, catalog count, interval/window, latest full live refresh and
+last successful full live refresh. Manual/sample scans excluded; errors/payloads and
+all secret/user/session settings excluded. No-store response. Refresh info is GET only,
+not a scan action; interval is not represented as a worker-health countdown.
+
+Counter stat detail now substitutes actual inputs into R(a,b), durability and total
+arithmetic. README includes real selection code and a tested worked score. Added exact
+fraction rounding, bounds, monotonicity, permutation and HP-conservation checks. Test
+coverage now 141 PostgreSQL, 125 SQLite (16 skips), 29 components, six regular Chromium
+flows; production build passed. Reports: test-artifacts/info-audit/. Screenshots reviewed.
+
+Secrets currently use ignored .env plus runtime Compose environment; not a managed
+vault. Only .env.example tracked; no real values printed during review. Build contexts
+now exclude .env variants recursively. Hosting still needs managed runtime secrets,
+production credentials/secure cookies and access/rotation choices. No CI workflow yet.
+No schema change. Read agent-process/12-app-info-and-calculation-audit.md. Preserve live
+teams and scanner restart delay. Commit: “Add safe app info and strengthen calculation transparency”.
+Runtime checks passed: all services healthy, no schema drift, public info allowlist
+verified against live 1,351-entry catalog. Before/after counts stayed 1,351 Pokémon,
+two teams, one account, zero events/scenarios. Worker retained its scan interval.

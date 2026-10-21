@@ -517,3 +517,20 @@ six identical best counters; small catalogs are sufficient and duplicate members
 in slot order. Deterministic ID ties and per-slot replay remain covered. Browser tests
 also check a six-Venusaur API preview and the existing comparison/replay/save flow.
 Reports: test-artifacts/counter-duplicates/. Isolated containers removed after testing.
+
+## App info, secret boundaries and calculation invariants
+
+Passed 141 PostgreSQL tests, 125 SQLite tests (16 PostgreSQL-only skips), 29 component
+tests and six regular Chromium flows (legacy demo skipped); production build passed.
+The new metadata test initially omitted its catalog fixture; corrected before the
+complete rerun. Numerical tests compare ratio/damage rounding to exact fractions,
+assert ratio bounds/monotonicity, permutation/repeated-slot behavior and turn-by-turn
+HP conservation. Existing exhaustive assignment and priority tests remain passing.
+
+Info tests enforce the public field allowlist, no-store, release-version consistency,
+separate latest/successful live scans and exclusion of sample/manual/private payloads
+and raw errors. Components cover lazy loading, errors/retry and closing; Chromium
+checks anonymous/signed-in use, links, Escape, narrow header width and popup screenshots.
+Desktop/mobile screenshots reviewed. Reports: test-artifacts/info-audit/. Isolated
+containers cleaned up. This is not a repository-history secret scan or a claim of full
+battle-model fidelity. Docker test suites are automated, but no CI workflow exists yet.

@@ -57,3 +57,27 @@ def test_stalemates_zero_hp_and_turn_cap():
 def test_safe_types_do_not_guarantee_duel_win():
     result = duel(pokemon(hp=10, speed=1), pokemon(2, speed=100), 2, 1)
     assert result.result == 'opponent'
+
+
+def test_turn_log_conserves_hp_and_matches_announced_strikes():
+    for speed in [1, 50, 100]:
+        result = duel(pokemon(hp=120, speed=speed), pokemon(2, hp=100), .5, 1)
+        chp, ohp = result.counter_hp, result.opponent_hp
+        for step in result.turns:
+            assert step.counter_damage in (0, result.outgoing.damage)
+            assert step.opponent_damage in (0, result.incoming.damage)
+            assert step.counter_hp == max(0, chp - step.opponent_damage)
+            assert step.opponent_hp == max(0, ohp - step.counter_damage)
+            assert 0 <= step.counter_hp <= chp and 0 <= step.opponent_hp <= ohp
+            chp, ohp = step.counter_hp, step.opponent_hp
+        assert result.result == ('counter' if ohp == 0 and chp else 'opponent' if chp == 0 and ohp else 'draw')
+
+
+def test_damage_rounding_matches_exact_fractions_at_boundaries():
+    from fractions import Fraction
+    for attack, defense in [(0, 0), (1, 3), (7, 9), (60, 50), (999, 1)]:
+        for multiplier in [0, .25, .5, 1, 2, 4]:
+            result = strike(pokemon(attack=attack, special_attack=0), pokemon(defense=defense), multiplier, 'normal')
+            exact = Fraction(30 * attack, max(1, defense)) * Fraction(multiplier)
+            expected = 0 if multiplier == 0 else max(1, exact.numerator // exact.denominator)
+            assert result.damage == expected

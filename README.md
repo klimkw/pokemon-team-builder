@@ -183,7 +183,7 @@ with DATABASE_URL set. `python -m app.jobs.ingest --help` shows the sample optio
   partial/fatal failures exit 1; interruption exits 130. Rerun safely to retry.
 - Manual imports and scheduled scans share a PostgreSQL advisory lock; overlapping
   attempts are audited and skipped before upstream requests. synced_at means last successful check, not when upstream data changed.
-  There is no refresh HTTP endpoint and ingestion never runs inside the API. The separate
+  The admin refresh HTTP endpoint queues work; ingestion never runs inside the API. The separate
   scanner service runs immediately on its own startup, then at the configured interval.
 
 Read `app/services/pokeapi.py` for the HTTP client and pure normalization, `app/services/catalog_sync.py`
@@ -250,6 +250,23 @@ invalid row leaves the entire old chart intact. No API restart is needed. The bu
 app snapshot remains the pure optimizer's offline/test default. Historical game charts
 and nonstandard types remain outside the model.
 
+### Auditable selection code
+
+The core selection uses the actual lexicographic tuple `(safe, 4 * type_strength,
+stats_score)`, followed by the lowest ID. Duplicates make slots independent:
+
+```python
+ids = [max(by_id, key=lambda identifier: (scorer(by_id[identifier], opponent).objective, -identifier))
+       for opponent in opponents]
+```
+
+This excerpt is from `backend/app/services/counters.py`. A safe pairing always beats
+an unsafe one, regardless of stats. Example checked by unit tests: a Pokémon with all
+six base stats at 100 against one with all six at 50 scores Attack 667 + Durability
+800 + Speed 667 = 2,134. The preview's **Show score arithmetic** substitutes actual
+pair inputs into these formulas. The full [model guide](frontend/src/docs/counter-model.md)
+contains damage calculations and limitations; scores are never win probabilities.
+
 ### Shared comparison and illustrative replay
 
 The preview uses the same Pokémon card component as the Pokédex, pairing your Pokémon
@@ -313,7 +330,7 @@ before/after values, detection timestamps, pagination and the latest scanner sta
 Type-chart changes match both a Pokémon's attacking types and its defensive types.
 The backend's `CHANGE_ALERT_WINDOW_DAYS` controls the window (default seven days).
 Alerts refresh on saved-team changes or with **Refresh alerts**; drafts are preserved.
-There are no unread/dismissal flags. History is retained independently of the window.
+Per-user read markers persist unread state; history is retained independently of the window.
 
 Admin controls in the same app provide POST `/api/admin/demo/changes`,
 POST `/api/admin/demo/reset`, POST `/api/admin/refresh`, and GET `/api/admin/jobs`.
@@ -364,3 +381,28 @@ to the first page when changed. The profile button opens account controls and yo
 saved-team list. Username/password changes require the current password; a new password
 revokes existing sessions. Team drafts remain intact while viewing Profile.
 See [the UX walkthrough](agent-process/06-workspace-ux.md) for API and unread semantics.
+
+## Secret handling before hosting
+
+Local Compose reads the ignored root `.env` and injects database credentials into
+backend/scanner runtime environments. Only `.env.example` is tracked. Build contexts
+exclude `.env` variants, and the frontend needs no server-side credentials. This is
+local configuration, not an encrypted secret vault; operators with container access
+can inspect runtime environments. PokéAPI requires no API key. Authentication uses
+opaque database-backed sessions rather than a JWT signing secret; session tokens
+are stored directly in the database by the current library strategy, a documented
+trade-off. Passwords are hashed, and the session cookie is HttpOnly/SameSite=Lax.
+
+At hosting time, use the provider's managed runtime secrets/environment settings,
+fresh production credentials, restricted access and a documented rotation procedure.
+Set the correct HTTPS APP_ORIGIN and COOKIE_SECURE=true. Keep demo controls disabled
+unless deliberately enabled for a restricted reviewer/admin workflow. Do not put
+credentials in Vite variables, Docker build arguments, source code or screenshots.
+We have not selected/configured a hosted secret store yet. Reference:
+[OWASP secrets-management guidance](https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html).
+
+The header **App info** popup reads `/api/info`, an explicit allowlist of public version,
+model, catalog-count and refresh timestamps/settings. It never returns database URLs,
+credentials, user data, job payloads, scanner summaries or raw errors. The release
+version comes from backend/pyproject.toml; it is not a commit counter. Latest live
+refresh and last successful live refresh are separate, excluding manual/sample runs.

@@ -133,3 +133,28 @@ def test_six_identical_venusaurs_reuse_best_counter_even_with_small_catalog():
     assert result.stats_score == single.stats_score * 6
     assert result.safe_count == single.safe_count * 6
     assert all(match.simulation == result.matchups[0].simulation for match in result.matchups)
+
+
+def test_ratio_rounding_matches_exact_rational_arithmetic_and_invariants():
+    from fractions import Fraction
+    from app.services.counters import ratio_score
+    for a in range(40):
+        for b in range(40):
+            exact = Fraction(1000 * a, a + b) if a + b else Fraction(500)
+            expected = (2 * exact.numerator + exact.denominator) // (2 * exact.denominator)
+            assert ratio_score(a, b) == expected
+            assert 0 <= ratio_score(a, b) <= 1000
+            assert ratio_score(a + 1, b) >= ratio_score(a, b)
+    assert ratio_score(1, 15) == 63  # Exactly 62.5 rounds up.
+
+
+def test_repeat_and_permutation_preserve_independent_slot_results():
+    candidates = [pokemon(1, ('fire',)), pokemon(2, ('water',)), pokemon(3, ('grass',))]
+    targets = [pokemon(10, ('grass',)), pokemon(11, ('fire',)), pokemon(12, ('water',))]
+    result = generate_counter(targets, candidates)
+    permuted = generate_counter(list(reversed(targets)), list(reversed(candidates)))
+    assert ids(permuted) == tuple(reversed(ids(result)))
+    assert objective(permuted) == objective(result)
+    for match in result.matchups:
+        alone = generate_counter([match.opponent], candidates)
+        assert match.counter.id == alone.matchups[0].counter.id

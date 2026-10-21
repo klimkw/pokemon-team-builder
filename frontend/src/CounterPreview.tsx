@@ -250,6 +250,14 @@ export default function CounterPreview({
                       ))}
                     </tbody>
                   </table>
+                  <p>Type strength: {match.outgoing_multiplier} − {match.incoming_multiplier} = {match.type_strength}.</p>
+                  <details className="score-arithmetic"><summary>Show score arithmetic</summary>
+                    <p>R(a, b) rounds 1,000 × a / (a + b) to the nearest integer, with halves rounded up. R(0, 0) = 500.</p>
+                    <pre>{`Attack = max(R(${match.counter.stats.attack}, ${match.opponent.stats.defense}), R(${match.counter.stats.special_attack}, ${match.opponent.stats.special_defense})) = ${match.attack_potential}
+Durability = floor((R(${match.counter.stats.hp * match.counter.stats.defense}, ${match.opponent.stats.hp * match.opponent.stats.attack}) + R(${match.counter.stats.hp * match.counter.stats.special_defense}, ${match.opponent.stats.hp * match.opponent.stats.special_attack})) / 2) = ${match.durability}
+Speed = R(${match.counter.stats.speed}, ${match.opponent.stats.speed}) = ${match.speed}
+Total = ${match.attack_potential} + ${match.durability} + ${match.speed} = ${match.stats_score}`}</pre>
+                  </details>
                   <p>
                     Attack potential {match.attack_potential} · Durability{" "}
                     {match.durability} · Speed {match.speed}. Total:{" "}

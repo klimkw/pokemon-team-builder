@@ -4,6 +4,8 @@ This folder explains how the Pokémon Team Builder was developed with an AI codi
 assistant and how its main technical pieces work. It is intended to help the project
 owner review the decisions and explain the application from browser to database.
 
+- [App info and calculation audit](12-app-info-and-calculation-audit.md): public metadata,
+  secrets review and stronger numerical verification.
 - [Counter comparison and replay](11-counter-comparison-and-replay.md): shared cards,
   deterministic paired duels and the rendered Markdown model guide.
 - [Team selection pane](10-team-pane.md): dropdown drafting and visible team actions.
