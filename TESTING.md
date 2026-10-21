@@ -421,3 +421,20 @@ affected Pokémon types, title-case headings, accessible before/after change chi
 shared type badges, defensive relevance, persisted unread handling and mobile width.
 Desktop/mobile screenshots were visually reviewed; reports: test-artifacts/alerts-polish/.
 The isolated test stack was removed after verification.
+
+## Cumulative demo and field history
+
+Integration checks cover successive requests updating the same stat and type pair,
+adding another stat, repeat idempotence and resetting all four generated events back
+to original values. Existing newer-source reset protection remains covered. A separate
+history test checks stable entity identity, time-window filtering, descending timestamps
+and entries beyond the current alert page. Component coverage checks collapsed history
+and expansion. The regular admin browser flow now applies a second request, expands
+Attack history, checks date grouping and mobile width, then repeats and resets.
+
+Final verification passed: 129 PostgreSQL tests, 113 SQLite tests with 16 PostgreSQL-only
+skips, 25 component tests and six regular Chromium flows. The legacy separate-demo
+flow remains skipped. Production Docker build passed. Screenshot review confirmed
+readable date headings and expanded timestamped history; mobile overflow passed.
+The first build caught misplaced JSX closing tags, corrected before the full rerun.
+Reports/screenshots: test-artifacts/alert-history/. Test containers were cleaned up.

@@ -41,7 +41,8 @@ async def refresh(db: Database, user: Admin, response: Response):
 async def demo_changes(payload: DemoChanges, db: Database, user: Admin, response: Response):
     """Apply supplied fixture changes through the scanner. Repeat the same payload to prove idempotence.
 
-    Use Pokemon IDs from your saved teams to see alerts. Reset before changing the scenario.
+    Use Pokemon IDs from saved teams to see alerts. Further requests accumulate changes.
+    Reset restores original values across all requests. Inspect the returned job URL for completion.
     """
     job = await enqueue(db, user, 'demo_apply', payload.model_dump(mode='json'))
     response.headers['Location'] = f'/api/admin/jobs/{job.id}'

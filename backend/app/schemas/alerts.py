@@ -2,7 +2,7 @@
 from datetime import datetime
 from typing import Any, Literal
 from uuid import UUID
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from app.schemas.teams import PokemonType
 
 
@@ -25,7 +25,13 @@ class AffectedPokemon(BaseModel):
     teams: list[AffectedTeam]
 
 
+class FieldHistory(FieldChange):
+    id: UUID
+    detected_at: datetime
+
+
 class ChangeAlert(BaseModel):
+    history: dict[str, list[FieldHistory]] = Field(default_factory=dict)
     is_read: bool = False
     is_manual_demo: bool = False
     id: UUID

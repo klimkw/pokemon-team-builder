@@ -77,7 +77,10 @@ export default function Alerts({ membershipKey }: { membershipKey: string }) {
           {data.latest_scan && data.latest_scan.status !== "succeeded" && <p className="message">Latest scan: {data.latest_scan.status}. Data may be incomplete.</p>}
           {!data.latest_scan && <p className="save-hint">Not scanned yet.</p>}
           {data.total === 0 ? <p className="alerts-empty">No recent changes affecting your saved teams.</p> : <ul className="change-list">
-            {data.items.map(alert => <li key={alert.id}>
+            {data.items.map((alert, index) => <li className="alert-timeline-event" key={alert.id}>
+              {(index === 0 || new Date(alert.detected_at).toDateString() !== new Date(data.items[index - 1].detected_at).toDateString()) &&
+                <h3 className="alert-date">{new Date(alert.detected_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}</h3>}
+              <article className="alert-event-card">
               {alert.is_manual_demo && <p className="demo-label">Demo change · applied manually through the scanner</p>}
               <h3>{titleCase(alert.entity_kind === "type" ? `${alert.entity_name} type matchups changed` : `${alert.entity_name} changed`)}</h3>
               <time className="save-hint" dateTime={alert.detected_at}>{dateText(alert.detected_at)}</time>
@@ -91,6 +94,17 @@ export default function Alerts({ membershipKey }: { membershipKey: string }) {
                   <span className="change-chip-values"><span className="change-before">{before}</span><span className="change-arrow" aria-hidden="true">→</span><strong className="change-after">{after}</strong></span>
                 </li>;
               })}</ul>
+              {Object.entries(alert.history ?? {}).filter(([, entries]) => entries.length > 1).map(([field, entries]) =>
+                <details className="field-history" key={field}>
+                  <summary>View history · {labels[field] ?? titleCase(field.replace("damage_to.", "Against "))} ({entries.length})</summary>
+                  <ol aria-label={`${labels[field] ?? field} history`}>
+                    {entries.map(entry => <li key={entry.id}>
+                      <time dateTime={entry.detected_at}>{dateText(entry.detected_at)}</time>
+                      <span>{valueText(entry.before)} → <strong>{valueText(entry.after)}</strong>{field.startsWith("damage_to.") ? "×" : ""}</span>
+                    </li>)}
+                  </ol>
+                  <p className="save-hint">Detected changes · last {data.window_days} days · newest first</p>
+                </details>)}
               <ul className="alert-affected" aria-label="Affected Pokémon">{alert.affected.map(pokemon => <li className="affected-pokemon" key={pokemon.id}>
                 <div className="affected-heading"><h4>{titleCase(pokemon.name)}</h4><TypeBadges types={pokemon.types} /></div>
                 {alert.entity_kind === "type" && <p className="affected-reason">{[
@@ -99,6 +113,7 @@ export default function Alerts({ membershipKey }: { membershipKey: string }) {
                 ].filter(Boolean).join(" · ")}</p>}
                 <ul className="affected-teams">{pokemon.teams.map(team => <li key={team.id}>{team.name} · slots {team.positions.map(p => p + 1).join(", ")}</li>)}</ul>
               </li>)}</ul>
+              </article>
             </li>)}
           </ul>}
           {data.total > 10 && <nav className="catalog-pagination" aria-label="Alert pages">

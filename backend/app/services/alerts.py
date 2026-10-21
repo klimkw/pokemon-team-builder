@@ -2,7 +2,7 @@
 from datetime import timedelta
 from sqlalchemy import and_, or_, select
 from app.db.models import AlertRead, CatalogChange, Pokemon, ScanRun, Team, TeamMember, utc_now
-from app.schemas.alerts import AlertPage, ChangeAlert, ScanStatus
+from app.schemas.alerts import AlertPage, ChangeAlert, FieldHistory, ScanStatus
 from app.settings import CHANGE_ALERT_WINDOW_DAYS, DEMO_MODE
 
 
@@ -22,6 +22,8 @@ async def get_alerts(session, user_id, *, limit=20, offset=0, now=None,
     latest = await session.scalar(select(ScanRun).order_by(ScanRun.started_at.desc(), ScanRun.id.desc()).limit(1))
     read_ids = set(await session.scalars(select(AlertRead.change_id).where(AlertRead.user_id == user_id)))
     alerts = []
+    histories = {}
+    identities = {}
     if members:
         candidates = await session.execute(select(CatalogChange, ScanRun.summary).outerjoin(ScanRun, ScanRun.id == CatalogChange.scan_run_id).where(
             CatalogChange.detected_at >= since, CatalogChange.detected_at <= now,
@@ -49,10 +51,17 @@ async def get_alerts(session, user_id, *, limit=20, offset=0, now=None,
                     affected.append({"id": pokemon_id, "name": pokemon.name, "types": pokemon.types, "reasons": reasons,
                                      "teams": list(member["teams"].values())})
             if affected:
+                identity = (change.entity_kind, change.entity_key)
+                identities[change.id] = identity
+                for field in relevant_fields:
+                    histories.setdefault((*identity, field), []).append({
+                        'id': change.id, 'detected_at': change.detected_at, **change.changes[field]})
                 alerts.append(ChangeAlert(is_read=change.id in read_ids, is_manual_demo=(scan_summary or {}).get("source") == "manual_demo", id=change.id, entity_kind=change.entity_kind,
                     entity_name=change.entity_name, detected_at=change.detected_at,
                     changes={key: value for key, value in change.changes.items() if key in relevant_fields},
                     affected=affected))
+    for alert in alerts[offset:offset + limit]:
+        alert.history = {field: [FieldHistory.model_validate(entry) for entry in histories[(*identities[alert.id], field)]] for field in alert.changes}
     return AlertPage(unread_total=sum(not alert.is_read for alert in alerts), is_demo=DEMO_MODE, items=alerts[offset:offset + limit], total=len(alerts), limit=limit, offset=offset,
                      window_days=window_days, since=since, as_of=now,
                      latest_scan=ScanStatus.model_validate(latest) if latest else None)

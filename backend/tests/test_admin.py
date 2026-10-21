@@ -94,14 +94,14 @@ def test_worker_apply_repeat_reset_preserves_other_data_and_history(administrato
 
 
 @pytest.mark.postgres
-def test_reset_refuses_newer_field_and_different_active_scenario(administrator):
+def test_reset_refuses_newer_field_after_cumulative_changes(administrator):
     def run(action, payload=None):
         queued = administrator.post('/api/admin/' + action, json=payload)
         assert queued.status_code == 202
         asyncio.run(worker.process_one(db.engine))
         return administrator.get(queued.headers['Location']).json()
     assert run('demo/changes', PATCH)['status'] == 'succeeded'
-    assert run('demo/changes', {'pokemon': [{'pokemon_id': 1, 'stats': {'attack': 70}}]})['status'] == 'failed'
+    assert run('demo/changes', {'pokemon': [{'pokemon_id': 1, 'stats': {'attack': 70}}]})['status'] == 'succeeded'
     async def newer():
         async with db.session_maker.begin() as session:
             p = await session.get(Pokemon, 1)
@@ -152,3 +152,31 @@ def test_worker_cancellation_records_interruption(administrator, monkeypatch):
     with pytest.raises(asyncio.CancelledError):
         asyncio.run(worker.process_one(db.engine))
     assert administrator.get(queued.headers['Location']).json()['status'] == 'interrupted'
+
+
+@pytest.mark.postgres
+def test_cumulative_demo_preserves_originals_and_timeline(administrator):
+    administrator.post('/api/teams', json={'name': 'Timeline', 'pokemon_ids': [1]})
+    def run(payload=None, action='demo/changes'):
+        queued = administrator.post('/api/admin/' + action, json=payload)
+        assert queued.status_code == 202
+        asyncio.run(worker.process_one(db.engine))
+        job = administrator.get(queued.headers['Location']).json()
+        assert job['status'] == 'succeeded', job
+        return job
+    first = run(PATCH)
+    second_patch = {'pokemon': [{'pokemon_id': 1, 'stats': {'attack': 70, 'speed': 77}}],
+                    'type_matchups': [{'attacking_type': 'fire', 'defending_type': 'grass', 'multiplier': 0.5}]}
+    second = run(second_patch)
+    assert first['result']['demo_id'] == second['result']['demo_id']
+    alerts = administrator.get('/api/alerts?limit=1').json()
+    # Histories cover the entire window, including entries outside this page.
+    histories = list(alerts['items'][0]['history'].values())
+    assert any(len(entries) == 2 for entries in histories)
+    run(second_patch)
+    assert administrator.get('/api/alerts').json()['total'] == 4
+    reset = run(action='demo/reset')
+    assert reset['result']['removed_history'] == 4
+    pokemon = administrator.get('/api/pokemon/1').json()
+    assert pokemon['stats']['attack'] == 55 and pokemon['stats']['speed'] == 90
+    assert administrator.get('/api/alerts').json()['total'] == 0

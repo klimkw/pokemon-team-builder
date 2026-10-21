@@ -119,3 +119,19 @@ def test_latest_scan_reports_partial_status_without_exposing_errors(signed_in):
     latest = signed_in.get("/api/alerts").json()["latest_scan"]
     assert latest["status"] == "partial"
     assert set(latest) == {"status", "started_at", "finished_at"}
+
+
+def test_field_history_spans_pages_but_respects_window_and_entity(signed_in):
+    save(signed_in, [1, 7])
+    store(event(at=NOW - timedelta(days=1), changes={'stats.attack': {'before': 49, 'after': 60}}),
+          event(at=NOW, changes={'stats.attack': {'before': 60, 'after': 70}}),
+          event(at=NOW - timedelta(days=8)), event('7', at=NOW - timedelta(hours=1)))
+    user_id = uuid.UUID(signed_in.get('/api/auth/me').json()['id'])
+    async def run():
+        async with db.session_maker() as session:
+            page = await get_alerts(session, user_id, now=NOW, limit=1)
+            assert page.total == 3 and len(page.items) == 1
+            history = page.items[0].history['stats.attack']
+            assert [(entry.before, entry.after) for entry in history] == [(60, 70), (49, 60)]
+            assert history[0].detected_at > history[1].detected_at
+    asyncio.run(run())

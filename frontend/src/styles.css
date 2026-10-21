@@ -1468,7 +1468,7 @@ input:disabled {
 
 /* Alert event cards share the Pokédex typography and type chips. */
 .alerts-content .change-list { gap: 16px; margin: 20px 0; }
-.alerts-content .change-list > li { border: 1px solid #dedfd4; border-radius: 12px; padding: 16px; background: #fffefa; box-shadow: 0 4px 12px -10px #37412c30; }
+.alerts-content .alert-event-card { border: 1px solid #dedfd4; border-radius: 12px; padding: 16px; background: #fffefa; box-shadow: 0 4px 12px -10px #37412c30; }
 .alerts-content .change-list h3 { font-family: Manrope, sans-serif; font-size: 15px; font-weight: 700; line-height: 1.45; margin: 0 0 5px; }
 .alerts-content .change-list time { display: block; font-size: 10px; color: #7b826e; }
 .alerts-content .change-values { list-style: none; display: flex; flex-wrap: wrap; gap: 7px; padding: 0; margin: 14px 0 16px; }
@@ -1486,6 +1486,14 @@ input:disabled {
 .affected-heading .type-badges { min-height: 0; }
 .affected-reason { font-size: 10px; line-height: 1.6; color: #6c735f; margin-top: 5px; }
 .alerts-content .affected-teams { list-style: none; padding: 0; margin: 5px 0 0; font-size: 10px; line-height: 1.7; color: #737b65; }
-@media (max-width: 400px) { .alerts-content { padding: 18px; } .alerts-content .change-list > li { padding: 14px; } }
+@media (max-width: 400px) { .alerts-content { padding: 18px; } .alerts-content .alert-event-card { padding: 14px; } }
 .change-chip-values { flex-wrap: wrap; min-width: 0; max-width: 100%; }
 .change-before, .change-after { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+
+.alerts-content .change-list > .alert-timeline-event { border: 0; padding: 0; }
+.alerts-content .change-list .alert-date { margin: 6px 0 12px; font-size: 12px; color: #66754f; }
+.field-history { margin: 0 0 16px; font-size: 11px; }
+.field-history summary { cursor: pointer; color: #52633d; padding: 5px 0; }
+.field-history ol { list-style: none; margin: 8px 0; padding: 0 0 0 10px; border-left: 2px solid #dce3cd; }
+.field-history li { display: grid; gap: 5px; padding: 7px 0; }
+.field-history li span { font-variant-numeric: tabular-nums; }

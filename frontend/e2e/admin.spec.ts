@@ -43,6 +43,13 @@ test("admin docs queue scanner changes, repeat without duplicates and reset in t
   const affected = page.locator('.affected-pokemon').first();
   await expect(affected.locator('.type-grass')).toBeVisible();
   await expect(page.getByText('Defensive matchup changed', { exact: true })).toBeVisible();
+  const nextPatch = { pokemon: [{ pokemon_id: 1, stats: { attack: 70 } }] };
+  expect((await run("demo/changes", nextPatch)).pokemon.updated).toBe(1);
+  await page.getByRole("button", { name: "Refresh alerts" }).click();
+  await expect(page.getByRole("heading", { name: "Recent changes (3)" })).toBeVisible();
+  await page.getByText("View history · Attack (2)").first().click();
+  await expect(page.getByRole("list", { name: "Attack history" }).first()).toBeVisible();
+  await expect(page.locator(".alert-date")).toHaveCount(1);
   await page.screenshot({ path: testInfo.outputPath("admin-alerts.png"), fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
@@ -51,9 +58,9 @@ test("admin docs queue scanner changes, repeat without duplicates and reset in t
   await page.getByRole("button", { name: "Close alerts" }).click();
   await page.reload();
   await expect(page.getByRole("button", { name: "Alerts", exact: true })).toBeVisible();
-  expect((await run("demo/changes", patch)).pokemon.updated).toBe(0);
-  expect((await (await page.request.get("/api/alerts")).json()).total).toBe(2);
-  expect((await run("demo/reset")).removed_history).toBe(2);
+  expect((await run("demo/changes", nextPatch)).pokemon.updated).toBe(0);
+  expect((await (await page.request.get("/api/alerts")).json()).total).toBe(3);
+  expect((await run("demo/reset")).removed_history).toBe(3);
   await page.getByRole("button", { name: /^Alerts/ }).click();
   await page.getByRole("button", { name: "Refresh alerts" }).click();
   await expect(page.getByText("No recent changes affecting your saved teams.")).toBeVisible();

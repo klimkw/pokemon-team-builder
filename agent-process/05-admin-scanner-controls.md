@@ -62,8 +62,9 @@ draft. To reload the catalog/member stats themselves, save or discard your draft
 reload the app when ready.
 
 Submit the **identical payload** again and poll its new job. The scanner reports no
-additional updates, and history does not duplicate. A different scenario is rejected
-by its job while one is active; reset the current one first. Invalid IDs fail without
+additional updates, and history does not duplicate. Further requests can add fields or
+change previous values within the active scenario. Reset restores the first original
+value of every field touched across those requests. Invalid IDs fail without
 altering catalog data. Even a failed partial scenario retains its original-field
 snapshot so it can be reset safely.
 

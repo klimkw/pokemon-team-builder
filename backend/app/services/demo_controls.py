@@ -32,10 +32,8 @@ async def apply_changes(sessions, payload):
     normalized = changes.model_dump(mode='json')
     async with sessions.begin() as session:
         state = await session.get(DemoState, 1)
-        if state and state.payload != normalized:
-            raise ValueError('A different demo is active. Reset it before submitting different changes.')
         rows = deepcopy((await session.get(TypeChart, 1)).damage_to)
-        originals = {'pokemon': {}, 'type_matchups': []}
+        originals = deepcopy(state.originals) if state else {'pokemon': {}, 'type_matchups': []}
         records = []
         for patch in changes.pokemon:
             pokemon = await session.get(Pokemon, patch.pokemon_id)
@@ -50,11 +48,25 @@ async def apply_changes(sessions, payload):
             if patch.types is not None:
                 original['types'] = {'before': values['types'], 'after': patch.types}
                 values['types'] = patch.types
-            originals['pokemon'][str(pokemon.id)] = original
+            tracked = originals['pokemon'].setdefault(str(pokemon.id), {})
+            for field, change in original.items():
+                if field in tracked:
+                    if change['before'] != tracked[field]['after']:
+                        raise ValueError('A demo field has newer source data; reset or refresh before changing it again.')
+                    tracked[field]['after'] = change['after']
+                else:
+                    tracked[field] = change
             records.append(CatalogRecord(**values))
         for patch in changes.type_matchups:
-            originals['type_matchups'].append({'attack': patch.attacking_type, 'defense': patch.defending_type,
-                'before': rows[patch.attacking_type][patch.defending_type], 'after': patch.multiplier})
+            current = rows[patch.attacking_type][patch.defending_type]
+            tracked = next((item for item in originals['type_matchups'] if item['attack'] == patch.attacking_type and item['defense'] == patch.defending_type), None)
+            if tracked:
+                if current != tracked['after']:
+                    raise ValueError('A demo matchup has newer source data; reset or refresh before changing it again.')
+                tracked['after'] = patch.multiplier
+            else:
+                originals['type_matchups'].append({'attack': patch.attacking_type, 'defense': patch.defending_type,
+                    'before': current, 'after': patch.multiplier})
             rows[patch.attacking_type][patch.defending_type] = patch.multiplier
         if not records:
             # Discovery must contain one record; leave it unchanged for type-only scans.
@@ -66,6 +78,8 @@ async def apply_changes(sessions, payload):
         if state is None:
             state = DemoState(id=1, demo_id=uuid.uuid4(), payload=normalized, originals=originals)
             session.add(state)
+        state.originals = originals
+        state.payload = normalized
         demo_id = str(state.demo_id)
     result = await run_locked_scan(sessions, api=ManualSource(records, rows), limit=len(records),
         include_types=bool(changes.type_matchups), metadata={'source': 'manual_demo', 'demo_id': demo_id})

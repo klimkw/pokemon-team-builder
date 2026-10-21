@@ -244,6 +244,7 @@ export async function getCounterPreview(
 }
 
 export type ChangeAlert = {
+  history?: Record<string, { id: string; detected_at: string; before: unknown; after: unknown }[]>;
   is_read?: boolean;
   is_manual_demo?: boolean;
   id: string;

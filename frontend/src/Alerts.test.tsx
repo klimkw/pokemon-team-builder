@@ -65,3 +65,20 @@ it("uses title-case change cards, shared type badges and explicit matchup contex
   expect(affected.querySelector('.type-poison')).toHaveTextContent('poison');
   expect(screen.getByText("Defensive matchup changed")).toBeVisible();
 });
+
+it("groups dates and expands timestamped field history", async () => {
+  vi.spyOn(api, "getAlerts").mockResolvedValue({ ...page, items: [{ ...page.items[0], history: {
+    "stats.attack": [
+      { id: "second", detected_at: "2026-10-20T12:00:00Z", before: 60, after: 70 },
+      { id: "first", detected_at: "2026-10-19T12:00:00Z", before: 49, after: 60 },
+    ],
+  } }] });
+  render(<Alerts membershipKey="history" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Alerts, 1 unread" }));
+  const summary = await screen.findByText("View history · Attack (2)");
+  expect(summary.closest("details")).not.toHaveAttribute("open");
+  fireEvent.click(summary);
+  expect(screen.getByRole("list", { name: "Attack history" }).querySelectorAll("time")).toHaveLength(2);
+  expect(screen.getByText("Detected changes · last 7 days · newest first")).toBeVisible();
+  expect(document.querySelector(".alert-date")).toBeInTheDocument();
+});

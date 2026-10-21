@@ -462,3 +462,25 @@ existing database and active manual scenario. Save drafts before refreshing the 
 Runtime checks passed: all services healthy, no schema drift, and counts remain
 1,351 Pokémon, two teams, one account, two history events and one active manual
 scenario. The worker retained its remaining scheduled interval without a startup scan.
+
+## Latest: cumulative demo and dated alert history
+
+Manual demo requests now merge into one active scenario instead of rejecting a different
+payload. Each field retains its first original value and latest demo value, sharing the
+same demo ID across requests. Reset restores all tracked originals and removes all
+scenario-tagged events. Current values that differ from the tracked demo value block
+further edits to that field; reset also retains its newer-source safety check. No
+migration required; existing snapshots work unchanged.
+
+Alert responses add per-field history for the full configured window before pagination,
+scoped to the same entity key and saved-team relevance. UI groups cards by local date
+and offers View history for repeated field changes, newest first with detection times.
+Read tracking still applies only to visible alert events. See
+agent-process/09-cumulative-demo-history.md. Do not reset the owner's live scenario.
+Final tests: 129 PostgreSQL, 113 SQLite (16 skips), 25 component and six regular browser
+flows passed; production build passed. Reports: test-artifacts/alert-history/.
+Local app updated from tested images. Health and Alembic checks passed, worker retained
+its remaining scan interval, and counts before/after remained 1,351 Pokémon, two teams,
+one account, one change event and one active demo scenario. These reflect the owner's
+latest scenario, which was preserved. Save drafts before browser refresh. Commit this
+increment as “Support cumulative demo changes and dated alert histories”.
