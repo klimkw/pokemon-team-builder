@@ -4,6 +4,7 @@ This folder explains how the Pokémon Team Builder was developed with an AI codi
 assistant and how its main technical pieces work. It is intended to help the project
 owner review the decisions and explain the application from browser to database.
 
+- [Team selection pane](10-team-pane.md): dropdown drafting and visible team actions.
 - [Cumulative demo and history](09-cumulative-demo-history.md): multi-request changes,
   reset snapshots and timestamped field timelines.
 - [Alerts presentation](08-alerts-presentation.md): event cards, shared type chips and

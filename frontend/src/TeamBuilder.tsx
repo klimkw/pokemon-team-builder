@@ -433,8 +433,8 @@ export default function TeamBuilder({
                         );
                     }}
                   >
-                    <option value="" disabled>
-                      New team draft
+                    <option value="">
+                      Draft a New Team
                     </option>
                     {teams.map((team) => (
                       <option key={team.id} value={team.id}>
@@ -443,15 +443,6 @@ export default function TeamBuilder({
                     ))}
                   </select>
                 </div>
-                <button
-                  className="quiet-button"
-                  disabled={locked}
-                  onClick={() => {
-                    if (canLeave()) openTeam();
-                  }}
-                >
-                  New team
-                </button>
               </div>
               <label htmlFor="team-name">Team name</label>
               <input
@@ -476,7 +467,7 @@ export default function TeamBuilder({
                 </span>
 
               </div>
-              <ol className="team-members">
+              <ol className="team-members" aria-label="Selected Pokémon" tabIndex={0}>
                 {Array.from({ length: 6 }, (_, index) => {
                   const pokemon = members[index];
                   return (
@@ -533,6 +524,7 @@ export default function TeamBuilder({
                 })}
               </ol>
 
+              <div className="team-actions">
               {saveError && (
                 <p className="message error" role="alert">
                   {saveError}
@@ -580,6 +572,7 @@ export default function TeamBuilder({
                   Delete team
                 </button>
               )}
+              </div>
             </>
           )}
         </section>

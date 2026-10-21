@@ -484,3 +484,19 @@ its remaining scan interval, and counts before/after remained 1,351 Pokémon, tw
 one account, one change event and one active demo scenario. These reflect the owner's
 latest scenario, which was preserved. Save drafts before browser refresh. Commit this
 increment as “Support cumulative demo changes and dated alert histories”.
+
+## Latest: team pane actions
+
+Draft a New Team is now the selectable blank entry in Saved teams; the separate New
+team button is removed. Existing discard confirmation applies to dropdown switching.
+The team pane is viewport-constrained with a keyboard-focusable member list that
+scrolls independently and an action footer that remains visible. Counter preview and
+Delete no longer require scrolling past all selected member cards. Stats/type chips
+remain on every member. Member rows explicitly use max-content height to avoid stats
+overlapping adjacent rows. Very short screens use a sticky footer fallback.
+See agent-process/10-team-pane.md. No backend/schema/scanner changes are involved.
+Verification passed production build, 25 components with one worker and six regular
+Chromium flows (legacy separate-demo flow skipped). Row boundary and action viewport
+assertions passed; screenshots reviewed. Reports: test-artifacts/team-pane/.
+Only the local frontend is refreshed; backend/scanner/database remain running intact.
+Commit: “Keep team actions visible and draft from team dropdown”.

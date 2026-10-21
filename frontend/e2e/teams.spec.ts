@@ -77,10 +77,10 @@ test("build, save, reload, reorder, switch, and delete teams", async ({
   await expect(
     page.getByRole("button", { name: "Remove charmander from slot 2" }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "New team", exact: true }).click();
+  await page.getByLabel("Saved teams").selectOption("");
   await page.getByLabel("Team name", { exact: true }).fill("Empty lineup");
   page.once("dialog", (dialog) => dialog.dismiss());
-  await page.getByRole("button", { name: "New team", exact: true }).click();
+  await page.getByLabel("Saved teams").selectOption({ label: "Edited lineup" });
   await expect(page.getByLabel("Team name", { exact: true })).toHaveValue(
     "Empty lineup",
   );
@@ -95,6 +95,15 @@ test("build, save, reload, reorder, switch, and delete teams", async ({
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("link", { name: "Your team · 5 / 6" }).click();
   await expect(page.getByLabel("Team name", { exact: true })).toBeInViewport();
+  await expect(page.getByRole("button", { name: "View optimal counter team" })).toBeInViewport();
+  await expect(page.getByRole("button", { name: "Delete team", exact: true })).toBeInViewport();
+  await expect(page.getByRole("button", { name: "New team", exact: true })).toHaveCount(0);
+  const rows = page.locator(".team-member");
+  const firstRow = await rows.nth(0).boundingBox();
+  const nextRow = await rows.nth(1).boundingBox();
+  const stats = await rows.nth(0).locator(".member-stats").boundingBox();
+  expect(stats!.y + stats!.height).toBeLessThanOrEqual(firstRow!.y + firstRow!.height);
+  expect(firstRow!.y + firstRow!.height).toBeLessThanOrEqual(nextRow!.y);
   await page.screenshot({
     path: testInfo.outputPath("team-builder-mobile.png"),
   });
@@ -103,8 +112,10 @@ test("build, save, reload, reorder, switch, and delete teams", async ({
       () => document.documentElement.scrollWidth <= window.innerWidth,
     ),
   ).toBe(true);
-  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.setViewportSize({ width: 1440, height: 720 });
   await page.evaluate(() => window.scrollTo(0, 0));
+  await expect(page.getByRole("button", { name: "View optimal counter team" })).toBeInViewport();
+  await expect(page.getByRole("button", { name: "Delete team", exact: true })).toBeInViewport();
   await page.screenshot({
     path: testInfo.outputPath("team-builder-desktop.png"),
   });

@@ -1497,3 +1497,21 @@ input:disabled {
 .field-history ol { list-style: none; margin: 8px 0; padding: 0 0 0 10px; border-left: 2px solid #dce3cd; }
 .field-history li { display: grid; gap: 5px; padding: 7px 0; }
 .field-history li span { font-variant-numeric: tabular-nums; }
+
+/* Keep team controls in view while the selected-member list scrolls. */
+.team-panel { display: flex; flex-direction: column; max-height: calc(100dvh - 150px); }
+.team-panel > :not(.team-members) { flex-shrink: 0; }
+.team-panel > .team-members { min-height: 90px; overflow-y: auto; overscroll-behavior: contain; flex: 1 1 auto; scrollbar-gutter: stable; }
+.team-members:focus-visible { outline: 2px solid #718251; outline-offset: 3px; }
+.team-actions { padding-top: 12px; border-top: 1px solid #e1e4d8; margin-top: 12px; }
+.team-actions .primary-button { margin-top: 0; }
+.team-actions .counter-entry { border: 0; margin-top: 8px; }
+.team-actions .counter-entry .secondary-button { margin-top: 0; min-height: 42px; }
+.team-actions .counter-entry .save-hint { display: none; }
+.team-actions .delete-team { margin-top: 4px; padding: 7px 10px; }
+.team-actions .message { margin: 0 0 8px; }
+.team-panel .panel-heading { margin-bottom: 14px; }
+.team-panel .draft-caption { margin: 8px 0 10px; }
+@media (max-width: 850px) { .team-panel { max-height: calc(100dvh - 90px); scroll-margin-top: 70px; } }
+@media (max-height: 600px) { .team-panel { max-height: none; } .team-actions { position: sticky; bottom: 0; background: #fffdf9; z-index: 1; padding-bottom: 8px; } }
+.team-panel > .team-members { grid-auto-rows: max-content; align-content: start; }

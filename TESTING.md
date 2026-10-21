@@ -438,3 +438,17 @@ flow remains skipped. Production Docker build passed. Screenshot review confirme
 readable date headings and expanded timestamped history; mobile overflow passed.
 The first build caught misplaced JSX closing tags, corrected before the full rerun.
 Reports/screenshots: test-artifacts/alert-history/. Test containers were cleaned up.
+
+## Team pane dropdown and visible actions
+
+Production frontend build and 25 component tests passed. The catalog-loading component
+wait timed out under parallel suite contention; the same tests passed with one Vitest
+worker, without changing expectations. Browser checks select the new blank dropdown
+entry, preserve unsaved edits on cancelled switching, and verify counter/delete actions
+are in view on 390×844 mobile and 1440×720 desktop. Screenshot review caught compressed
+member rows causing overlapping stats; max-content row sizing corrects this, with an
+explicit row/stat boundary assertion added to the browser flow.
+Final rerun passed all 25 component tests and six regular Chromium flows (legacy demo
+flow skipped), including the new row boundaries. Desktop/mobile screenshots reviewed;
+reports: test-artifacts/team-pane/. Isolated test containers were removed. Backend
+suites were not rerun for this frontend-only change.
