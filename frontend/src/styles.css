@@ -1508,3 +1508,5 @@ input:disabled {
 .team-actions .delete-team { margin-top: 4px; padding: 7px 10px; }
 .team-actions .message { margin: 0 0 8px; }
 .team-panel .draft-caption { margin: 8px 0 10px; }
+
+.team-actions .primary-button.team-saved { background: #52743b; border-color: #52743b; color: #fff; opacity: 1; }

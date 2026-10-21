@@ -530,17 +530,18 @@ export default function TeamBuilder({
                   {saveError}
                 </p>
               )}
-              {notice && (
+              {notice && notice !== "Team saved." && (
                 <p className="message success" role="status">
                   {notice}
                 </p>
               )}
               <button
-                className="primary-button"
+                className={`primary-button${notice === "Team saved." && !dirty ? " team-saved" : ""}`}
+                aria-live="polite"
                 disabled={locked || !name.trim() || (!!selected && !dirty)}
                 onClick={() => void save()}
               >
-                {busy ? "Working…" : "Save team"}
+                {busy ? "Working…" : notice === "Team saved." && !dirty ? "Team saved." : "Save team"}
                 <span aria-hidden="true">↗</span>
               </button>
 

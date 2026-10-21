@@ -44,7 +44,7 @@ test("build, save, reload, reorder, switch, and delete teams", async ({
   await expect(add).toBeDisabled();
   await page.getByLabel("Team name", { exact: true }).fill("First lineup");
   await page.getByRole("button", { name: "Save team", exact: true }).click();
-  await expect(page.getByText("Team saved.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Team saved.", exact: true })).toHaveClass(/team-saved/);
   await page.reload();
   await expect(page.getByLabel("Team name", { exact: true })).toHaveValue(
     "First lineup",
@@ -58,7 +58,7 @@ test("build, save, reload, reorder, switch, and delete teams", async ({
     .click();
   await page.getByLabel("Team name", { exact: true }).fill("Edited lineup");
   await page.getByRole("button", { name: "Save team", exact: true }).click();
-  await expect(page.getByText("Team saved.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Team saved.", exact: true })).toHaveClass(/team-saved/);
   await page.reload();
   await expect(
     page.getByRole("button", { name: "Remove charmander from slot 2" }),
@@ -85,7 +85,7 @@ test("build, save, reload, reorder, switch, and delete teams", async ({
     "Empty lineup",
   );
   await page.getByRole("button", { name: "Save team", exact: true }).click();
-  await expect(page.getByText("Team saved.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Team saved.", exact: true })).toHaveClass(/team-saved/);
   const options = page.getByLabel("Saved teams");
   const firstId = await options
     .locator("option", { hasText: "Edited lineup" })
@@ -93,6 +93,7 @@ test("build, save, reload, reorder, switch, and delete teams", async ({
   await options.selectOption(firstId!);
   await expect(page.getByText("5 / 6", { exact: true })).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
   await page.getByRole("link", { name: "Your team · 5 / 6" }).click();
   await expect(page.getByLabel("Team name", { exact: true })).toBeInViewport();
 

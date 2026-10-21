@@ -28,7 +28,7 @@ test("preview counters for unsaved edits, explain them, and explicitly save a se
   await page.getByRole("button", { name: "Add bulbasaur to team" }).click();
   await page.getByLabel("Team name", { exact: true }).fill("My original");
   await page.getByRole("button", { name: "Save team", exact: true }).click();
-  await expect(page.getByText("Team saved.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Team saved.", exact: true })).toBeVisible();
   const originalId = await page.getByLabel("Saved teams").inputValue();
   // The preview must use the unsaved two-member draft, not the saved one-member team.
   await page.getByRole("button", { name: "Add charmander to team" }).click();

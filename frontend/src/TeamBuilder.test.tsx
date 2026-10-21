@@ -102,7 +102,12 @@ it("caps a duplicate-friendly draft at six and saves its ordered IDs", async () 
   expect(screen.getByText("6 / 6")).toBeVisible();
   await browser.type(screen.getByLabelText("Team name"), "Six partners");
   await browser.click(screen.getByRole("button", { name: /Save team/ }));
-  expect(await screen.findByText("Team saved.")).toBeVisible();
+  const savedButton = await screen.findByRole("button", { name: "Team saved." });
+  expect(savedButton).toHaveClass("team-saved");
+  expect(savedButton).toBeDisabled();
+  expect(document.querySelector(".team-actions .message.success")).not.toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText("Team name"), { target: { value: "Changed lineup" } });
+  expect(screen.getByRole("button", { name: /Save team/ })).not.toHaveClass("team-saved");
   expect(JSON.parse(mutate.mock.calls[0][1].body as string)).toEqual({
     name: "Six partners",
     pokemon_ids: [1, 1, 1, 1, 1, 1],

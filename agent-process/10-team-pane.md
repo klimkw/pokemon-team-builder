@@ -64,3 +64,16 @@ Verification passed production build, 25 component tests and six regular browser
 (legacy demo skipped). At 600 px page scroll, the screenshot shows all bottom actions,
 with most of the catalog still below. Reports: test-artifacts/team-natural/. Only
 frontend refreshed. Commit: “Restore bottom team actions and remove sticky pane positioning”.
+
+## Save feedback in the button
+
+The owner requested inline save feedback instead of a separate Team saved message.
+After a successful save, the button reads Team saved. with an opaque green background,
+remaining disabled while unchanged. Editing name or membership clears that feedback
+and restores the red Save team action. Pending/error behavior is preserved, and the
+button's text updates are announced politely. Delete confirmation feedback remains a
+separate status message. Tests cover the saved class, disabled state, absent separate
+status and return to the normal button on edits.
+Save-button verification passed production build, 25 component tests and six browser
+flows (legacy demo skipped). Reports: test-artifacts/save-button/. Only frontend updated.
+Commit: “Show team save confirmation in the save button”.

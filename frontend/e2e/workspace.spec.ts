@@ -44,7 +44,7 @@ test("stable account card, advanced filters, profile and password changes", asyn
   await page.getByRole("button", { name: "Add bulbasaur to team" }).click();
   await page.getByLabel("Team name", { exact: true }).fill("Profile lineup");
   await page.getByRole("button", { name: "Save team", exact: true }).click();
-  await expect(page.getByText("Team saved.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Team saved.", exact: true })).toBeVisible();
   // Opening the profile keeps an unsaved builder draft in memory.
   await page.getByRole("button", { name: "Add charmander to team" }).click();
   await page.getByRole("button", { name: "Profile", exact: true }).click();
@@ -57,7 +57,7 @@ test("stable account card, advanced filters, profile and password changes", asyn
   await page.getByRole("button", { name: "Back to Pokédex" }).click();
   await expect(page.getByRole("button", { name: "Remove charmander from slot 2" })).toBeVisible();
   await page.getByRole("button", { name: "Save team", exact: true }).click();
-  await expect(page.getByText("Team saved.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Team saved.", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Profile", exact: true }).click();
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

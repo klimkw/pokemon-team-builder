@@ -471,3 +471,16 @@ counter/delete actions are visible and proves the page end is still over 500 px 
 Screenshot review confirms all three actions below the list at that scroll position.
 Production build, 25 components (one worker) and six regular Chromium flows passed;
 legacy demo skipped. Reports: test-artifacts/team-natural/. Only frontend deployed.
+
+## Save feedback button
+
+The separate Team saved success message is replaced by the existing button's green
+saved state. Component coverage asserts green class, disabled unchanged state, absence
+of the separate success message and normal Save team state after editing. Existing
+browser save assertions now target the button. The responsive navigation check allows
+two animation frames after resizing before clicking its section shortcut. Initial test
+fixes removed a Testing Library option unsupported by its types and narrowed a status
+assertion that also matched stat slider outputs. Production build and 25 components
+passed; backend suites are unchanged and were not rerun for this frontend increment.
+Final browser rerun passed six regular Chromium flows (legacy demo skipped). Reports:
+test-artifacts/save-button/. Isolated containers cleaned up; only frontend updated.
