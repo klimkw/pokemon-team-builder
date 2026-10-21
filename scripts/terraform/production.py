@@ -6,6 +6,8 @@ lives in an HCP Local-execution workspace. No cloud create/delete is permitted h
 import hashlib
 import json
 import os
+import re
+from urllib.parse import unquote, urlsplit
 from pathlib import Path
 import subprocess
 import sys
@@ -18,12 +20,49 @@ RESOURCES = {
 }
 
 
+def init_diagnostics(output):
+    """Read only structured init errors, never state, plan data or source excerpts."""
+    secrets = []
+    for name in ("TF_TOKEN_app_terraform_io", "RENDER_API_KEY", "NEON_API_KEY", "TF_VAR_database_url", "TF_VAR_additional_render_env_vars"):
+        value = os.environ.get(name)
+        if value:
+            secrets.append(value)
+    database = os.environ.get("TF_VAR_database_url", "")
+    if database:
+        try:
+            password = urlsplit(database).password
+            if password:
+                secrets.extend([password, unquote(password)])
+        except ValueError:
+            pass
+    messages = []
+    for line in output.splitlines():
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        diagnostic = event.get("diagnostic", {})
+        if diagnostic.get("severity") != "error":
+            continue
+        # Init talks only to the state service/provider registry. Omit source,
+        # snippets and all unrelated JSON fields. Mask known input credentials.
+        message = diagnostic.get("summary", "Initialization error") + "\n" + diagnostic.get("detail", "")
+        for secret in sorted(set(secrets), key=len, reverse=True):
+            message = message.replace(secret, "[REDACTED]")
+        message = re.sub(r"(?i)(postgres(?:ql)?(?:\+asyncpg)?://)[^\s]+", r"\1[REDACTED]", message)
+        message = re.sub(r"(?i)(bearer\s+)\S+", r"\1[REDACTED]", message)
+        messages.append(message[:3000])
+    return "\n".join(messages[:3])
+
+
 def terraform(*args):
     result = subprocess.run(["terraform", *args], cwd=ROOT, capture_output=True, text=True)
     if result.returncode:
         # Provider diagnostics can contain remote data. Do not echo captured logs,
         # state, or plan JSON into a public repository's workflow logs.
-        raise RuntimeError(f"terraform {args[0]} failed (exit {result.returncode}); check configuration, credentials, and HCP workspace settings")
+        details = init_diagnostics(result.stdout + "\n" + result.stderr) if args[0] == "init" else ""
+        message = f"terraform {args[0]} failed (exit {result.returncode})"
+        raise RuntimeError(message + ("\n" + details if details else "; check configuration, credentials, and HCP workspace settings"))
     return result.stdout
 
 
@@ -77,7 +116,7 @@ def main():
     missing = [name for name in required if not os.environ.get(name)]
     if missing:
         raise RuntimeError("Missing GitHub environment settings: " + ", ".join(missing))
-    terraform("init", "-input=false", "-lockfile=readonly")
+    terraform("init", "-json", "-input=false", "-lockfile=readonly")
     terraform("validate")
     for address, id_variable in RESOURCES.items():
         # Re-read because the previous import updates state. Never print it.

@@ -182,7 +182,9 @@ Keep schema migrations and catalog jobs out of Terraform.
 - HCP state retains historical secret values. Restrict access and treat old state
   versions as sensitive after rotation.
 - The runner suppresses raw Terraform/provider output to avoid leaking imported
-  secrets. On failure first check all required settings, resource access, pinned
+  secrets. Initialization errors show structured summaries/details with known input
+  credentials redacted; state, plans and source snippets remain hidden.
+  On failure first check all required settings, resource access, pinned
   versions, workspace Local mode, and state permissions. For detailed provider
   diagnosis, use a trusted private terminal with appropriate credentials and remote
   state access; do not upload raw state/plan/provider logs to an issue.

@@ -82,5 +82,25 @@ class AdoptionBoundaryTests(unittest.TestCase):
             self.assertFalse(any(call.args[0] == 'apply' for call in run.call_args_list))
 
 
+class InitializationDiagnosticTests(unittest.TestCase):
+    def test_init_error_explains_hcp_failure_without_credentials(self):
+        import json
+        from production import init_diagnostics
+        event = {"diagnostic": {"severity": "error", "summary": "Failed to read organization", "detail": "Unauthorized: Bearer secret-token; postgresql://user:encoded%40password@host/db", "snippet": "never print source"}}
+        with patch.dict('os.environ', {'TF_TOKEN_app_terraform_io': 'secret-token', 'TF_VAR_database_url': 'postgresql://user:encoded%40password@host/db'}, clear=True):
+            message = init_diagnostics(json.dumps(event))
+        self.assertIn('Failed to read organization', message)
+        self.assertIn('Unauthorized', message)
+        self.assertNotIn('secret-token', message)
+        self.assertNotIn('encoded%40password', message)
+        self.assertNotIn('never print source', message)
+
+    def test_unstructured_logs_and_non_errors_are_not_exposed(self):
+        import json
+        from production import init_diagnostics
+        output = 'raw private provider data\n' + json.dumps({'diagnostic': {'severity': 'warning', 'detail': 'private'}})
+        self.assertEqual(init_diagnostics(output), '')
+
+
 if __name__ == '__main__':
     unittest.main()
