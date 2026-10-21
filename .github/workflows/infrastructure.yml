@@ -24,7 +24,6 @@ jobs:
     timeout-minutes: 20
     environment: infrastructure-production
     env:
-      RENDER_PROVIDER_DIR: ${{ runner.temp }}/render-provider
       TF_IN_AUTOMATION: 'true'
       TF_INPUT: 'false'
       TF_CLOUD_ORGANIZATION: ${{ vars.TF_CLOUD_ORGANIZATION }}
@@ -64,4 +63,6 @@ jobs:
       - name: Check formatting
         run: terraform -chdir=infra/terraform fmt -check
       - name: Import, plan, or apply
+        env:
+          RENDER_PROVIDER_DIR: ${{ runner.temp }}/render-provider
         run: python scripts/terraform/production.py
