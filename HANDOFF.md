@@ -500,3 +500,16 @@ Chromium flows (legacy separate-demo flow skipped). Row boundary and action view
 assertions passed; screenshots reviewed. Reports: test-artifacts/team-pane/.
 Only the local frontend is refreshed; backend/scanner/database remain running intact.
 Commit: “Keep team actions visible and draft from team dropdown”.
+
+## Latest clarification: expanded team list
+
+The owner accepts a tall pane and wants actions accessible without going to its bottom.
+The team list is expanded again, with no height cap/internal scrollbar; Save, counter
+preview and Delete are above the members, directly after the name/draft status. The
+Draft a New Team dropdown is retained. This supersedes the previous constrained-pane
+layout. Only frontend changes; preserve the running backend and active demo.
+The mobile team shortcut now focuses its heading and scrolls directly into position;
+this fixes a resize/navigation failure exposed by the expanded pane. Build, 25 component
+tests and six regular browser flows passed (legacy demo skipped). Mobile screenshot
+reviewed; reports: test-artifacts/team-expanded/. Only frontend deployed successfully.
+Commit: “Keep team members expanded with actions above the list”.

@@ -32,3 +32,21 @@ row-boundary assertion; the legacy separate-demo test stayed skipped. Screenshot
 reviewed on mobile and desktop. Only the development frontend was replaced; backend,
 scanner, teams and demo state were left running intact. Reports: test-artifacts/team-pane/.
 Commit: “Keep team actions visible and draft from team dropdown”.
+
+## Owner clarification: keep the member list expanded
+
+The owner clarified that a pane taller than the viewport is fine; only reaching the
+bottom actions was inconvenient. The follow-up removes the viewport cap and internal
+member scrolling, and moves Save, counter preview and Delete immediately below the
+team name, above the full member list. The draft dropdown and discard protection stay.
+The existing desktop/mobile action visibility and member-boundary browser assertions
+also apply to this arrangement. This supersedes the constrained scrolling design above.
+
+The expanded layout exposed a mobile section-jump instability during viewport changes.
+The Your team shortcut now explicitly focuses the team heading without scrolling first,
+then scrolls that heading into position. The heading is programmatically focusable;
+this also gives keyboard/screen-reader navigation a concrete destination.
+Final verification of the expanded layout passed production build, 25 components and
+six regular browser flows (legacy demo skipped). Mobile screenshot confirms top actions
+and full member cards. Reports: test-artifacts/team-expanded/. Only frontend refreshed.
+Commit: “Keep team members expanded with actions above the list”.

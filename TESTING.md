@@ -452,3 +452,13 @@ Final rerun passed all 25 component tests and six regular Chromium flows (legacy
 flow skipped), including the new row boundaries. Desktop/mobile screenshots reviewed;
 reports: test-artifacts/team-pane/. Isolated test containers were removed. Backend
 suites were not rerun for this frontend-only change.
+
+## Expanded member list clarification
+
+The owner clarified that pane height may exceed the viewport. Removed the list height
+cap/internal scrollbar and moved actions before the full member list. The mobile
+shortcut now explicitly focuses/scrolls to its heading after a browser check exposed
+an unstable jump during resizing. Production build, 25 components (one worker) and
+six regular Chromium flows passed; legacy demo skipped. Action visibility, discard
+protection and nonoverlapping stats still pass. Mobile screenshot reviewed; reports:
+test-artifacts/team-expanded/. Only frontend refreshed; no backend tests were rerun.
