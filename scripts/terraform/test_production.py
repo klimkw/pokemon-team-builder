@@ -63,6 +63,11 @@ class PlanPolicyTests(unittest.TestCase):
             run.assert_not_called()
 
 class AdoptionBoundaryTests(unittest.TestCase):
+    def setUp(self):
+        patched = patch('production.activate_render_provider')
+        patched.start()
+        self.addCleanup(patched.stop)
+
     def environment(self, action):
         from production import RESOURCES
         names = ['RENDER_API_KEY', 'RENDER_OWNER_ID', 'NEON_API_KEY', 'TF_TOKEN_app_terraform_io',

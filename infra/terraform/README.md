@@ -175,6 +175,37 @@ After apply, verify `/api/health`, login, saved teams, and the public app. Trigg
 **Production catalog scan** manually if the database has not been populated yet.
 Keep schema migrations and catalog jobs out of Terraform.
 
+## Render free-tier provider compatibility
+
+The official `render-oss/render` 1.9.1 provider has an upstream bug:
+https://github.com/render-oss/terraform-provider-render/issues/80 . Every web-service
+update sends `maintenanceMode`, which Render rejects on a free service, even when
+maintenance mode is disabled. Terraform `ignore_changes` cannot alter that payload.
+
+The workflows build a small compatibility patch from exact upstream commit
+`1a3083da847fb55796947866506bc79671a4dc31` (release 1.9.1). The downloaded archive's
+SHA-256 is checked before extraction. Only the free-service update request changes:
+`maintenanceMode` is omitted. Creation isn't patched because this adoption workflow
+rejects creation/replacement plans. Paid-service behavior is unchanged.
+
+- Source patch: `scripts/terraform/provider-patches/render-free-tier.patch`.
+- Build: `scripts/terraform/build_render_provider.py`, pinned Go 1.26.0, read-only Go
+  modules, no cloud credentials passed to compilation or tests.
+- Regression test: the actual serialized API request excludes maintenanceMode for
+  Free and preserves it for Starter (both enabled/disabled cases).
+- A generated build manifest records source, patch and executable checksums; the
+  production runner verifies it before activating the build.
+- Terraform uses a runner-local **development override** for this provider after
+  normal initialization. This is a locally built compatibility binary, not a
+  signed fixed release from the registry. The schema/state format remains 1.9.1,
+  and the official provider lockfile is retained; Neon uses its normal provider.
+
+This adds compilation time to infrastructure workflows; application deploys and
+Docker Compose are unaffected. No new API keys or resources are needed. When an
+upstream release fixes the bug, remove the compatibility build/override, update the
+provider pin/lockfile, and run a fresh plan before applying. Do not delete/recreate
+the service or upgrade its plan to work around this bug.
+
 ## Rotation, maintenance and troubleshooting
 
 - Rotate credentials at the provider, then update the matching GitHub secret. Updating

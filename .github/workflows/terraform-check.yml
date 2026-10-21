@@ -12,6 +12,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.0'
+          cache: false
+      - name: Build and test Render free-tier compatibility provider
+        env:
+          RENDER_PROVIDER_DIR: ${{ runner.temp }}/render-provider
+        run: python3 scripts/terraform/build_render_provider.py
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: '1.13.5'
@@ -19,5 +27,8 @@ jobs:
       - run: terraform -chdir=infra/terraform fmt -check
       - run: terraform -chdir=infra/terraform init -backend=false -input=false -lockfile=readonly
       - run: terraform -chdir=infra/terraform validate
-      - run: terraform -chdir=infra/terraform test -test-directory=tests
+      - name: Test configuration with the patched provider
+        env:
+          TF_CLI_CONFIG_FILE: ${{ runner.temp }}/render-provider/terraform.tfrc
+        run: terraform -chdir=infra/terraform test -test-directory=tests
       - run: python -m unittest discover -s scripts/terraform -p 'test_*.py'

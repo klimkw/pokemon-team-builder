@@ -8,6 +8,7 @@ import json
 import os
 import re
 from urllib.parse import unquote, urlsplit
+from build_render_provider import UPSTREAM_COMMIT, ARCHIVE_SHA256, PATCHES
 from pathlib import Path
 import subprocess
 import sys
@@ -137,6 +138,25 @@ def plan_summary(plan):
     return digest, "\n".join(lines) + "\n"
 
 
+def activate_render_provider():
+    """Use only the checksum-verified compatibility build from this workflow."""
+    directory = Path(os.environ.get("RENDER_PROVIDER_DIR", "/nonexistent-provider")).resolve()
+    manifest = directory / "build.json"
+    binary = directory / "terraform-provider-render"
+    if not manifest.is_file() or not binary.is_file():
+        raise RuntimeError("Build the Render free-tier compatibility provider before running production Terraform")
+    metadata = json.loads(manifest.read_text())
+    expected = {
+        "upstream_commit": UPSTREAM_COMMIT,
+        "archive_sha256": ARCHIVE_SHA256,
+        "patch_sha256": hashlib.sha256((PATCHES / "render-free-tier.patch").read_bytes()).hexdigest(),
+        "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(),
+    }
+    if metadata != expected:
+        raise RuntimeError("Render compatibility provider verification failed")
+    os.environ["TF_CLI_CONFIG_FILE"] = str(directory / "terraform.tfrc")
+
+
 def main():
     action = os.environ["INFRA_ACTION"]
     if action not in {"import", "plan", "apply"}:
@@ -149,6 +169,7 @@ def main():
     if missing:
         raise RuntimeError("Missing GitHub environment settings: " + ", ".join(missing))
     terraform("init", "-json", "-input=false", "-lockfile=readonly")
+    activate_render_provider()
     terraform("validate")
     for address, id_variable in RESOURCES.items():
         # Re-read because the previous import updates state. Never print it.

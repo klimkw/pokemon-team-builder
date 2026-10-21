@@ -1,0 +1,15 @@
+--- a/internal/provider/webservice/resource/internal/update.go
++++ b/internal/provider/webservice/resource/internal/update.go
+@@ -56,6 +56,12 @@
+ 		IpAllowList:                ipAllowList,
+ 	}
+ 
++	// Render rejects maintenanceMode on free services, even when disabled.
++	// Keep paid-service behavior intact; this adoption never creates services.
++	if plan.Plan.ValueString() == "free" {
++		webServiceDetails.MaintenanceMode = nil
++	}
++
+ 	serviceDetails := &client.ServicePATCH_ServiceDetails{}
+ 	if err := serviceDetails.FromWebServiceDetailsPATCH(webServiceDetails); err != nil {
+ 		return client.UpdateServiceJSONRequestBody{}, err
