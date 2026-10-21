@@ -1,7 +1,7 @@
 """Async Alembic runner. A supplied connection is used by schema checks in tests."""
 import asyncio
 from alembic import context
-from sqlalchemy.ext.asyncio import create_async_engine
+from app.db.session import make_engine
 from sqlalchemy.pool import NullPool
 from app.db.session import Base
 from app.db import models  # Register every mapped table in Base.metadata.
@@ -20,7 +20,7 @@ def migrate(connection):
 
 
 async def online():
-    engine = create_async_engine(url, poolclass=NullPool,
+    engine = make_engine(url, poolclass=NullPool,
                                  connect_args=config.attributes.get("connect_args", {}))
     async with engine.connect() as connection:
         await connection.run_sync(migrate)

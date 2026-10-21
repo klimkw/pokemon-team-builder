@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: pokemon-team-builder
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile.production
+    dockerContext: .
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: APP_ORIGIN
+        sync: false
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: ENABLE_DEMO_CONTROLS
+        value: "false"
+      - key: DEMO_MODE
+        value: "false"
+      - key: CATALOG_SCAN_INTERVAL_HOURS
+        value: "24"
+      - key: CHANGE_ALERT_WINDOW_DAYS
+        value: "7"

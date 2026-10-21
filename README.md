@@ -5,6 +5,8 @@ alongside the catalog, persistent teams, explainable counters, and change histor
 
 ## Run and test
 
+See [TESTING_GUIDE.md](TESTING_GUIDE.md) for the current full-suite command, coverage reports, CI, and test-writing conventions.
+
 Copy `.env.example` to `.env` and choose a long random alphanumeric database password.
 Run `docker compose up --build`, then open http://localhost:8080 for the application.
 API documentation is available at http://localhost:8080/docs and http://localhost:8000/docs.
@@ -184,7 +186,7 @@ with DATABASE_URL set. `python -m app.jobs.ingest --help` shows the sample optio
 - Manual imports and scheduled scans share a PostgreSQL advisory lock; overlapping
   attempts are audited and skipped before upstream requests. synced_at means last successful check, not when upstream data changed.
   The admin refresh HTTP endpoint queues work; ingestion never runs inside the API. The separate
-  scanner service runs immediately on its own startup, then at the configured interval.
+  daily-scanner service runs when due, then at the configured interval.
 
 Read `app/services/pokeapi.py` for the HTTP client and pure normalization, `app/services/catalog_sync.py`
 for persistence, and `app/jobs/ingest.py` for CLI orchestration and summaries. These functions
@@ -286,15 +288,22 @@ No migrations, upstream battle-data calls or simulation dependencies are introdu
 
 ## Scanner and history
 
-The `scanner` Compose service uses the backend image with a separate command:
-`python -m app.jobs.worker --schedule`. It starts after the API has applied migrations
-and passed its health check. The API process never starts schedules or scrapes data.
+The `daily-scanner` Compose service runs the independent daily job with the backend
+image and `python -m app.jobs.daily`. The `scanner` service runs
+`python -m app.jobs.worker` to handle admin requests without a periodic timer. Both
+start after the API has applied migrations and passed its health check. The API
+process never starts schedules or scrapes data.
+
+Apply this setup with `docker compose up -d --build api scanner daily-scanner`.
+Inspect scheduled job output with `docker compose logs daily-scanner`.
 Scans use only PokéAPI: Pokémon details and the 18 standard type relationships.
 
 Configure `.env` (defaults shown in `.env.example`), then recreate affected services:
 
-- `CATALOG_SCAN_INTERVAL_HOURS=24`: positive integer; scan immediately on scanner
-  startup, then wait this interval after completion. Restarting starts a fresh scan.
+- `CATALOG_SCAN_INTERVAL_HOURS=24`: positive integer; run when no qualifying live
+  refresh exists, otherwise wait until this interval after its completion. The due
+  time survives restarts through scan history. Manual live refreshes also advance
+  the due time. This is an elapsed interval, not a fixed time of day.
 - `CHANGE_ALERT_WINDOW_DAYS=7`: positive integer, validated and available in backend
   settings for the next alert increment. It does not prune history or affect scans.
 
@@ -309,7 +318,7 @@ use the physical connection holding that lock, with short per-record transaction
 connection loss aborts writes rather than silently reconnecting without a lock.
 Fetches remain bounded/retried by the existing importer. The scheduler releases the
 lock while waiting, handles termination by cancelling current work, and continues
-scheduled attempts after an ordinary scan failure. Abruptly stopped `running` audits
+scheduled attempts after an ordinary scan failure (retrying after 60 seconds). Abruptly stopped `running` audits
 are marked interrupted by the next lock holder; committed records remain intact.
 
 `scan_runs` records start/end, outcome, resource summaries, per-ID failures, and absent
@@ -407,3 +416,26 @@ version comes from backend/pyproject.toml; it is not a commit counter. Only the 
 
 Catalog source links directly to the importer's `CATALOG_URL`:
 `https://pokeapi.co/api/v2/pokemon/?limit=200`.
+
+### Workspace usability pass
+
+The desktop team sidebar sticks to the viewport and scrolls independently, keeping
+its bottom controls reachable without scrolling to the end of the catalog. On mobile,
+a button above the catalog opens the editor in a modal; closing it preserves the draft and
+catalog position. Catalog updates retain the previous cards until the next response,
+with a loading notice and retry feedback. Pagination returns focus to the catalog
+heading unless the user has moved to another control.
+
+An expired session opens sign-in over the mounted workspace, preserving the draft
+and filters. After signing in to the same account, retry the failed action. If a
+saved team has been deleted elsewhere, its failed save offers **Save this lineup as
+a new team**, preserving the current name and member order. Drafts remain in memory;
+this does not add autosave or persistence across refresh/close or explicit sign-out.
+
+The fixture-based `frontend/e2e/ux-recovery.spec.ts` covers these flows at desktop and
+mobile widths without modifying account or team data on the backend.
+
+## Production deployment
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for the GitHub → Render + Neon setup and the
+separate GitHub Actions scanner. Local Docker Compose remains unchanged.

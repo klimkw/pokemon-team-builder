@@ -103,11 +103,10 @@ it("caps a duplicate-friendly draft at six and saves its ordered IDs", async () 
   await browser.type(screen.getByLabelText("Team name"), "Six partners");
   await browser.click(screen.getByRole("button", { name: /Save team/ }));
   const savedButton = await screen.findByRole("button", { name: "Team saved." });
-  expect(savedButton).toHaveClass("team-saved");
   expect(savedButton).toBeDisabled();
   expect(document.querySelector(".team-actions .message.success")).not.toBeInTheDocument();
   fireEvent.change(screen.getByLabelText("Team name"), { target: { value: "Changed lineup" } });
-  expect(screen.getByRole("button", { name: /Save team/ })).not.toHaveClass("team-saved");
+  expect(screen.getByRole("button", { name: /Save team/ })).toBeEnabled();
   expect(JSON.parse(mutate.mock.calls[0][1].body as string)).toEqual({
     name: "Six partners",
     pokemon_ids: [1, 1, 1, 1, 1, 1],
@@ -156,7 +155,7 @@ it("keeps edits when discard is cancelled and permits switching when confirmed",
     target: { value: "second" },
   });
   expect(input).toHaveValue("Second lineup");
-  expect(screen.getByText("Saved", { exact: true })).toBeVisible();
+  expect(within(screen.getByRole("region", { name: "Your team" })).getByText("Saved", { exact: true })).toBeVisible();
 });
 
 it("confirms deletion and selects the remaining saved team", async () => {
@@ -222,4 +221,44 @@ it("sends search and type filters, resets pagination, and shows all six stats", 
       ),
     ).toBe(true),
   );
+});
+
+it("keeps the existing cards mounted during a search update and a failed request", async () => {
+  const fetchMock = setup();
+  const card = await screen.findByRole("article", { name: "bulbasaur" });
+  let finish!: (response: Response) => void;
+  fetchMock.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+  fireEvent.change(screen.getByLabelText("Search Pokémon"), { target: { value: "pikachu" } });
+  expect(screen.getByRole("article", { name: "bulbasaur" })).toBe(card);
+  expect(screen.getByText(/Updating Pokémon/)).toBeVisible();
+  await waitFor(() => expect(finish).toBeDefined());
+  finish(json({}, 500));
+  expect(await screen.findByRole("alert")).toHaveTextContent("Showing previous results");
+  expect(screen.getByRole("article", { name: "bulbasaur" })).toBe(card);
+  expect(screen.getByLabelText("Search Pokémon")).toHaveValue("pikachu");
+});
+
+it("opens the persistent editor and keeps edits when returning to browsing", async () => {
+  setup([team]);
+  await screen.findByLabelText("Team name");
+  await userEvent.click(screen.getByRole("button", { name: /Team · 2\/6/ }));
+  const editor = screen.getByRole("dialog", { name: "Edit your team" });
+  fireEvent.change(within(editor).getByLabelText("Team name"), { target: { value: "Kept draft" } });
+  await userEvent.click(within(editor).getByRole("button", { name: "Remove bulbasaur from slot 1" }));
+  await userEvent.click(within(editor).getByRole("button", { name: "Back to browsing" }));
+  expect(screen.getByLabelText("Team name")).toHaveValue("Kept draft");
+  expect(screen.getByRole("button", { name: /Team · 1\/6/ })).toBeVisible();
+  expect(screen.getByRole("button", { name: "Remove charmander from slot 1" })).toBeVisible();
+});
+
+it("recovers a deleted saved team as a new team with the current ordered draft", async () => {
+  const mutate = vi.fn(async (_url: string, init: RequestInit) => init.method === "PUT" ? json({}, 404) : json({ ...team, id: "recovered", name: "Recovered" }));
+  setup([team], mutate);
+  fireEvent.change(await screen.findByLabelText("Team name"), { target: { value: "Recovered" } });
+  await userEvent.click(screen.getByRole("button", { name: /Save team/ }));
+  await userEvent.click(await screen.findByRole("button", { name: "Save this lineup as a new team" }));
+  await screen.findByText("Team saved.");
+  expect(mutate.mock.calls[1][0]).toBe("/api/teams");
+  expect(mutate.mock.calls[1][1].method).toBe("POST");
+  expect(JSON.parse(String(mutate.mock.calls[1][1].body))).toEqual({ name: "Recovered", pokemon_ids: [1, 4] });
 });

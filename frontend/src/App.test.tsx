@@ -206,3 +206,29 @@ describe("account flow through the API client", () => {
     expect(screen.getByLabelText("Username")).toHaveValue("Ash");
   });
 });
+
+it("reauthenticates without resetting a draft and saves it after retry", async () => {
+  let expired = false;
+  const fetchMock = vi.fn(async (input: RequestInfo | URL, init: RequestInit = {}) => {
+    const url = String(input);
+    if (url === "/api/auth/me") return json(user);
+    if (url === "/api/auth/login") { expired = false; return new Response(null, { status: 204 }); }
+    if (url.startsWith("/api/alerts?")) return json({ items: [], total: 0, limit: 10, offset: 0, window_days: 7, latest_scan: null });
+    if (url === "/api/teams" && init.method === "POST") return expired ? signedOut() : json({ id: "new", name: "Keep me", members: [] });
+    if (url === "/api/teams") return json([]);
+    return json({ items: [], total: 0, limit: 24, offset: 0 });
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  render(<App />);
+  fireEvent.change(await screen.findByLabelText("Team name"), { target: { value: "Keep me" } });
+  expired = true;
+  await userEvent.click(screen.getByRole("button", { name: /Save team/ }));
+  const recovery = await screen.findByRole("dialog", { name: "Continue building" });
+  await userEvent.type(within(recovery).getByLabelText("Password"), "long-test-password");
+  await userEvent.click(within(recovery).getByRole("button", { name: "Sign in and keep editing" }));
+  await waitFor(() => expect(screen.queryByRole("dialog", { name: "Continue building" })).not.toBeInTheDocument());
+  expect(screen.getByLabelText("Team name")).toHaveValue("Keep me");
+  await waitFor(() => expect(screen.getByRole("button", { name: /Save team/ })).toBeEnabled());
+  await userEvent.click(screen.getByRole("button", { name: /Save team/ }));
+  expect(await screen.findByText("Team saved.")).toBeVisible();
+});

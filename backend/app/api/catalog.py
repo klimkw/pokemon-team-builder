@@ -36,9 +36,15 @@ async def list_pokemon(db: Database, q: str = Query(default='', max_length=100),
     if selected:
         checks = [or_(Pokemon.types[0].as_string() == t, Pokemon.types[1].as_string() == t) for t in sorted(selected)]
         conditions.append((and_ if type_match == 'all' else or_)(*checks))
-    bounds = locals()
-    for stat in ['hp', 'attack', 'defense', 'special_attack', 'special_defense', 'speed']:
-        low, high = bounds[stat + '_min'], bounds[stat + '_max']
+    bounds = {
+        'hp': (hp_min, hp_max),
+        'attack': (attack_min, attack_max),
+        'defense': (defense_min, defense_max),
+        'special_attack': (special_attack_min, special_attack_max),
+        'special_defense': (special_defense_min, special_defense_max),
+        'speed': (speed_min, speed_max),
+    }
+    for stat, (low, high) in bounds.items():
         if low is not None and high is not None and low > high:
             raise HTTPException(422, 'Minimum must not exceed maximum')
         if low is not None:

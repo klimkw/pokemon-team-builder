@@ -8,3 +8,8 @@ playwright-report
 .env.*
 **/.env
 **/.env.*
+
+.coverage*
+coverage
+coverage.xml
+htmlcov

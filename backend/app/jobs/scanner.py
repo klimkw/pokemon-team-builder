@@ -15,6 +15,7 @@ from app.db import session as db
 from app.jobs import ingest
 from app.db.models import ScanRun, utc_now
 from app.services.pokeapi import PokeAPIClient
+from app.services.scans import ScanStatus, ScanSummary
 from app.settings import CATALOG_SCAN_INTERVAL_HOURS
 from app.services.type_sync import fetch_chart, sync_chart
 
@@ -24,8 +25,8 @@ SCAN_LOCK_KEY = 0x504F4B454D4F4E
 
 @dataclass
 class ScanResult:
-    status: str
-    summary: dict
+    status: ScanStatus
+    summary: ScanSummary
 
     @property
     def exit_code(self):

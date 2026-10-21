@@ -7,8 +7,7 @@ const page: AlertPage = { is_demo: false, unread_total: 1,
   items: [{ id: "change-1", is_manual_demo: true, is_read: false, entity_kind: "pokemon", entity_name: "bulbasaur", detected_at: "2026-10-20T12:00:00Z", changes: { "stats.attack": { before: 49, after: 60 } }, affected: [{ id: 1, name: "bulbasaur", types: ["grass", "poison"], reasons: ["catalog"], teams: [{ id: "team-1", name: "My lineup", positions: [0, 2] }] }] }],
   total: 1, limit: 10, offset: 0, window_days: 7, since: "2026-10-13T12:00:00Z", as_of: "2026-10-20T12:00:00Z", latest_scan: null };
 beforeEach(() => {
-  vi.spyOn(HTMLDialogElement.prototype, "showModal").mockImplementation(function (this: HTMLDialogElement) { this.setAttribute("open", ""); });
-  vi.spyOn(HTMLDialogElement.prototype, "close").mockImplementation(function (this: HTMLDialogElement) { this.removeAttribute("open"); });
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue(new DOMRect(100, 20, 42, 42));
   vi.spyOn(api, "markAlertsRead").mockResolvedValue(undefined);
 });
 afterEach(() => vi.restoreAllMocks());
@@ -59,7 +58,7 @@ it("uses title-case change cards, shared type badges and explicit matchup contex
   render(<Alerts membershipKey="typed" />);
   fireEvent.click(await screen.findByRole("button", { name: "Alerts, 1 unread" }));
   expect(await screen.findByRole("heading", { name: "Fire Type Matchups Changed" })).toBeVisible();
-  expect(screen.getByLabelText("Fire attacks against Grass: 2× → 1×")).toHaveClass("change-chip");
+  expect(screen.getByLabelText("Fire attacks against Grass: 2× → 1×")).toBeVisible();
   const affected = screen.getByRole("list", { name: "Affected Pokémon" });
   expect(affected.querySelector('.type-grass')).toHaveTextContent('grass');
   expect(affected.querySelector('.type-poison')).toHaveTextContent('poison');
@@ -81,4 +80,21 @@ it("groups dates and expands timestamped field history", async () => {
   expect(screen.getByRole("list", { name: "Attack history" }).querySelectorAll("time")).toHaveLength(2);
   expect(screen.getByText("Detected changes · last 7 days · newest first")).toBeVisible();
   expect(document.querySelector(".alert-date")).toBeInTheDocument();
+});
+
+it("dismisses the popover with Escape, the bell, and an outside click", async () => {
+  vi.spyOn(api, "getAlerts").mockResolvedValue(page);
+  render(<Alerts membershipKey="dismiss" />);
+  const bell = await screen.findByRole("button", { name: "Alerts, 1 unread" });
+  fireEvent.click(bell);
+  expect(await screen.findByRole("dialog")).toHaveFocus();
+  fireEvent.keyDown(document, { key: "Escape" });
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(bell).toHaveFocus();
+  fireEvent.click(bell);
+  fireEvent.click(bell);
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  fireEvent.click(bell);
+  fireEvent.pointerDown(document.body);
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 });

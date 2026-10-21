@@ -3,6 +3,7 @@ import * as api from "./api";
 import AppInfo from "./AppInfo";
 import ModelGuide from "./ModelGuide";
 import TeamBuilder from "./TeamBuilder";
+import SessionRecovery from "./SessionRecovery";
 import type { User } from "./api";
 
 type Mode = "login" | "register";
@@ -24,6 +25,13 @@ export default function App() {
 function WorkspaceApp() {
   const [session, setSession] = useState<SessionState>({ status: "checking" });
   const [retry, setRetry] = useState(0);
+  const [recovering, setRecovering] = useState(false);
+  const [recoveryVersion, setRecoveryVersion] = useState(0);
+  useEffect(() => {
+    const expired = () => setRecovering(true);
+    window.addEventListener("session-expired", expired);
+    return () => window.removeEventListener("session-expired", expired);
+  }, []);
   const [mode, setMode] = useState<Mode>("login");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -128,13 +136,21 @@ function WorkspaceApp() {
       </header>
 
       {user ? (
+        <>
         <TeamBuilder
+          recoveryVersion={recoveryVersion}
           user={user}
           onUserUpdated={(next) => setSession({ status: "ready", user: next })}
           onSignOut={signOut}
           signingOut={busy}
           accountError={error}
         />
+        {recovering && <SessionRecovery user={user} onRecovered={next => {
+          setSession({ status: "ready", user: next });
+          setRecovering(false);
+          setRecoveryVersion(value => value + 1);
+        }} />}
+        </>
       ) : (
         <main className="account-layout">
           <section className="intro" aria-labelledby="intro-title">

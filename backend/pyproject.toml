@@ -16,8 +16,18 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pytest>=8,<10",
+    "pytest-cov>=6,<8",
     "aiosqlite>=0.20,<1",
 ]
 
 [tool.uv]
 package = false
+
+[tool.coverage.run]
+branch = true
+concurrency = ["thread", "greenlet"]
+source = ["app"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true

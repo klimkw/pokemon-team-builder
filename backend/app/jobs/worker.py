@@ -2,6 +2,8 @@
 import argparse
 import asyncio
 import signal
+from enum import Enum
+from app.services.scans import is_live_refresh, live_refresh_conditions
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker
@@ -21,25 +23,35 @@ async def recover_jobs(sessions):
             job.error = 'Worker stopped before completion; inspect alerts and submit again if needed'
 
 
-async def process_one(engine):
+class JobOutcome(Enum):
+    IDLE = "idle"
+    DEFERRED = "deferred"
+    COMPLETED = "completed"
+    REFRESHED = "refreshed"
+
+
+async def process_one(engine) -> JobOutcome:
     sessions = async_sessionmaker(engine, expire_on_commit=False)
     async with sessions.begin() as session:
         job = await session.scalar(select(AdminJob).where(AdminJob.status == 'queued')
             .order_by(AdminJob.created_at, AdminJob.id).with_for_update(skip_locked=True).limit(1))
         if job is None:
-            return False
+            return JobOutcome.IDLE
         job.status, job.started_at = 'running', utc_now()
         job_id, action, payload = job.id, job.action, job.payload
+    outcome = JobOutcome.COMPLETED
     try:
         if action == 'refresh':
             result = await run_scan(engine)
             status, output = result.status, result.summary
+            if status in ("succeeded", "partial") and is_live_refresh(output):
+                outcome = JobOutcome.REFRESHED
             if status == 'skipped':
                 # Keep durable requests queued when a CLI/scheduled scan holds the lock.
                 async with sessions.begin() as session:
                     job = await session.get(AdminJob, job_id)
                     job.status, job.started_at = 'queued', None
-                return False
+                return JobOutcome.DEFERRED
         else:
             if not ENABLE_DEMO_CONTROLS:
                 raise ValueError('Demo controls are disabled in this worker environment')
@@ -48,7 +60,7 @@ async def process_one(engine):
                     async with sessions.begin() as session:
                         job = await session.get(AdminJob, job_id)
                         job.status, job.started_at = 'queued', None
-                    return False
+                    return JobOutcome.DEFERRED
                 status, output = await (apply_changes(locked, payload) if action == 'demo_apply' else reset_changes(locked))
         async with sessions.begin() as session:
             job = await session.get(AdminJob, job_id)
@@ -66,19 +78,19 @@ async def process_one(engine):
             job.status, job.finished_at = 'failed', utc_now()
             # SQL/network exceptions can contain credentials; expose only their class.
             job.error = str(error)[:500] if isinstance(error, ValueError) else type(error).__name__
-    return True
+    return outcome
 
 
 async def scan_delay(sessions, *, now=None):
     """Persist interval semantics across worker restarts; manual scenarios are not live refreshes."""
     now = now or utc_now()
     async with sessions() as session:
-        runs = await session.scalars(select(ScanRun).where(ScanRun.status.in_(['succeeded', 'partial']),
-            ScanRun.finished_at.is_not(None)).order_by(ScanRun.finished_at.desc()))
-        for run in runs:
-            if run.summary.get('scope') == 'full' and 'types' in run.summary and run.summary.get('source') in (None, 'upstream'):
-                elapsed = (now - run.finished_at).total_seconds()
-                return max(0, CATALOG_SCAN_INTERVAL_HOURS * 3600 - elapsed)
+        finished_at = await session.scalar(select(ScanRun.finished_at).where(
+            *live_refresh_conditions(), ScanRun.status.in_(['succeeded', 'partial']),
+            ScanRun.finished_at.is_not(None)).order_by(ScanRun.finished_at.desc()).limit(1))
+        if finished_at is not None:
+            elapsed = (now - finished_at).total_seconds()
+            return max(0, CATALOG_SCAN_INTERVAL_HOURS * 3600 - elapsed)
     return 0
 
 
@@ -95,12 +107,19 @@ async def work(engine, stop, *, scheduled=False, poll_seconds=2):
                 from sqlalchemy import text
                 await session.execute(text('SELECT 1'))
                 await session.commit()
-            if await process_one(engine):
-                continue
+            outcome = await process_one(engine)
             now = asyncio.get_running_loop().time()
-            if scheduled and now >= next_scan:
-                await run_scan(engine)
-                next_scan = asyncio.get_running_loop().time() + CATALOG_SCAN_INTERVAL_HOURS * 3600
+            if outcome == JobOutcome.REFRESHED and scheduled:
+                delay = CATALOG_SCAN_INTERVAL_HOURS * 3600
+                next_scan = now + delay
+            if scheduled and now >= next_scan and outcome != JobOutcome.DEFERRED:
+                result = await run_scan(engine)
+                if result.status in ('succeeded', 'partial') and is_live_refresh(result.summary):
+                    delay = CATALOG_SCAN_INTERVAL_HOURS * 3600
+                else:
+                    # Contention does not consume the daily scan; failures get a short backoff.
+                    delay = poll_seconds if result.status == 'skipped' else 60
+                next_scan = asyncio.get_running_loop().time() + delay
             try:
                 await asyncio.wait_for(stop.wait(), timeout=poll_seconds)
             except asyncio.TimeoutError:

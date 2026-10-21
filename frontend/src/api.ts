@@ -49,8 +49,8 @@ async function request(
     message =
       "Use a username with 3–32 letters, numbers, or underscores and a password with 8–128 characters.";
   } else if (response.status === 401) {
-    message =
-      "Your session has expired. Sign out and sign in again. Your draft is still here.";
+    message = "Your session has expired. Sign in again to continue. Your draft is still here.";
+    if (!path.startsWith("auth/")) window.dispatchEvent(new Event("session-expired"));
   } else if (
     response.status === 409 &&
     detail?.code === "INSUFFICIENT_CATALOG"
@@ -59,7 +59,7 @@ async function request(
       "The catalog needs more distinct Pokémon to generate a counter of this size.";
   } else if (response.status === 404) {
     message =
-      "This team is no longer available. Your draft is still here; start a new team to save another lineup.";
+      "This team is no longer available. Your draft is still here. You can save this lineup as a new team.";
   } else if (response.status === 422 && path === "profile") {
     message = "Use 3–32 letters, numbers or underscores, and an 8–128 character password.";
   } else if (response.status === 422 && path.startsWith("pokemon")) {

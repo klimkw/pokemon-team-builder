@@ -41,7 +41,7 @@ test("register, log in, restore session, and revoke it on logout", async ({ page
   }
 
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
-  await expect(page.getByRole("status")).toContainText("You’re signed out.");
+  await expect(page.getByRole("status").filter({ hasText: "You’re signed out." })).toBeVisible();
   expect((await page.request.get("/api/auth/me")).status()).toBe(401);
   expect((await page.context().cookies()).find(value => value.name === "pokemon_session")).toBeUndefined();
 
@@ -60,5 +60,5 @@ test("register, log in, restore session, and revoke it on logout", async ({ page
   await page.locator("form").getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page.getByRole("heading", { name: `You’re in, ${username}.`, exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
-  await expect(page.getByRole("status")).toContainText("You’re signed out.");
+  await expect(page.getByRole("status").filter({ hasText: "You’re signed out." })).toBeVisible();
 });

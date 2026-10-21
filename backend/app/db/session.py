@@ -3,6 +3,7 @@ from sqlalchemy import event
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 from app.settings import DATABASE_URL
+from app.db.connection import connection_options
 
 
 class Base(DeclarativeBase):
@@ -10,7 +11,9 @@ class Base(DeclarativeBase):
 
 
 def make_engine(url: str, **options):
-    engine = create_async_engine(url, pool_pre_ping=True, **options)
+    url, defaults = connection_options(url)
+    defaults.update(options.pop("connect_args", {}))
+    engine = create_async_engine(url, pool_pre_ping=True, connect_args=defaults, **options)
     if engine.dialect.name == "sqlite":
         @event.listens_for(engine.sync_engine, "connect")
         def enable_foreign_keys(connection, _):

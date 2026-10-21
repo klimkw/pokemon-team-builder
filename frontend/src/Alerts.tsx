@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
+import RefreshButton from "./RefreshButton";
 import { getAlerts, markAlertsRead } from "./api";
 import type { AlertPage } from "./api";
 import { TypeBadge, TypeBadges } from "./PokemonDetails";
@@ -20,7 +22,9 @@ export default function Alerts({ membershipKey }: { membershipKey: string }) {
   const [error, setError] = useState("");
   const [readError, setReadError] = useState("");
   const [open, setOpen] = useState(false);
-  const dialog = useRef<HTMLDialogElement>(null);
+  const dialog = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const [position, setPosition] = useState({ left: 12, top: 80, arrow: 24 });
   useEffect(() => { setOffset(0); }, [membershipKey]);
   useEffect(() => {
     const refresh = () => setRetry(n => n + 1);
@@ -38,11 +42,35 @@ export default function Alerts({ membershipKey }: { membershipKey: string }) {
     });
     return () => controller.abort();
   }, [membershipKey, offset, retry]);
-  useEffect(() => {
-    if (open && dialog.current && !dialog.current.open) {
-      if (typeof dialog.current.showModal === "function") dialog.current.showModal();
-      else dialog.current.setAttribute("open", "");
-    }
+  useLayoutEffect(() => {
+    if (!open) return;
+    const place = () => {
+      const anchor = trigger.current!.getBoundingClientRect();
+      if (anchor.bottom <= 0 || anchor.top >= window.innerHeight) { setOpen(false); return; }
+      const width = Math.min(440, window.innerWidth - 24);
+      const left = Math.max(12, Math.min(anchor.right - width, window.innerWidth - width - 12));
+      setPosition({ left, top: anchor.bottom + 12, arrow: Math.max(20, Math.min(width - 20, anchor.left + anchor.width / 2 - left)) });
+    };
+    place();
+    dialog.current?.focus({ preventScroll: true });
+    const outside = (event: Event) => {
+      if (event.target instanceof Node && !dialog.current?.contains(event.target) && !trigger.current?.contains(event.target)) setOpen(false);
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") { event.preventDefault(); setOpen(false); trigger.current?.focus(); }
+    };
+    document.addEventListener("pointerdown", outside);
+    document.addEventListener("focusin", outside);
+    document.addEventListener("keydown", escape);
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      document.removeEventListener("pointerdown", outside);
+      document.removeEventListener("focusin", outside);
+      document.removeEventListener("keydown", escape);
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
   }, [open]);
   useEffect(() => {
     if (!open || loading || !data) return;
@@ -60,18 +88,18 @@ export default function Alerts({ membershipKey }: { membershipKey: string }) {
     }, () => { if (!cancelled) setReadError("Could not mark alerts as read. Refresh to retry."); });
     return () => { cancelled = true; };
   }, [open, loading, data]);
-  function close() { dialog.current?.close?.(); setOpen(false); }
+  function close() { setOpen(false); trigger.current?.focus(); }
   const unread = data?.unread_total ?? data?.total ?? 0;
   return <>
-    <button className="icon-button alert-icon" aria-label={`Alerts${unread ? `, ${unread} unread` : ""}`} aria-haspopup="dialog" aria-expanded={open} onClick={() => { setOpen(true); setRetry(n => n + 1); }}>
+    <button ref={trigger} className="icon-button alert-icon" aria-label={`Alerts${unread ? `, ${unread} unread` : ""}`} aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? "alerts-popover" : undefined} onClick={() => { setOpen(!open); if (!open) setRetry(n => n + 1); }}>
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
       {unread > 0 && <span className="unread-badge" aria-hidden="true">{unread > 99 ? "99+" : unread}</span>}
       {error && <span className="alert-error-dot" aria-hidden="true">!</span>}
     </button>
-    {open && <dialog ref={dialog} className="alerts-drawer" aria-labelledby="alerts-title" onCancel={() => setOpen(false)} onClick={event => { if (event.target === event.currentTarget) close(); }}>
+    {open && createPortal(<div ref={dialog} id="alerts-popover" role="dialog" tabIndex={-1} className="alerts-popover" aria-labelledby="alerts-title"
+      style={{ left: position.left, top: position.top, "--popover-arrow": `${position.arrow}px`, "--popover-top": `${position.top}px` } as CSSProperties}>
       <section className="alerts-content" aria-busy={loading}>
-        <div className="panel-heading"><h2 id="alerts-title">Recent changes{data ? ` (${data.total})` : ""}</h2><button className="icon-button" aria-label="Close alerts" onClick={close}>×</button></div>
-        <div className="alerts-meta"><span>Saved teams · {data?.window_days ?? 7} days</span><button className="quiet-button" disabled={loading} onClick={() => { setOffset(0); setRetry(n => n + 1); }}>Refresh alerts</button></div>
+        <div className="panel-heading"><h2 id="alerts-title">Recent changes{data ? ` (${data.total})` : ""}</h2><div className="panel-header-actions"><RefreshButton label="Refresh alerts" loading={loading} onRefresh={() => { setOffset(0); setRetry(n => n + 1); }} /><button className="icon-button" aria-label="Close alerts" onClick={close}>×</button></div></div>
         {readError && <p className="message error" role="alert">{readError}</p>}
         {loading ? <p role="status">Loading alerts…</p> : error ? <p className="message error" role="alert">{error}</p> : data && <>
           {data.latest_scan && data.latest_scan.status !== "succeeded" && <p className="message">Latest scan: {data.latest_scan.status}. Data may be incomplete.</p>}
@@ -123,6 +151,6 @@ export default function Alerts({ membershipKey }: { membershipKey: string }) {
           </nav>}
         </>}
       </section>
-    </dialog>}
+    </div>, document.body)}
   </>;
 }

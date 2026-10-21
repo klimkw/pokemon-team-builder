@@ -138,7 +138,7 @@ def test_demo_waits_for_existing_scan_lock(administrator):
     queued = administrator.post('/api/admin/demo/changes', json=PATCH)
     async def hold():
         async with scan_lock(db.engine):
-            assert await worker.process_one(db.engine) is False
+            assert await worker.process_one(db.engine) == worker.JobOutcome.DEFERRED
     asyncio.run(hold())
     assert administrator.get(queued.headers['Location']).json()['status'] == 'queued'
 

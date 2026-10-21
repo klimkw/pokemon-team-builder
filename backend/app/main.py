@@ -1,5 +1,7 @@
 """Application assembly; run Alembic before starting the API."""
+import os
 from contextlib import asynccontextmanager
+from app.frontend import mount_frontend
 from typing import Annotated
 from fastapi import Depends, FastAPI, Request
 from app.db import session as db
@@ -58,3 +60,8 @@ async def me(user: Annotated[User, Depends(current_user)]):
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}
+
+
+# Compose continues to serve React through Nginx; only production opts in.
+if frontend_dist := os.environ.get("FRONTEND_DIST"):
+    mount_frontend(app, frontend_dist)

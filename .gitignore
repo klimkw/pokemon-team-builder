@@ -14,3 +14,8 @@ test-results/
 playwright-report/
 test-artifacts/
 account-preview.png
+
+.coverage*
+coverage/
+coverage.xml
+htmlcov/

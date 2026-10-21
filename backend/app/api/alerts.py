@@ -8,7 +8,7 @@ from app.api.security import require_same_origin
 from app.db.models import AlertRead
 from app.api.dependencies import Database, Owner
 from app.schemas.alerts import AlertPage
-from app.services.alerts import get_alerts
+from app.services.alerts import get_alerts, relevant_change_ids
 
 router = APIRouter(prefix="/api/alerts", tags=["alerts"])
 
@@ -26,9 +26,8 @@ class ReadAlerts(BaseModel):
 @router.post('/read', status_code=204, dependencies=[Depends(require_same_origin)])
 async def mark_read(payload: ReadAlerts, db: Database, user: Owner):
     # Only currently relevant events can be acknowledged, never another owner's feed.
-    relevant = await get_alerts(db, user.id, limit=2**31)
-    allowed = {alert.id for alert in relevant.items}
-    rows = [{'user_id': user.id, 'change_id': key} for key in set(payload.change_ids) if key in allowed]
+    allowed = await relevant_change_ids(db, user.id, payload.change_ids)
+    rows = [{'user_id': user.id, 'change_id': key} for key in allowed]
     if rows:
         insert = pg_insert if db.bind.dialect.name == 'postgresql' else sqlite_insert
         await db.execute(insert(AlertRead).values(rows).on_conflict_do_nothing())

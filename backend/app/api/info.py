@@ -2,7 +2,8 @@
 from datetime import datetime
 from fastapi import APIRouter, Response
 from pydantic import BaseModel
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, select
+from app.services.scans import live_refresh_conditions
 from app.api.dependencies import Database
 from app.db.models import Pokemon, ScanRun, utc_now
 from app.schemas.alerts import ScanStatus
@@ -27,9 +28,7 @@ class AppInfo(BaseModel):
 @router.get('', response_model=AppInfo)
 async def info(db: Database, response: Response):
     response.headers['Cache-Control'] = 'no-store'
-    full = select(ScanRun).where(ScanRun.summary['scope'].as_string() == 'full',
-        or_(ScanRun.summary['source'].as_string().is_(None),
-            ScanRun.summary['source'].as_string() == 'upstream'))
+    full = select(ScanRun).where(*live_refresh_conditions())
     ordered = full.order_by(ScanRun.started_at.desc(), ScanRun.id.desc())
     succeeded = await db.scalar(ordered.where(ScanRun.status == 'succeeded', ScanRun.finished_at.is_not(None)).limit(1))
     return AppInfo(app_version=APP_VERSION, catalog_source_url=CATALOG_URL, repository_url='https://github.com/klimkw/pokemon-team-builder',

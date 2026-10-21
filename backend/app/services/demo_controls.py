@@ -2,6 +2,7 @@
 from copy import deepcopy
 import uuid
 from sqlalchemy import delete, select
+from app.db.typing import SessionProvider
 from app.db.models import CatalogChange, DemoState, Pokemon, ScanRun, TypeChart, utc_now
 from app.jobs.scanner import run_locked_scan
 from app.schemas.admin import DemoChanges
@@ -27,7 +28,15 @@ class ManualSource:
             for field, multiplier in [('no_damage_to', 0), ('half_damage_to', .5), ('double_damage_to', 2)]}}
 
 
-async def apply_changes(sessions, payload):
+def stage_change(tracked, current, after):
+    """Allow retrying an interrupted write, but reject unrelated source changes."""
+    if current not in (tracked['after'], tracked.get('pending_before', tracked['after'])):
+        raise ValueError('A demo field has newer source data; reset or refresh before changing it again.')
+    tracked['pending_before'] = current
+    tracked['after'] = after
+
+
+async def apply_changes(sessions: SessionProvider, payload: dict):
     changes = DemoChanges.model_validate(payload)
     normalized = changes.model_dump(mode='json')
     async with sessions.begin() as session:
@@ -51,22 +60,18 @@ async def apply_changes(sessions, payload):
             tracked = originals['pokemon'].setdefault(str(pokemon.id), {})
             for field, change in original.items():
                 if field in tracked:
-                    if change['before'] != tracked[field]['after']:
-                        raise ValueError('A demo field has newer source data; reset or refresh before changing it again.')
-                    tracked[field]['after'] = change['after']
+                    stage_change(tracked[field], change['before'], change['after'])
                 else:
-                    tracked[field] = change
+                    tracked[field] = {**change, 'pending_before': change['before']}
             records.append(CatalogRecord(**values))
         for patch in changes.type_matchups:
             current = rows[patch.attacking_type][patch.defending_type]
             tracked = next((item for item in originals['type_matchups'] if item['attack'] == patch.attacking_type and item['defense'] == patch.defending_type), None)
             if tracked:
-                if current != tracked['after']:
-                    raise ValueError('A demo matchup has newer source data; reset or refresh before changing it again.')
-                tracked['after'] = patch.multiplier
+                stage_change(tracked, current, patch.multiplier)
             else:
                 originals['type_matchups'].append({'attack': patch.attacking_type, 'defense': patch.defending_type,
-                    'before': current, 'after': patch.multiplier})
+                    'before': current, 'after': patch.multiplier, 'pending_before': current})
             rows[patch.attacking_type][patch.defending_type] = patch.multiplier
         if not records:
             # Discovery must contain one record; leave it unchanged for type-only scans.
@@ -83,10 +88,26 @@ async def apply_changes(sessions, payload):
         demo_id = str(state.demo_id)
     result = await run_locked_scan(sessions, api=ManualSource(records, rows), limit=len(records),
         include_types=bool(changes.type_matchups), metadata={'source': 'manual_demo', 'demo_id': demo_id})
+    if result.status == 'succeeded':
+        # Only clear pending markers for fields this request actually applied.
+        async with sessions.begin() as session:
+            state = await session.get(DemoState, 1)
+            originals = deepcopy(state.originals)
+            for patch in changes.pokemon:
+                fields = [f'stats.{stat}' for stat in patch.stats]
+                if patch.types is not None:
+                    fields.append('types')
+                for field in fields:
+                    originals['pokemon'][str(patch.pokemon_id)][field].pop('pending_before', None)
+            pairs = {(patch.attacking_type, patch.defending_type) for patch in changes.type_matchups}
+            for tracked in originals['type_matchups']:
+                if (tracked['attack'], tracked['defense']) in pairs:
+                    tracked.pop('pending_before', None)
+            state.originals = originals
     return result.status, {'demo_id': demo_id, **result.summary}
 
 
-async def reset_changes(sessions):
+async def reset_changes(sessions: SessionProvider):
     async with sessions.begin() as session:
         state = await session.get(DemoState, 1)
         if state is None:
@@ -96,14 +117,14 @@ async def reset_changes(sessions):
             pokemon = await session.get(Pokemon, int(identifier))
             for field, values in fields.items():
                 current = pokemon.stats[field[6:]] if field.startswith('stats.') else getattr(pokemon, field)
-                if current not in (values['before'], values['after']):
+                if current not in (values['before'], values['after'], values.get('pending_before', values['after'])):
                     raise ValueError('A demo field was updated by another scan. Reset refused to overwrite newer data; use a full refresh.')
                 updates.append((pokemon, field, values['before']))
         chart = await session.get(TypeChart, 1)
         rows = deepcopy(chart.damage_to)
         for patch in state.originals['type_matchups']:
             current = rows[patch['attack']][patch['defense']]
-            if current not in (patch['before'], patch['after']):
+            if current not in (patch['before'], patch['after'], patch.get('pending_before', patch['after'])):
                 raise ValueError('A demo type matchup has newer data. Reset refused; use a full refresh.')
             rows[patch['attack']][patch['defense']] = patch['before']
         for pokemon, field, before in updates:

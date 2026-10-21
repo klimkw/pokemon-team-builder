@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import RefreshButton from "./RefreshButton";
 import { getAppInfo, type AppInfo as Info } from "./api";
 
 const date = (value: string | null) => value ? new Date(value).toLocaleString() : "Not completed";
@@ -32,7 +33,7 @@ export default function AppInfo() {
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7v1"/></svg>
     </button>
     {open && <dialog className="app-info-dialog" ref={dialog} aria-labelledby="app-info-title" onCancel={() => setOpen(false)}>
-      <div className="panel-heading"><h2 id="app-info-title">App info</h2><button className="icon-button" aria-label="Close app info" onClick={() => setOpen(false)}>×</button></div>
+      <div className="panel-heading"><h2 id="app-info-title">App info</h2><div className="panel-header-actions"><RefreshButton label="Refresh info" loading={loading} onRefresh={() => setRetry(value => value + 1)} /><button className="icon-button" aria-label="Close app info" onClick={() => setOpen(false)}>×</button></div></div>
       {loading && <p role="status">Loading app info…</p>}
       {error && <p className="message error" role="alert">{error}</p>}
       {!loading && !error && data && <>
@@ -44,11 +45,8 @@ export default function AppInfo() {
           <div><dt>Alert window</dt><dd>{data.alert_window_days} days</dd></div>
           <div><dt>Last successful live refresh</dt><dd>{data.last_successful_live_refresh ? date(data.last_successful_live_refresh.finished_at) : "None recorded"}</dd></div>
         </dl>
-        <p className="info-note">Refreshes check PokéAPI Pokémon data and the type chart. Manual demo activity is excluded here. The interval is a schedule setting, not a countdown; queued work and hosting availability can delay a scan.</p>
         <nav className="info-links"><a href={data.repository_url} target="_blank" rel="noreferrer">Repository ↗</a><a href="/counter-method" target="_blank" rel="noreferrer">Calculation guide ↗</a></nav>
-        <p className="info-note">Repository access is required while it is private. Checked {date(data.checked_at)}.</p>
       </>}
-      <button className="quiet-button" disabled={loading} onClick={() => setRetry(value => value + 1)}>Refresh info</button>
     </dialog>}
   </>;
 }

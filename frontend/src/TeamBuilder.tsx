@@ -26,7 +26,9 @@ export default function TeamBuilder({
   signingOut,
   accountError,
   onUserUpdated,
+  recoveryVersion = 0,
 }: {
+  recoveryVersion?: number;
   onUserUpdated?: (user: User) => void;
   user: User;
   onSignOut: () => Promise<void>;
@@ -68,6 +70,18 @@ export default function TeamBuilder({
   const [catalogError, setCatalogError] = useState("");
   const [catalogRetry, setCatalogRetry] = useState(0);
   const operation = useRef(false);
+  const initialized = useRef(false);
+  const pageFocus = useRef<HTMLButtonElement | null>(null);
+  const resultsHeading = useRef<HTMLElement>(null);
+  const [missingTeam, setMissingTeam] = useState(false);
+  const [teamOpen, setTeamOpen] = useState(false);
+  const teamDialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    if (!teamOpen) return;
+    const dialog = teamDialog.current!;
+    dialog.showModal();
+    return () => dialog.close();
+  }, [teamOpen]);
   const [counterSource, setCounterSource] = useState<{
     ids: number[];
     name: string;
@@ -77,6 +91,7 @@ export default function TeamBuilder({
 
   function openTeam(team?: Team) {
     const nextMembers = team ? membersOf(team) : [];
+    setMissingTeam(false);
     setSelected(team?.id ?? null);
     setName(team?.name ?? "");
     setMembers(nextMembers);
@@ -93,7 +108,7 @@ export default function TeamBuilder({
       (result) => {
         if (!controller.signal.aborted) {
           setTeams(result);
-          openTeam(result[0]);
+          if (!initialized.current) { openTeam(result[0]); initialized.current = true; }
           setTeamsLoading(false);
         }
       },
@@ -105,7 +120,7 @@ export default function TeamBuilder({
       },
     );
     return () => controller.abort();
-  }, [teamsRetry]);
+  }, [teamsRetry, recoveryVersion]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -119,6 +134,12 @@ export default function TeamBuilder({
           if (!controller.signal.aborted) {
             setCatalog(result);
             setCatalogLoading(false);
+            // Disabling the paging button can move focus to body in Chromium.
+            if (pageFocus.current && (document.activeElement === pageFocus.current || document.activeElement === document.body)) {
+              resultsHeading.current?.focus({ preventScroll: true });
+              resultsHeading.current?.scrollIntoView?.({ block: "start" });
+            }
+            pageFocus.current = null;
           }
         },
         (error) => {
@@ -158,14 +179,14 @@ export default function TeamBuilder({
     [next[index], next[index + delta]] = [next[index + delta], next[index]];
     changeDraft(next);
   }
-  async function save() {
+  async function save(asNew = false) {
     if (operation.current || locked || !name.trim()) return;
     operation.current = true;
     setBusy(true);
     setSaveError("");
     setNotice("");
     try {
-      const saved = await api.saveTeam(selected, {
+      const saved = await api.saveTeam(asNew ? null : selected, {
         name: name.trim(),
         pokemon_ids: members.map((pokemon) => pokemon.id),
       });
@@ -176,7 +197,9 @@ export default function TeamBuilder({
       openTeam(saved);
       setNotice("Team saved.");
     } catch (error) {
+      if (error instanceof api.ApiError && error.status === 404 && selected) setMissingTeam(true);
       setSaveError(message(error));
+      if (!(error instanceof api.ApiError && error.status === 401)) setTeamOpen(true);
     } finally {
       operation.current = false;
       setBusy(false);
@@ -217,152 +240,7 @@ export default function TeamBuilder({
     <button className="quiet-button" disabled={busy || signingOut} onClick={() => { if (canLeave()) void onSignOut(); }}>{signingOut ? "Signing out…" : "Sign out"}</button>
   </div>;
   const header = document.getElementById("workspace-actions");
-  return (
-    <main className="builder">
-      {header ? createPortal(toolbar, header) : toolbar}
-      <h2 className="sr-only trainer-greeting">You’re in, {user.username}.</h2>
-      {profileOpen && <Profile user={user} teams={teams} busy={locked} onBack={() => showProfile(false)}
-        onEdit={team => { if (canLeave()) { openTeam(team); showProfile(false); } }}
-        onDelete={team => removeTeam(team.id)} onUpdated={next => onUserUpdated?.(next)}
-        onPasswordChanged={onSignOut} canEndSession={canLeave} operationError={saveError || teamsError} />}
-      {accountError && (
-        <p className="message error" role="alert">
-          {accountError}
-        </p>
-      )}
-      <nav hidden={profileOpen} className="builder-jumps" aria-label="Workspace sections">
-        <a href="#catalog-title">Browse Pokémon</a>
-        <a href="#team-title" onClick={event => { event.preventDefault(); const heading = document.getElementById("team-title"); heading?.focus({ preventScroll: true }); heading?.scrollIntoView({ block: "start" }); }}>Your team · {members.length} / 6</a>
-      </nav>
-
-      <div className="builder-columns" hidden={profileOpen}>
-        <section className="catalog-panel" aria-labelledby="catalog-title">
-          <div className="panel-heading">
-            <div>
-              <h1 id="catalog-title">Pokédex</h1>
-            </div>
-            <span className="catalog-count">
-              {catalog && !catalogLoading && !catalogError
-                ? `${catalog.total} Pokémon`
-                : "Explore the catalog"}
-            </span>
-          </div>
-          <div className="catalog-filters">
-            <div>
-              <label htmlFor="pokemon-search">Search Pokémon</label>
-              <input
-                id="pokemon-search"
-                type="search"
-                maxLength={100}
-                placeholder="Try Bulbasaur…"
-                value={query}
-                onChange={(event) => {
-                  setQuery(event.target.value);
-                  setOffset(0);
-                }}
-              />
-            </div>
-            <div>
-              <label htmlFor="catalog-sort">Sort by</label>
-              <select id="catalog-sort" value={sort} onChange={event => { setSort(event.target.value); setOffset(0); }}>
-                <option value="index">Index</option>
-                {Object.entries(statNames).flatMap(([key, label]) => [<option key={`${key}_asc`} value={`${key}_asc`}>{label} · Low to high</option>, <option key={`${key}_desc`} value={`${key}_desc`}>{label} · High to low</option>])}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="page-size">Per page</label>
-              <select id="page-size" value={pageSize} onChange={event => { setPageSize(Number(event.target.value)); setOffset(0); }}>
-                {[12, 24, 48, 96].map(size => <option key={size} value={size}>{size}</option>)}
-              </select>
-            </div>
-          </div>
-          <details className="filter-panel">
-            <summary>Filters{types.length || Object.values(ranges).some(Boolean) ? " · active" : ""}</summary>
-            <fieldset className="type-filter"><legend>Types</legend>
-              <div className="type-options">{api.pokemonTypes.map(value => <label className={`type-filter-option ${types.includes(value) ? "selected" : ""}`} key={value}>
-                <input type="checkbox" checked={types.includes(value)} onChange={event => { setType(""); setTypes(current => event.target.checked ? [...current, value] : current.filter(t => t !== value)); setOffset(0); }} /><TypeBadge type={value} />
-              </label>)}</div>
-              <label className="filter-match">Match<select aria-label="Type matching" value={typeMatch} onChange={event => { setTypeMatch(event.target.value as "any" | "all"); setOffset(0); }}><option value="any">Any selected type</option><option value="all">All selected types</option></select></label>
-            </fieldset>
-            <fieldset><legend>Base stats</legend><div className="stat-ranges">{Object.entries(statNames).map(([key, label]) => {
-              const maximum = Math.max(catalog?.stat_maxima?.[key] ?? 255, Number(ranges[`${key}_max`] || 0), Number(ranges[`${key}_min`] || 0));
-              return <StatRange key={key} label={label} maximum={maximum} low={Number(ranges[`${key}_min`] || 0)} high={Number(ranges[`${key}_max`] || maximum)}
-                onChange={(low, high) => { setRanges(current => ({ ...current, [`${key}_min`]: low === 0 ? "" : String(low), [`${key}_max`]: high === maximum ? "" : String(high) })); setOffset(0); }} />;
-            })}</div></fieldset>
-            <button className="quiet-button" onClick={() => { setTypes([]); setType(""); setTypeMatch("any"); setRanges({}); setOffset(0); }}>Clear filters</button>
-          </details>
-
-          <div aria-busy={catalogLoading}>
-            {catalogLoading ? (
-              <p className="catalog-state" role="status">
-                Loading Pokémon…
-              </p>
-            ) : catalogError ? (
-              <div className="catalog-state">
-                <p role="alert">{catalogError}</p>
-                <button
-                  className="quiet-button"
-                  onClick={() => setCatalogRetry((value) => value + 1)}
-                >
-                  Retry catalog
-                </button>
-              </div>
-            ) : !catalog?.items.length ? (
-              <div className="catalog-state">
-                <h3>No Pokémon to show</h3>
-                <p>
-                  {query || type || types.length || Object.values(ranges).some(Boolean)
-                    ? "Try another name or type."
-                    : "The catalog hasn’t been loaded yet. Once it’s ready, Pokémon will appear here."}
-                </p>
-              </div>
-            ) : (
-              <>
-                <div className="pokemon-grid">
-                  {catalog.items.map((pokemon) => (
-                    <PokemonCard pokemon={pokemon} selectedCount={members.filter(member => member.id === pokemon.id).length} key={pokemon.id}>
-                      <button
-                        className="add-button"
-                        disabled={locked || members.length >= 6}
-                        onClick={() => {
-                          if (members.length < 6)
-                            changeDraft([...members, pokemon]);
-                        }}
-                        aria-label={`Add ${pokemon.name} to team`}
-                      >
-                        {members.length >= 6 ? "Team full" : "Add to team"}
-                        <span aria-hidden="true">+</span>
-                      </button>
-                    </PokemonCard>
-                  ))}
-                </div>
-                <nav className="catalog-pagination" aria-label="Catalog pages">
-                  <button
-                    className="quiet-button"
-                    disabled={offset === 0}
-                    onClick={() =>
-                      setOffset((value) => Math.max(0, value - pageSize))
-                    }
-                  >
-                    Previous
-                  </button>
-                  <span>
-                    {offset + 1}–
-                    {Math.min(offset + catalog.items.length, catalog.total)} of{" "}
-                    {catalog.total}
-                  </span>
-                  <button
-                    className="quiet-button"
-                    disabled={offset + catalog.limit >= catalog.total}
-                    onClick={() => setOffset((value) => value + pageSize)}
-                  >
-                    Next
-                  </button>
-                </nav>
-              </>
-            )}
-          </div>
-        </section>
+  const teamEditor = (
         <section
           className="team-panel"
           aria-labelledby="team-title"
@@ -501,6 +379,7 @@ export default function TeamBuilder({
                   {saveError}
                 </p>
               )}
+              {missingTeam && <button className="quiet-button" disabled={locked || !name.trim()} onClick={() => void save(true)}>Save this lineup as a new team</button>}
               {notice && notice !== "Team saved." && (
                 <p className="message success" role="status">
                   {notice}
@@ -509,7 +388,7 @@ export default function TeamBuilder({
               <button
                 className={`primary-button${notice === "Team saved." && !dirty ? " team-saved" : ""}`}
                 aria-live="polite"
-                disabled={locked || !name.trim() || (!!selected && !dirty)}
+                disabled={locked || missingTeam || !name.trim() || (!!selected && !dirty)}
                 onClick={() => void save()}
               >
                 {busy ? "Working…" : notice === "Team saved." && !dirty ? "Team saved." : "Save team"}
@@ -550,6 +429,140 @@ export default function TeamBuilder({
             </>
           )}
         </section>
+  );
+  return (
+    <main className="builder">
+      {header ? createPortal(toolbar, header) : toolbar}
+      <h2 className="sr-only trainer-greeting">You’re in, {user.username}.</h2>
+      {profileOpen && <Profile user={user} teams={teams} busy={locked} onBack={() => showProfile(false)}
+        onEdit={team => { if (canLeave()) { openTeam(team); showProfile(false); setTeamOpen(true); } }}
+        onDelete={team => removeTeam(team.id)} onUpdated={next => onUserUpdated?.(next)}
+        onPasswordChanged={onSignOut} canEndSession={canLeave} operationError={saveError || teamsError} />}
+      {accountError && (
+        <p className="message error" role="alert">
+          {accountError}
+        </p>
+      )}
+      <button hidden={profileOpen} className="quiet-button mobile-team-entry" onClick={() => setTeamOpen(true)} aria-haspopup="dialog">
+        Team · {members.length}/6 · Edit lineup
+      </button>
+      {teamOpen && teamDialog.current && createPortal(teamEditor, teamDialog.current)}
+      <dialog ref={teamDialog} className="team-editor-dialog" aria-label="Edit your team" onCancel={() => setTeamOpen(false)}>
+        <button className="quiet-button close-team-editor" onClick={() => setTeamOpen(false)}>Back to browsing</button>
+      </dialog>
+
+      <div className="builder-columns" hidden={profileOpen}>
+        <section className="catalog-panel" aria-label="Pokémon catalog" id="catalog-title" ref={resultsHeading} tabIndex={-1}>
+          <div className="catalog-filters">
+            <div>
+              <label htmlFor="pokemon-search">Search Pokémon</label>
+              <input
+                id="pokemon-search"
+                type="search"
+                maxLength={100}
+                placeholder="Try Bulbasaur…"
+                value={query}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  setOffset(0);
+                }}
+              />
+            </div>
+            <div>
+              <label htmlFor="catalog-sort">Sort by</label>
+              <select id="catalog-sort" value={sort} onChange={event => { setSort(event.target.value); setOffset(0); }}>
+                <option value="index">Index</option>
+                {Object.entries(statNames).flatMap(([key, label]) => [<option key={`${key}_asc`} value={`${key}_asc`}>{label} · Low to high</option>, <option key={`${key}_desc`} value={`${key}_desc`}>{label} · High to low</option>])}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="page-size">Per page</label>
+              <select id="page-size" value={pageSize} onChange={event => { setPageSize(Number(event.target.value)); setOffset(0); }}>
+                {[12, 24, 48, 96].map(size => <option key={size} value={size}>{size}</option>)}
+              </select>
+            </div>
+          </div>
+          <details className="filter-panel">
+            <summary>
+              <span className="filter-label">Filters{types.length || Object.values(ranges).some(Boolean) ? <span className="filter-applied"><span aria-hidden="true">✓</span><span className="sr-only">Filters applied</span></span> : null}</span>
+              <span className="catalog-count">{catalog ? `${catalog.total.toLocaleString()} Pokémons found` : "Loading…"}</span>
+            </summary>
+            <fieldset className="type-filter"><legend>Types</legend>
+              <div className="type-options">{api.pokemonTypes.map(value => <label className={`type-filter-option ${types.includes(value) ? "selected" : ""}`} key={value}>
+                <input type="checkbox" checked={types.includes(value)} onChange={event => { setType(""); setTypes(current => event.target.checked ? [...current, value] : current.filter(t => t !== value)); setOffset(0); }} /><TypeBadge type={value} />
+              </label>)}</div>
+              <label className="filter-match">Match<select aria-label="Type matching" value={typeMatch} onChange={event => { setTypeMatch(event.target.value as "any" | "all"); setOffset(0); }}><option value="any">Any selected type</option><option value="all">All selected types</option></select></label>
+            </fieldset>
+            <fieldset><legend>Base stats</legend><div className="stat-ranges">{Object.entries(statNames).map(([key, label]) => {
+              const maximum = Math.max(catalog?.stat_maxima?.[key] ?? 255, Number(ranges[`${key}_max`] || 0), Number(ranges[`${key}_min`] || 0));
+              return <StatRange key={key} label={label} maximum={maximum} low={Number(ranges[`${key}_min`] || 0)} high={Number(ranges[`${key}_max`] || maximum)}
+                onChange={(low, high) => { setRanges(current => ({ ...current, [`${key}_min`]: low === 0 ? "" : String(low), [`${key}_max`]: high === maximum ? "" : String(high) })); setOffset(0); }} />;
+            })}</div></fieldset>
+            <button className="quiet-button" onClick={() => { setTypes([]); setType(""); setTypeMatch("any"); setRanges({}); setOffset(0); }}>Clear filters</button>
+          </details>
+
+          <div aria-busy={catalogLoading}>
+            <p className="sr-only" role="status">{catalogLoading && catalog ? "Updating Pokémon… Showing previous results." : ""}</p>
+            {catalogError && <div className="message error" role="alert">{catalogError}{catalog && " Showing previous results."} <button className="quiet-button" onClick={() => setCatalogRetry(value => value + 1)}>Retry catalog</button></div>}
+            {!catalog && catalogLoading ? (
+              <p className="catalog-state" role="status">
+                Loading Pokémon…
+              </p>
+            ) : !catalog ? null : !catalog.items.length ? (
+              <div className="catalog-state">
+                <h3>No Pokémon to show</h3>
+                <p>
+                  {query || type || types.length || Object.values(ranges).some(Boolean)
+                    ? "Try another name or type."
+                    : "The catalog hasn’t been loaded yet. Once it’s ready, Pokémon will appear here."}
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="pokemon-grid">
+                  {catalog.items.map((pokemon) => (
+                    <PokemonCard pokemon={pokemon} selectedCount={members.filter(member => member.id === pokemon.id).length} key={pokemon.id}>
+                      <button
+                        className="add-button"
+                        disabled={locked || members.length >= 6}
+                        onClick={() => {
+                          if (members.length < 6)
+                            changeDraft([...members, pokemon]);
+                        }}
+                        aria-label={`Add ${pokemon.name} to team`}
+                      >
+                        {members.length >= 6 ? "Team full" : "Add to team"}
+                        <span aria-hidden="true">+</span>
+                      </button>
+                    </PokemonCard>
+                  ))}
+                </div>
+                <nav className="catalog-pagination" aria-label="Catalog pages">
+                  <button
+                    className="quiet-button"
+                    disabled={catalogLoading || catalog.offset === 0}
+                    onClick={event => { pageFocus.current = event.currentTarget; setOffset(Math.max(0, catalog.offset - pageSize)); }}
+                  >
+                    Previous
+                  </button>
+                  <span>
+                    {catalog.offset + 1}–
+                    {Math.min(catalog.offset + catalog.items.length, catalog.total)} of{" "}
+                    {catalog.total}
+                  </span>
+                  <button
+                    className="quiet-button"
+                    disabled={catalogLoading || catalog.offset + catalog.limit >= catalog.total}
+                    onClick={event => { pageFocus.current = event.currentTarget; setOffset(catalog.offset + pageSize); }}
+                  >
+                    Next
+                  </button>
+                </nav>
+              </>
+            )}
+          </div>
+        </section>
+        <div className="team-editor-host">{!teamOpen && teamEditor}</div>
       </div>
       {counterSource && (
         <CounterPreview

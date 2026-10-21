@@ -1,13 +1,13 @@
 """Database synchronization, reusable by ingestion and the future change scanner."""
 from typing import Literal
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from app.db.typing import SessionProvider
 from app.db.models import CatalogChange, Pokemon, utc_now
 from app.services.pokeapi import CatalogRecord
 
 SyncOutcome = Literal["inserted", "updated", "unchanged"]
 
 
-async def sync_record(record: CatalogRecord, sessions: async_sessionmaker[AsyncSession], *, scan_run_id=None) -> SyncOutcome:
+async def sync_record(record: CatalogRecord, sessions: SessionProvider, *, scan_run_id=None) -> SyncOutcome:
     # No network requests occur inside this short per-record transaction.
     async with sessions.begin() as session:
         existing = await session.get(Pokemon, record.id)

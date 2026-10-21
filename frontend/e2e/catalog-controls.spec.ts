@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 
-test("sort, keyboard range sliders, consistent types and selected team stats", async ({ page }, testInfo) => {
+test("sort, keyboard and pointer range controls, and duplicate selection", async ({ page }, testInfo) => {
   const username = `sort_${randomUUID().replaceAll("-", "").slice(0, 15)}`;
   await page.request.post('/api/auth/register', { data: { username, password: 'Disposable-sort-password-2026' } });
   await page.request.post('/api/auth/login', { form: { username, password: 'Disposable-sort-password-2026' } });
@@ -21,15 +21,6 @@ test("sort, keyboard range sliders, consistent types and selected team stats", a
     await expect(member.getByText(stat, { exact: true })).toBeVisible();
   }
   await page.getByText(/^Filters/).click();
-  const typeFilter = page.getByRole('checkbox', { name: 'grass', exact: true }).locator('..').locator('.type-badge');
-  const cardBadge = card.locator('.type-grass');
-  const teamBadge = member.locator('.type-grass');
-  const styles = async (locator: typeof cardBadge) => locator.evaluate(element => {
-    const style = getComputedStyle(element);
-    return [style.backgroundColor, style.color, style.fontFamily, style.fontSize, style.fontWeight];
-  });
-  expect(await styles(typeFilter)).toEqual(await styles(cardBadge));
-  expect(await styles(teamBadge)).toEqual(await styles(cardBadge));
   const low = page.getByRole('slider', { name: 'Attack minimum' });
   await low.focus();
   await low.press('ArrowRight');

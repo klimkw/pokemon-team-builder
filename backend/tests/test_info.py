@@ -40,3 +40,21 @@ def test_refresh_metadata_excludes_demo_sample_and_private_details(client):
     assert result['last_successful_live_refresh']['started_at'].startswith((now - timedelta(days=4)).date().isoformat())
     assert 'DO_NOT_EXPOSE' not in response.text
     assert set(result['last_successful_live_refresh']) == {'status', 'started_at', 'finished_at'}
+
+
+def test_full_pokemon_only_import_does_not_replace_refresh_metadata(client):
+    from app.db.models import ScanRun
+    from app.jobs.worker import scan_delay
+    now = datetime.now(timezone.utc)
+    async def seed():
+        async with db.session_maker.begin() as session:
+            session.add_all([
+                ScanRun(status='succeeded', started_at=now - timedelta(hours=1),
+                        finished_at=now - timedelta(hours=1), summary={'scope': 'full', 'types': {}}),
+                ScanRun(status='succeeded', started_at=now, finished_at=now,
+                        summary={'scope': 'full', 'pokemon': {'unchanged': 3}}),
+            ])
+        assert await scan_delay(db.session_maker, now=now) == 23 * 3600
+    asyncio.run(seed())
+    info = client.get('/api/info').json()
+    assert datetime.fromisoformat(info['last_successful_live_refresh']['finished_at']) == now - timedelta(hours=1)

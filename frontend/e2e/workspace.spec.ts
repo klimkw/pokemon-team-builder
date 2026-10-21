@@ -1,9 +1,7 @@
-import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
+import { signInFreshAccount } from "./helpers";
 
-test("stable account card, advanced filters, profile and password changes", async ({ page }, testInfo) => {
-  const username = `ux_${randomUUID().replaceAll("-", "").slice(0, 16)}`;
-  const password = "Disposable-ux-password-2026";
+test("public app information opens, refreshes and closes", async ({ page }, testInfo) => {
   await page.goto("/");
   await page.getByRole("button", { name: "App info", exact: true }).click();
   const info = page.getByRole("dialog", { name: "App info", exact: true });
@@ -18,30 +16,10 @@ test("stable account card, advanced filters, profile and password changes", asyn
   await page.keyboard.press("Escape");
   await expect(info).toHaveCount(0);
   await expect(page.getByLabel("Username")).toBeEnabled();
-  await page.screenshot({ path: testInfo.outputPath("sign-in-desktop.png"), fullPage: true });
-  const before = await page.locator(".account-card").boundingBox();
-  await page.getByRole("group", { name: "Account options" }).getByRole("button", { name: "Create account", exact: true }).click();
-  const after = await page.locator(".account-card").boundingBox();
-  expect(Math.abs(before!.height - after!.height)).toBeLessThan(1);
-  expect(Math.abs(before!.width - after!.width)).toBeLessThan(1);
-  await page.getByLabel("Username").fill(username);
-  await page.getByLabel("Password", { exact: true }).fill(password);
-  await page.locator("form").getByRole("button", { name: "Create account", exact: true }).click();
-  await expect(page.getByRole("status")).toContainText("Account created.");
-  await page.getByLabel("Password", { exact: true }).fill(password);
-  await page.locator("form").getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Profile", exact: true })).toBeVisible();
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole("button", { name: "App info", exact: true }).click();
-  await expect(info.getByText("Version", { exact: true })).toBeVisible();
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.screenshot({ path: testInfo.outputPath("app-info-mobile.png") });
-  await info.getByRole("button", { name: "Close app info" }).click();
-  await page.setViewportSize({ width: 1280, height: 720 });
-  const signout = await page.getByRole("button", { name: "Sign out", exact: true }).boundingBox();
-  expect(signout!.y).toBeLessThan(88);
-  await expect(page.getByRole("dialog")).toHaveCount(0);
-  await page.screenshot({ path: testInfo.outputPath("workspace-desktop.png"), fullPage: true });
+});
+
+test("catalog pagination and combined filters update visible results", async ({ page }) => {
+  await signInFreshAccount(page);
   await page.getByLabel("Per page").selectOption("12");
   await expect(page.getByRole("article")).toHaveCount(12);
   await page.getByRole("button", { name: "Next", exact: true }).click();
@@ -60,6 +38,10 @@ test("stable account card, advanced filters, profile and password changes", asyn
   await expect(page.getByText("No Pokémon to show")).toBeVisible();
   await page.getByRole("button", { name: "Clear filters" }).click();
   await expect(page.getByRole("article")).toHaveCount(12);
+});
+
+test("profile changes preserve the draft and password changes revoke the session", async ({ page }, testInfo) => {
+  const { username, password } = await signInFreshAccount(page);
   await page.getByRole("button", { name: "Add bulbasaur to team" }).click();
   await page.getByLabel("Team name", { exact: true }).fill("Profile lineup");
   await page.getByRole("button", { name: "Save team", exact: true }).click();

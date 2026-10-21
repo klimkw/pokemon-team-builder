@@ -135,3 +135,45 @@ def test_field_history_spans_pages_but_respects_window_and_entity(signed_in):
             assert [(entry.before, entry.after) for entry in history] == [(60, 70), (49, 60)]
             assert history[0].detected_at > history[1].detected_at
     asyncio.run(run())
+
+
+def test_only_requested_alert_page_is_rendered_and_acknowledgements_do_not_render(signed_in, monkeypatch):
+    from app.services import alerts
+    from app.api import alerts as alert_api
+    save(signed_in, [1, 25])
+    store(*(event(at=datetime.now(timezone.utc) - timedelta(minutes=i)) for i in range(30)))
+    rendered = []
+    original = alerts.ChangeAlert
+    def render(**kwargs):
+        rendered.append(kwargs['id'])
+        return original(**kwargs)
+    monkeypatch.setattr(alerts, 'ChangeAlert', render)
+    page = signed_in.get('/api/alerts?limit=2&offset=10').json()
+    assert page['total'] == page['unread_total'] == 30
+    assert len(rendered) == 2
+    assert len(page['items'][0]['history']['stats.attack']) == 30
+    async def forbidden(*args, **kwargs):
+        raise AssertionError('Acknowledgements must not render the feed')
+    monkeypatch.setattr(alert_api, 'get_alerts', forbidden)
+    assert signed_in.post('/api/alerts/read', json={
+        'change_ids': [item['id'] for item in page['items']]}).status_code == 204
+    assert len(rendered) == 2
+
+
+def test_acknowledgements_filter_expired_unrelated_and_type_events(signed_in):
+    from app.db.models import AlertRead
+    from sqlalchemy import select
+    save(signed_in, [1])
+    valid = event('fire', kind='type', changes={'damage_to.grass': {'before': 0, 'after': 1}})
+    expired = event(at=datetime.now(timezone.utc) - timedelta(days=8))
+    unrelated = event('7')
+    unrelated_type = event('ice', kind='type', changes={'damage_to.rock': {'before': 1, 'after': 2}})
+    store(valid, expired, unrelated, unrelated_type)
+    assert signed_in.post('/api/alerts/read', json={'change_ids': [str(row.id) for row in
+        [valid, expired, unrelated, unrelated_type]] + [str(uuid.uuid4())]}).status_code == 204
+    async def check():
+        async with db.session_maker() as session:
+            assert list(await session.scalars(select(AlertRead.change_id))) == [valid.id]
+    asyncio.run(check())
+    page = signed_in.get('/api/alerts').json()
+    assert page['total'] == 1 and page['unread_total'] == 0

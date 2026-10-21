@@ -7,7 +7,8 @@ from fastapi_users.authentication.strategy.db import DatabaseStrategy
 from fastapi_users.db import SQLAlchemyUserDatabase
 from fastapi_users.exceptions import InvalidPasswordException
 from fastapi_users_db_sqlalchemy.access_token import SQLAlchemyAccessTokenDatabase
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
+from app.schemas.credentials import Username, Password, PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import database
 from app.db.models import User, AccessToken
@@ -21,14 +22,8 @@ async def get_token_db(session: AsyncSession = Depends(database)):
 
 class UserCreate(schemas.BaseUserCreate):
     # Alias preserves the username API while using the library's create flow.
-    email: str = Field(alias="username", min_length=3, max_length=32,
-                       pattern=r"^[a-zA-Z0-9_]+$")
-    password: str = Field(min_length=8, max_length=128)
-
-    @field_validator("email")
-    @classmethod
-    def normalize_username(cls, value: str) -> str:
-        return value.lower()
+    email: Username = Field(alias="username")
+    password: Password
 
 
 class UserRead(BaseModel):
@@ -39,7 +34,7 @@ class UserRead(BaseModel):
 
 class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     async def validate_password(self, password: str, user) -> None:
-        if not 8 <= len(password) <= 128:
+        if not PASSWORD_MIN_LENGTH <= len(password) <= PASSWORD_MAX_LENGTH:
             raise InvalidPasswordException(reason="Password must contain 8-128 characters")
 
 
