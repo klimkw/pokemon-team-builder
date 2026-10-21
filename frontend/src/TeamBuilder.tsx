@@ -467,55 +467,7 @@ export default function TeamBuilder({
                 </span>
 
               </div>
-              <div className="team-actions">
-              {saveError && (
-                <p className="message error" role="alert">
-                  {saveError}
-                </p>
-              )}
-              {notice && (
-                <p className="message success" role="status">
-                  {notice}
-                </p>
-              )}
-              <button
-                className="primary-button"
-                disabled={locked || !name.trim() || (!!selected && !dirty)}
-                onClick={() => void save()}
-              >
-                {busy ? "Working…" : "Save team"}
-                <span aria-hidden="true">↗</span>
-              </button>
 
-              <div className="counter-entry">
-                <button
-                  className="secondary-button"
-                  disabled={locked || members.length === 0}
-                  onClick={() =>
-                    setCounterSource({
-                      ids: members.map((pokemon) => pokemon.id),
-                      name,
-                    })
-                  }
-                >
-                  View optimal counter team <span aria-hidden="true">↗</span>
-                </button>
-                <p className="save-hint">
-                  {members.length
-                    ? "Preview counters for this lineup. No save required."
-                    : "Add at least one Pokémon to view a counter team."}
-                </p>
-              </div>
-              {selected && (
-                <button
-                  className="delete-team"
-                  disabled={locked}
-                  onClick={() => void removeTeam()}
-                >
-                  Delete team
-                </button>
-              )}
-              </div>
               <ol className="team-members" aria-label="Selected Pokémon">
                 {Array.from({ length: 6 }, (_, index) => {
                   const pokemon = members[index];
@@ -572,6 +524,55 @@ export default function TeamBuilder({
                   );
                 })}
               </ol>
+              <div className="team-actions">
+              {saveError && (
+                <p className="message error" role="alert">
+                  {saveError}
+                </p>
+              )}
+              {notice && (
+                <p className="message success" role="status">
+                  {notice}
+                </p>
+              )}
+              <button
+                className="primary-button"
+                disabled={locked || !name.trim() || (!!selected && !dirty)}
+                onClick={() => void save()}
+              >
+                {busy ? "Working…" : "Save team"}
+                <span aria-hidden="true">↗</span>
+              </button>
+
+              <div className="counter-entry">
+                <button
+                  className="secondary-button"
+                  disabled={locked || members.length === 0}
+                  onClick={() =>
+                    setCounterSource({
+                      ids: members.map((pokemon) => pokemon.id),
+                      name,
+                    })
+                  }
+                >
+                  View optimal counter team <span aria-hidden="true">↗</span>
+                </button>
+                <p className="save-hint">
+                  {members.length
+                    ? "Preview counters for this lineup. No save required."
+                    : "Add at least one Pokémon to view a counter team."}
+                </p>
+              </div>
+              {selected && (
+                <button
+                  className="delete-team"
+                  disabled={locked}
+                  onClick={() => void removeTeam()}
+                >
+                  Delete team
+                </button>
+              )}
+              </div>
 
 
             </>

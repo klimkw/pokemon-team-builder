@@ -462,3 +462,12 @@ an unstable jump during resizing. Production build, 25 components (one worker) a
 six regular Chromium flows passed; legacy demo skipped. Action visibility, discard
 protection and nonoverlapping stats still pass. Mobile screenshot reviewed; reports:
 test-artifacts/team-expanded/. Only frontend refreshed; no backend tests were rerun.
+
+## Natural team-pane page scrolling
+
+Restored actions below the full member list and removed desktop sticky positioning.
+The regression scrolls 600 px, checks the pane moved by more than 550 px, checks both
+counter/delete actions are visible and proves the page end is still over 500 px away.
+Screenshot review confirms all three actions below the list at that scroll position.
+Production build, 25 components (one worker) and six regular Chromium flows passed;
+legacy demo skipped. Reports: test-artifacts/team-natural/. Only frontend deployed.

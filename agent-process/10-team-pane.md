@@ -50,3 +50,17 @@ Final verification of the expanded layout passed production build, 25 components
 six regular browser flows (legacy demo skipped). Mobile screenshot confirms top actions
 and full member cards. Reports: test-artifacts/team-expanded/. Only frontend refreshed.
 Commit: “Keep team members expanded with actions above the list”.
+
+## Correction: natural page scrolling
+
+The owner clarified the actual issue: the original desktop sticky positioning pinned
+the tall pane at the top, leaving its bottom inaccessible until the catalog's parent
+container ended. Moving actions or constraining the list did not address that request.
+Actions are restored below the full member list, and the pane is now position: static
+on desktop as well as mobile. The Draft a New Team option remains. A browser regression
+check scrolls the page partway, verifies the pane moves with it, and checks bottom
+actions are visible while the catalog page still extends far below.
+Verification passed production build, 25 component tests and six regular browser flows
+(legacy demo skipped). At 600 px page scroll, the screenshot shows all bottom actions,
+with most of the catalog still below. Reports: test-artifacts/team-natural/. Only
+frontend refreshed. Commit: “Restore bottom team actions and remove sticky pane positioning”.

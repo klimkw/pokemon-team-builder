@@ -513,3 +513,15 @@ this fixes a resize/navigation failure exposed by the expanded pane. Build, 25 c
 tests and six regular browser flows passed (legacy demo skipped). Mobile screenshot
 reviewed; reports: test-artifacts/team-expanded/. Only frontend deployed successfully.
 Commit: “Keep team members expanded with actions above the list”.
+
+## Latest: restore bottom actions and fix desktop sticky positioning
+
+Previous layout interpretations were superseded by the owner's clarification. Actions
+are back below the full member list. The actual problem was position: sticky on a pane
+taller than the viewport, which hid its bottom until the catalog container ended.
+The pane now uses position: static at all widths, moving normally with page scrolling.
+The dropdown drafting change remains. See the natural-scroll regression in teams.spec.ts.
+Verified: scrolling 600 px reveals the bottom team actions while the catalog remains
+far from its end. Build, 25 components and six browser flows passed (legacy demo
+skipped). Screenshot reviewed; reports: test-artifacts/team-natural/. Only frontend
+updated. Commit: “Restore bottom team actions and remove sticky pane positioning”.

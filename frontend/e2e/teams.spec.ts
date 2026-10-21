@@ -95,8 +95,7 @@ test("build, save, reload, reorder, switch, and delete teams", async ({
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("link", { name: "Your team · 5 / 6" }).click();
   await expect(page.getByLabel("Team name", { exact: true })).toBeInViewport();
-  await expect(page.getByRole("button", { name: "View optimal counter team" })).toBeInViewport();
-  await expect(page.getByRole("button", { name: "Delete team", exact: true })).toBeInViewport();
+
   await expect(page.getByRole("button", { name: "New team", exact: true })).toHaveCount(0);
   const rows = page.locator(".team-member");
   const firstRow = await rows.nth(0).boundingBox();
@@ -114,8 +113,14 @@ test("build, save, reload, reorder, switch, and delete teams", async ({
   ).toBe(true);
   await page.setViewportSize({ width: 1440, height: 720 });
   await page.evaluate(() => window.scrollTo(0, 0));
+  const pane = page.locator(".team-panel");
+  const initial = await pane.boundingBox();
+  await page.evaluate(() => window.scrollBy(0, 600));
+  const scrolled = await pane.boundingBox();
+  expect(initial!.y - scrolled!.y).toBeGreaterThan(550);
   await expect(page.getByRole("button", { name: "View optimal counter team" })).toBeInViewport();
   await expect(page.getByRole("button", { name: "Delete team", exact: true })).toBeInViewport();
+  expect(await page.evaluate(() => window.scrollY + innerHeight < document.documentElement.scrollHeight - 500)).toBe(true);
   await page.screenshot({
     path: testInfo.outputPath("team-builder-desktop.png"),
   });

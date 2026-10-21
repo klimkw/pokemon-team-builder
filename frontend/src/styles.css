@@ -1498,8 +1498,9 @@ input:disabled {
 .field-history li { display: grid; gap: 5px; padding: 7px 0; }
 .field-history li span { font-variant-numeric: tabular-nums; }
 
-/* Team actions precede the expanded member list. */
-.team-actions { padding: 0 0 12px; border-bottom: 1px solid #e1e4d8; margin-bottom: 12px; }
+/* Let the full team pane scroll naturally with the page. */
+.team-panel { position: static; }
+.team-actions { padding-top: 12px; border-top: 1px solid #e1e4d8; margin-top: 12px; }
 .team-actions .primary-button { margin-top: 0; }
 .team-actions .counter-entry { border: 0; margin-top: 8px; }
 .team-actions .counter-entry .secondary-button { margin-top: 0; min-height: 42px; }
