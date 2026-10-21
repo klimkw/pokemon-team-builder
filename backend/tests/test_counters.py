@@ -48,9 +48,8 @@ def test_choose_one_best_own_attack_type_and_check_return_attack():
     assert not risky.safe
 
 
-def test_exact_optimizer_avoids_greedy_trap_and_prioritizes_safe_count(monkeypatch):
-    # Candidate 1 is versatile; candidate 2 can safely handle only opponent 10.
-    # Greedily using candidate 1 on slot 0 would lose one safe matchup.
+def test_reusable_candidates_prioritize_safe_count(monkeypatch):
+    # Candidate 1 may cover both slots; lower-ID ties remain deterministic.
     def pair(candidate, opponent):
         safe = candidate.id == 1 or (candidate.id == 2 and opponent.id == 10)
         outgoing = 2 if safe else 4
@@ -59,7 +58,7 @@ def test_exact_optimizer_avoids_greedy_trap_and_prioritizes_safe_count(monkeypat
     monkeypatch.setattr(counters, "score_matchup", pair)
     result = generate_counter([pokemon(10), pokemon(11)], [pokemon(1), pokemon(2)])
     assert result.safe_count == 2
-    assert ids(result) == (2, 1)
+    assert ids(result) == (1, 1)
 
 
 def test_type_strength_precedes_stats_and_stats_precede_id(monkeypatch):
@@ -73,13 +72,13 @@ def test_type_strength_precedes_stats_and_stats_precede_id(monkeypatch):
     assert ids(generate_counter([pokemon(10)], [pokemon(1), pokemon(2)])) == (2,)
 
 
-def test_deterministic_lowest_ordered_ids_and_distinct_candidates():
+def test_deterministic_lowest_ids_with_duplicate_counters():
     targets = [pokemon(10)] * 3
     candidates = [pokemon(3), pokemon(1), pokemon(2), pokemon(4)]
     result = generate_counter(targets, candidates)
-    assert ids(result) == (1, 2, 3)
+    assert ids(result) == (1, 1, 1)
     assert ids(generate_counter(targets, list(reversed(candidates)))) == ids(result)
-    assert len(set(ids(result))) == 3
+    assert len(set(ids(result))) == 1
     assert [match.opponent_position for match in result.matchups] == [0, 1, 2]
     assert result.safe_count == 0
 
@@ -105,7 +104,7 @@ def test_exact_result_matches_independent_exhaustive_assignment():
                       for i, kind in enumerate(kinds)]
         opponents = [pokemon(i + 20, kinds[rng.randrange(len(kinds))]) for i in range(3)]
         possibilities = []
-        for assignment in itertools.permutations(candidates, len(opponents)):
+        for assignment in itertools.product(candidates, repeat=len(opponents)):
             scores = [score_matchup(candidate, target).objective for candidate, target in zip(assignment, opponents)]
             total = tuple(sum(score[index] for score in scores) for index in range(3))
             possibilities.append((total, tuple(candidate.id for candidate in assignment)))
@@ -118,7 +117,19 @@ def test_exact_result_matches_independent_exhaustive_assignment():
             assert match.safe == (match.outgoing_multiplier >= 2 and match.incoming_multiplier <= 1)
 
 
-@pytest.mark.parametrize("targets,candidates", [([], [pokemon(1)]), ([pokemon(1)] * 7, [pokemon(1)]), ([pokemon(1)] * 2, [pokemon(1)])])
+@pytest.mark.parametrize("targets,candidates", [([], [pokemon(1)]), ([pokemon(1)] * 7, [pokemon(1)]), ([pokemon(1)], [])])
 def test_invalid_generation_sizes_rejected(targets, candidates):
     with pytest.raises(ValueError):
         generate_counter(targets, candidates)
+
+
+def test_six_identical_venusaurs_reuse_best_counter_even_with_small_catalog():
+    venusaur = pokemon(3, ('grass', 'poison'))
+    candidates = [pokemon(4, ('fire',)), pokemon(7, ('water',)), pokemon(25, ('electric',))]
+    single = generate_counter([venusaur], candidates)
+    result = generate_counter([venusaur] * 6, candidates)
+    assert ids(result) == ids(single) * 6
+    assert result.model_version == 'safe-coverage-v2-duplicates'
+    assert result.stats_score == single.stats_score * 6
+    assert result.safe_count == single.safe_count * 6
+    assert all(match.simulation == result.matchups[0].simulation for match in result.matchups)

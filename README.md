@@ -204,14 +204,13 @@ unsaved draft. The modal previews an equal-sized lineup and explains each opposi
 slot's pairing, outgoing/incoming type effectiveness, and safe/risky status. Expand
 method/stat details for the full scoring model. **Save as new team** creates a separate
 team with the preview order; it never modifies or discards the source draft. Closing
-without saving writes nothing. Generated teams use distinct catalog IDs; alternate
+without saving writes nothing. Generated teams allow duplicate catalog IDs, matching the source-team rules. Alternate
 forms and legendary entries are eligible, and source members may also be candidates.
 
 POST `/api/teams/counter-preview` accepts `{"pokemon_ids":[25,1,7]}` with 1–6 IDs and
 requires authentication and the normal same-origin checks. It reads the local catalog,
 returns no-store preview data, and performs no team writes. Duplicate opposing members
-remain separate slots. Unknown IDs return 422; a catalog with fewer distinct entries
-than opposing slots returns 409. There are no network calls during generation.
+remain separate slots. Unknown IDs return 422; even a one-entry catalog can fill all six counter slots. There are no network calls during generation.
 
 The exact objective, compared lexicographically, is:
 
@@ -230,10 +229,11 @@ candidate Defense, opposing HP * opposing Attack) and its special-stat equivalen
 Speed is R(candidate Speed, opposing Speed). This is an explicit base-stat proxy,
 not the game's damage formula; stats cannot outweigh the first two objectives.
 
-`backend/app/services/counters.py` uses a bitmask dynamic program over candidates and opposing
-slots, O(catalog_size * n * 2^n), n <= 6, without pruning or greedy selection. CPU work
-runs outside the async request loop. The result is optimal under this additive assigned-
-matchup model, not a claim of optimal real-battle strategy or team switching synergy.
+`backend/app/services/counters.py` independently maximizes the same score tuple per
+opposing slot in O(catalog_size * n), n <= 6. This is an exact global optimum because
+scores are additive and candidates can be reused. Six identical opponents receive six
+copies of the same best counter. CPU work runs outside the async request loop; this
+is an assigned-matchup model rather than an optimization of switching or team synergy.
 
 The model assumes each side can use attacks of either own type, taking its best type
 against both defending types. Defensive multipliers multiply; attacking types are
@@ -242,7 +242,7 @@ items, levels, and switching are excluded. Equal assumed same-type attack bonuse
 omitted; displayed numbers are type effectiveness, not damage or win probabilities.
 
 The API reads the active chart from PostgreSQL on each preview, returning its SHA-256
-version plus `safe-coverage-v1`. Migration 0003 seeds a frozen PokéAPI snapshot from
+version plus `safe-coverage-v2-duplicates`. Migration 0003 seeds a frozen PokéAPI snapshot from
 `backend/migrations/data/type_chart_v1.json`; provenance and observation time are in
 that file. The scanner fetches and validates all 18 current type rows, then replaces
 the chart and appends per-attacking-type history in one transaction. A missing or

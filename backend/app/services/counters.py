@@ -1,8 +1,8 @@
-"""Exact distinct-candidate assignment, with lexicographic priorities.
+"""Exact independent-slot optimization with reusable candidates.
 
-Maximize (safe matchup count, total type strength, total stats tie-break).
-Only after all three tie, choose the lexicographically lowest ordered ID list.
-The bitmask DP processes each candidate once: O(catalog_size * n * 2**n), n <= 6.
+Maximize (safe matchup count, total type strength, total stats tie-break), then
+lowest ordered IDs. With duplicates allowed and additive scores, each slot can
+be optimized independently in O(catalog_size * n), n <= 6.
 """
 from dataclasses import dataclass
 from functools import lru_cache, partial
@@ -13,7 +13,7 @@ from typing import get_args
 from app.schemas.counters import CounterMatchup, CounterPreview
 from app.schemas.teams import PokemonRead, PokemonType
 
-MODEL_VERSION = "safe-coverage-v1"
+MODEL_VERSION = "safe-coverage-v2-duplicates"
 
 
 @lru_cache(maxsize=1)
@@ -89,28 +89,16 @@ def generate_counter(opponents: list[PokemonRead], candidates: list[PokemonRead]
     if not 1 <= len(opponents) <= 6:
         raise ValueError("Counter generation requires 1–6 opponents")
     by_id = {candidate.id: candidate for candidate in candidates}
-    if len(by_id) < len(opponents):
-        raise ValueError("Not enough distinct catalog entries")
+    if not by_id:
+        raise ValueError("Counter generation requires a nonempty catalog")
     scorer = score_matchup if chart is None else partial(score_matchup, chart=chart)
     size = len(opponents)
-    # mask -> (objective, IDs by opposing slot). Zero is an unassigned slot.
-    states = {0: ((0, 0, 0), (0,) * size)}
-    for candidate in sorted(by_id.values(), key=lambda pokemon: pokemon.id):
-        pairs = [scorer(candidate, opponent).objective for opponent in opponents]
-        previous = states
-        states = previous.copy()  # Skipping this candidate is always permitted.
-        for mask, (objective, ids) in previous.items():
-            for index, contribution in enumerate(pairs):
-                bit = 1 << index
-                if mask & bit:
-                    continue
-                next_mask = mask | bit
-                score = tuple(a + b for a, b in zip(objective, contribution))
-                lineup = ids[:index] + (candidate.id,) + ids[index + 1:]
-                incumbent = states.get(next_mask)
-                if incumbent is None or score > incumbent[0] or (score == incumbent[0] and lineup < incumbent[1]):
-                    states[next_mask] = (score, lineup)
-    objective, ids = states[(1 << size) - 1]
+    # No shared resource constraint: selecting one candidate never removes it
+    # from another slot. Independent lexicographic maxima maximize their sum.
+    ids = [max(by_id, key=lambda identifier: (scorer(by_id[identifier], opponent).objective, -identifier))
+           for opponent in opponents]
+    scores = [scorer(by_id[identifier], opponent).objective for identifier, opponent in zip(ids, opponents)]
+    objective = tuple(sum(score[index] for score in scores) for index in range(3))
     matches = []
     for index, (opponent, candidate_id) in enumerate(zip(opponents, ids)):
         candidate = by_id[candidate_id]

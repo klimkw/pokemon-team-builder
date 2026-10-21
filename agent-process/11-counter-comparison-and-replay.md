@@ -39,3 +39,25 @@ checks reran successfully. Screenshots reviewed for both card layouts, desktop/m
 replay with formula disclosure and the guide. Reports: test-artifacts/counter-replay/.
 An initial replay test syntax error was corrected before testing. Commit this increment
 as “Add shared counter cards, transparent duel replay and model guide”.
+
+## Duplicate-friendly counter selection
+
+The owner requested symmetry with their own duplicate-friendly teams, while keeping
+actual-move ingestion on hold. Counter IDs may now repeat. With additive pair scores
+and no candidate exclusivity, independent per-slot lexicographic maximization is an
+exact global solution, O(catalog size × n); the distinct-assignment bitmask DP is no
+longer necessary. Priorities and lowest-ID tie-breaking remain unchanged. Version is
+safe-coverage-v2-duplicates; the duel model remains paired-base-stats-v1.
+
+The API no longer rejects teams with more slots than distinct catalog entries. Saving
+still preserves slot order and duplicate membership through the normal team API.
+Guide and UI describe reuse, including six identical Venusaurs receiving six copies
+of the same best counter. Exhaustive solver comparisons now enumerate assignments
+with replacement. Tests cover repeated opponents, deterministic ties, small catalogs,
+duplicate persistence, and identical per-slot simulations.
+Verification passed 135 PostgreSQL, 119 SQLite (16 skips), 27 components and six regular
+browser flows (legacy demo skipped), plus production build. The deployed live catalog
+selected six heatran-mega entries against six Venusaurs. This is the current model's
+result, not a hardcoded answer. Existing three teams and all database counts stayed
+unchanged; worker retained its scan delay. Reports: test-artifacts/counter-duplicates/.
+Commit: “Allow duplicate Pokemon in optimal counter teams”.

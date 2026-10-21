@@ -506,3 +506,14 @@ legacy separate demo skipped. Screenshots reviewed for side-by-side cards, deskt
 and mobile replay (including formulas), and the rendered guide. Browser reports and
 screenshots: test-artifacts/counter-replay/. Backend totals remain 134 PostgreSQL,
 118 SQLite (16 skips). All isolated containers cleaned up. No schema migration needed.
+
+## Duplicate-friendly counter generation
+
+Passed 135 PostgreSQL tests, 119 SQLite tests (16 PostgreSQL-only skips), 27 component
+tests and six regular Chromium flows (legacy demo skipped); production build passed.
+Exhaustive comparisons now enumerate assignments with replacement, validating the same
+lexicographic optimum as independent per-slot selection. Six identical Venusaurs select
+six identical best counters; small catalogs are sufficient and duplicate members save
+in slot order. Deterministic ID ties and per-slot replay remain covered. Browser tests
+also check a six-Venusaur API preview and the existing comparison/replay/save flow.
+Reports: test-artifacts/counter-duplicates/. Isolated containers removed after testing.

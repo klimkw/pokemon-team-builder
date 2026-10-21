@@ -20,8 +20,6 @@ async def counter_preview(payload: CounterRequest, db: Database, user: Owner):
     missing = sorted(set(payload.pokemon_ids) - by_id.keys())
     if missing:
         raise HTTPException(422, {"code": "UNKNOWN_POKEMON", "pokemon_ids": missing})
-    if len(catalog) < len(payload.pokemon_ids):
-        raise HTTPException(409, {"code": "INSUFFICIENT_CATALOG"})
     opponents = [by_id[identifier] for identifier in payload.pokemon_ids]
     active_chart = await db.get(TypeChart, 1)
     if active_chart is None:

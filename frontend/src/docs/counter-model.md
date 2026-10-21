@@ -6,7 +6,7 @@ This is the single source for the guide at /counter-method. Edit this Markdown f
 
 Optimal means the best lineup under the explicit type-and-base-stat objective below. It does not mean the best competitive Pokémon team. Selection and the illustrative duel simulation are separate models. A type-safe pairing can lose a simulated duel because of Speed, HP or attacking/defensive stats. The simulation does not select or rerank the counters.
 
-The generator uses the editor's current ordered Pokémon IDs, including unsaved changes. There are one to six opposing slots. The counter has one distinct catalog ID per slot. Opponents may repeat; counter IDs may not. All catalog entries, including alternate forms and legendary Pokémon, are eligible, and an opponent's own ID is not excluded. Distinct forms of the same species count as different catalog IDs. There is no budget, generation or competitive legality filter.
+The generator uses the editor's current ordered Pokémon IDs, including unsaved changes. There are one to six opposing slots. Both your team and the counter team may repeat catalog IDs. Each opposing slot independently receives its best counter. All catalog entries, including alternate forms and legendary Pokémon, are eligible, and an opponent's own ID is not excluded. Different forms retain their own catalog IDs. There is no budget, generation or competitive legality filter.
 
 ## 1. Compute each pair's type matchup
 
@@ -32,7 +32,7 @@ These are assumed own-type attacks; the catalog does not provide a selected move
 
 This is lexicographic optimization, not an adjustable weighted sum. No amount of stats can compensate for losing one safe pairing. Outgoing/incoming multipliers are multiples of one quarter for valid dual typings; type strength is multiplied by four internally to keep comparisons exact integers.
 
-A bitmask dynamic program processes catalog candidates once. A mask records the opposing slots already filled. For each candidate, it either skips that Pokémon or places it in one unfilled slot using the previous iteration's states. This guarantees distinct IDs and considers complete assignments globally, rather than independently choosing the best counter for every slot. Runtime is O(catalog size × n × 2^n), with n at most six.
+With duplicates allowed, selecting a counter for one slot does not restrict the other slots. Each slot independently maximizes the same (safe, type strength, stats) tuple, choosing the lowest ID on ties. Because every team score is additive, these independent choices are also an exact global optimum. Runtime is O(catalog size × n), with n at most six. Six identical Venusaurs therefore receive six copies of the same best counter. This is not a diversity or team-synergy objective.
 
 ## 3. Calculate the stats tie-break
 
@@ -82,7 +82,7 @@ A duel ends on a knockout. Mutual immunities stop after the first zero-damage tu
 
 ## Reproducibility and live data
 
-The preview reports selection model safe-coverage-v1 and the active type-chart hash. Every duel reports paired-base-stats-v1. The replay uses the exact Pokémon and type multipliers from that preview, without fetching new catalog values mid-replay. Identical inputs and versions produce identical outputs. A later live refresh or manual change can alter newly generated results; an open preview stays a snapshot. Generate a new preview to use newer data.
+The preview reports selection model safe-coverage-v2-duplicates and the active type-chart hash. Every duel reports paired-base-stats-v1. The replay uses the exact Pokémon and type multipliers from that preview, without fetching new catalog values mid-replay. Identical inputs and versions produce identical outputs. A later live refresh or manual change can alter newly generated results; an open preview stays a snapshot. Generate a new preview to use newer data.
 
 Generation, simulation and replay do not save teams, edit the source lineup, mutate the catalog or generate alerts. Save as new team is the explicit persistence action. Saved counter teams store Pokémon membership, not a frozen battle report; reopening them uses current catalog data.
 
@@ -90,4 +90,4 @@ Generation, simulation and replay do not save teams, edit the source lineup, mut
 
 Selection is implemented in backend/app/services/counters.py; illustrative duels in backend/app/services/battle.py. The API is POST /api/teams/counter-preview. Shared cards live in frontend/src/PokemonDetails.tsx, the comparison in CounterPreview.tsx and the replay in BattleReplay.tsx. This guide is frontend/src/docs/counter-model.md.
 
-Selection tests compare the exact solver with brute-force assignments on small catalogs and check priority ordering, duplicate opponents, distinct candidates, type immunities, dual types and deterministic ties. Duel tests cover physical/special choice, damage arithmetic, immunities, speed order, prevented retaliation, simultaneous knockouts, zero-stat handling, the turn cap and deterministic output. Browser tests exercise shared cards, replay controls, the guide, mobile width and explicit saving without changing the original draft.
+Selection tests compare the exact solver with exhaustive assignments allowing replacement on small catalogs and check priority ordering, duplicate opponents, repeated counters and small catalogs, type immunities, dual types and deterministic ties. Duel tests cover physical/special choice, damage arithmetic, immunities, speed order, prevented retaliation, simultaneous knockouts, zero-stat handling, the turn cap and deterministic output. Browser tests exercise shared cards, replay controls, the guide, mobile width and explicit saving without changing the original draft.

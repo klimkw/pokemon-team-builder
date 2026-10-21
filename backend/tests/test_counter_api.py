@@ -13,9 +13,9 @@ def test_preview_uses_current_ordered_lineup_and_does_not_write_teams(signed_in)
     assert [match["opponent"]["id"] for match in result["matchups"]] == [25, 1]
     assert [match["opponent_position"] for match in result["matchups"]] == [0, 1]
     generated = [match["counter"]["id"] for match in result["matchups"]]
-    assert len(set(generated)) == 2
+    assert len(generated) == 2
     assert result["safe_count"] == sum(match["safe"] for match in result["matchups"])
-    assert result["model_version"] == "safe-coverage-v1"
+    assert result["model_version"] == "safe-coverage-v2-duplicates"
     for match in result["matchups"]:
         duel = match["simulation"]
         assert duel["model_version"] == "paired-base-stats-v1"
@@ -38,7 +38,7 @@ def test_preview_requires_authentication_and_same_origin(client, signed_in):
     assert client.post("/api/teams/counter-preview", json=payload).status_code == 401
 
 
-def test_preview_validation_and_insufficient_catalog_preserve_teams(signed_in):
+def test_preview_validation_and_duplicate_slots_preserve_teams(signed_in):
     for payload in [{"pokemon_ids": []}, {"pokemon_ids": [1] * 7}, {"pokemon_ids": [True]},
                     {"pokemon_ids": [1.5]}, {"pokemon_ids": ["1"]}, {"pokemon_ids": [0]},
                     {"pokemon_ids": [1], "user_id": "someone-else"}, {}]:
@@ -47,6 +47,11 @@ def test_preview_validation_and_insufficient_catalog_preserve_teams(signed_in):
     assert unknown.status_code == 422
     assert unknown.json()["detail"]["code"] == "UNKNOWN_POKEMON"
     small = signed_in.post("/api/teams/counter-preview", json={"pokemon_ids": [1] * 4})
-    assert small.status_code == 409
-    assert small.json()["detail"]["code"] == "INSUFFICIENT_CATALOG"
+    assert small.status_code == 200
+    repeated = [match['counter']['id'] for match in small.json()['matchups']]
+    assert len(repeated) == 4 and len(set(repeated)) == 1
+    saved = signed_in.post('/api/teams', json={'name': 'Repeated counters', 'pokemon_ids': repeated})
+    assert saved.status_code == 201
+    assert [member['pokemon']['id'] for member in saved.json()['members']] == repeated
+    signed_in.delete('/api/teams/' + saved.json()['id'])
     assert signed_in.get("/api/teams").json() == []

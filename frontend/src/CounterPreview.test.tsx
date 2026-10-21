@@ -26,7 +26,7 @@ const counter: Pokemon = {
   types: ["fire"],
 };
 const preview: Preview = {
-  model_version: "safe-coverage-v1",
+  model_version: "safe-coverage-v2-duplicates",
   chart_version: "sha256:example",
   size: 1,
   safe_count: 1,

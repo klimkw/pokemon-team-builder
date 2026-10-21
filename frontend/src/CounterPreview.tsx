@@ -166,8 +166,8 @@ export default function CounterPreview({
               </li>
             </ol>
             <p>
-              Each member is paired with one opposing slot, using distinct
-              catalog Pokémon. All catalog entries, including special forms and
+              Each member is paired with one opposing slot. Duplicate counters
+              are allowed, just like in your team. All catalog entries, including special forms and
               legendary Pokémon, are eligible. Slot pairing explains coverage;
               it does not simulate battle order.
             </p>

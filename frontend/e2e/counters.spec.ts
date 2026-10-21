@@ -122,13 +122,10 @@ test("preview counters for unsaved edits, explain them, and explicitly save a se
     (team: { name: string }) => team.name === "My saved counter",
   );
   expect(counter.members).toHaveLength(2);
-  expect(
-    new Set(
-      counter.members.map(
-        (member: { pokemon: { id: number } }) => member.pokemon.id,
-      ),
-    ).size,
-  ).toBe(2);
+  const repeated = await (await page.request.post('/api/teams/counter-preview', { data: { pokemon_ids: [3, 3, 3, 3, 3, 3] } })).json();
+  expect(repeated.model_version).toBe('safe-coverage-v2-duplicates');
+  expect(repeated.matchups).toHaveLength(6);
+  expect(new Set(repeated.matchups.map((match: { counter: { id: number } }) => match.counter.id)).size).toBe(1);
   // Closing without saving also leaves the source draft intact.
   await viewCounter.click();
   await expect(dialog.getByText(/\/ 2 safe matchups/)).toBeVisible();

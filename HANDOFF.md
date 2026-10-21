@@ -561,3 +561,20 @@ test-artifacts/counter-replay/. Tested images deployed with healthy services and
 schema drift. Before/after counts remained 1,351 Pokémon, two teams, one account and
 zero change events/active scenarios (the owner's current state). Scanner retained its
 remaining interval. Commit: “Add shared counter cards, transparent duel replay and model guide”.
+
+## Latest: duplicate counter IDs allowed
+
+Owner requested counter-team duplicate rules match their own teams. Selection is now
+safe-coverage-v2-duplicates: independently maximize each slot's (safe, type strength,
+stats) tuple, lowest ID on ties. This exactly maximizes the additive team objective
+without candidate exclusivity, in O(catalog size × n). Six identical opponents get six
+copies of the same best counter. Removed insufficient-distinct-catalog rejection;
+normal saved-team slot ordering preserves duplicates. Guide, README and UI updated.
+Paired-base-stats-v1 simulation is unchanged; actual moves remain on hold. No migration.
+Verified 135 PostgreSQL, 119 SQLite (16 skips), 27 components and six regular browser
+flows; production build passed. Tested images deployed, health/schema checks passed.
+Live six-Venusaur preview returned six copies of heatran-mega under the current catalog
+and chart. Counts before/after stayed 1,351 Pokémon, three teams, one account, zero
+change events and zero active scenarios. Worker retained its remaining scan interval.
+Reports: test-artifacts/counter-duplicates/. Existing saved teams are not regenerated.
+Commit: “Allow duplicate Pokemon in optimal counter teams”.
