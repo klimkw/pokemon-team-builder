@@ -44,6 +44,25 @@ test("preview counters for unsaved edits, explain them, and explicitly save a se
     dialog.getByText("OPPOSING SLOT 2", { exact: true }),
   ).toBeVisible();
   expect(await (await page.request.get("/api/teams")).json()).toHaveLength(1);
+  await expect(dialog.locator(".paired-cards .pokemon-card")).toHaveCount(4);
+  await dialog.getByRole("button", { name: "Go to simulation ↓" }).click();
+  await expect(dialog.getByRole("heading", { name: "Matchup simulation" })).toBeInViewport();
+  await dialog.getByRole("button", { name: "Run matchup simulation" }).click();
+  await expect(dialog.getByRole("progressbar")).toHaveCount(4);
+  await dialog.getByRole("button", { name: "Show result" }).click();
+  await expect(dialog.getByRole("status")).toContainText("Counter wins");
+  await page.screenshot({ path: testInfo.outputPath("counter-simulation-desktop.png") });
+  await dialog.getByText("Damage calculation and turn log").first().click();
+  await expect(dialog.getByText(/Model: paired-base-stats-v1/).first()).toBeVisible();
+  await dialog.getByRole("button", { name: "Restart simulation" }).click();
+  await dialog.getByRole("button", { name: "Next turn" }).click();
+  const guideTab = page.waitForEvent("popup");
+  await dialog.getByRole("link", { name: /Read the scoring/ }).click();
+  const guide = await guideTab;
+  await expect(guide.getByRole("heading", { name: "Counter teams: scoring and simulation", exact: true })).toBeVisible();
+  await expect(guide.getByText(/NOT the official Pokémon damage formula/)).toBeVisible();
+  await guide.screenshot({ path: testInfo.outputPath("counter-model-guide.png") });
+  await guide.close();
   await dialog
     .getByText("How we choose the optimal team", { exact: true })
     .click();
@@ -56,6 +75,9 @@ test("preview counters for unsaved edits, explain them, and explicitly save a se
   await dialog.getByText("Compare base stats and tie-break details", { exact: true }).first().click();
   await dialog.getByText("How we choose the optimal team", { exact: true }).click();
   await page.setViewportSize({ width: 390, height: 844 });
+  await dialog.locator(".battle-replay").scrollIntoViewIfNeeded();
+  expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath("counter-simulation-mobile.png") });
   await dialog.evaluate((element) => {
     element.scrollTop = 0;
   });
@@ -70,7 +92,7 @@ test("preview counters for unsaved edits, explain them, and explicitly save a se
   await page.setViewportSize({ width: 1440, height: 1000 });
   await dialog.getByLabel("Counter team name").fill("My saved counter");
   await dialog.getByRole("button", { name: "Save as new team" }).click();
-  await expect(dialog.getByRole("status")).toContainText(
+  await expect(dialog.locator(".counter-save").getByRole("status")).toContainText(
     "Saved as “My saved counter”",
   );
   await expect(

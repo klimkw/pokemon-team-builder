@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { PokemonCard } from "./PokemonDetails";
+import BattleReplay from "./BattleReplay";
 import * as api from "./api";
 import type { CounterPreview as Preview, Team } from "./api";
 
@@ -145,6 +147,8 @@ export default function CounterPreview({
                 : "This is the best safe coverage available under this model. Some pairings still involve a trade-off; review their details below."}
             </p>
           </div>
+          <p className="counter-model-link"><a href="/counter-method" target="_blank" rel="noreferrer">Read the scoring & simulation guide ↗</a><button className="quiet-button" onClick={() => { const heading = document.getElementById("simulation-title"); heading?.focus({ preventScroll: true }); heading?.scrollIntoView({ block: "start" }); }}>Go to simulation ↓</button></p>
+          <p className="model-objective">Type strength: {preview.type_strength} · Stats tie-break: {preview.stats_score} / {preview.size * 3000}</p>
           <details className="counter-method">
             <summary>How we choose the optimal team</summary>
             <ol>
@@ -196,29 +200,20 @@ export default function CounterPreview({
                     {match.safe ? "Safe type matchup" : "Risky type matchup"}
                   </span>
                 </div>
-                <h3>
-                  <span className="pokemon-name">{match.counter.name}</span>
-                  <span className="counter-versus"> against </span>
-                  <span className="pokemon-name">{match.opponent.name}</span>
-                </h3>
-                <p className="counter-types">
-                  {match.counter.types.join(" / ")} →{" "}
-                  {match.opponent.types.join(" / ")}
-                </p>
+                <div className="paired-cards">
+                  <div><p className="pair-side-label">Your Pokémon</p><PokemonCard pokemon={match.opponent} /></div>
+                  <div><p className="pair-side-label">Counter</p><PokemonCard pokemon={match.counter} /></div>
+                </div>
                 <div className="matchup-effects">
                   <p>
-                    <strong>{match.outgoing_multiplier}× outgoing</strong>
-                    <span>
-                      Using {match.attacking_type} against{" "}
-                      {match.opponent.types.join(" / ")}.
-                    </span>
+                    <span>Your Pokémon → counter</span>
+                    <strong>{match.incoming_multiplier}× incoming</strong>
+                    <span>Opponent’s best assumed attack: {match.incoming_type} against {match.counter.types.join(" / ")}.</span>
                   </p>
                   <p>
-                    <strong>{match.incoming_multiplier}× incoming</strong>
-                    <span>
-                      Opponent’s best assumed attack: {match.incoming_type}{" "}
-                      against {match.counter.types.join(" / ")}.
-                    </span>
+                    <span>Counter → your Pokémon</span>
+                    <strong>{match.outgoing_multiplier}× outgoing</strong>
+                    <span>Using {match.attacking_type} against {match.opponent.types.join(" / ")}.</span>
                   </p>
                 </div>
                 {!match.safe && (
@@ -265,6 +260,8 @@ export default function CounterPreview({
               </li>
             ))}
           </ol>
+          <BattleReplay matches={preview.matchups} />
+          <details className="model-versions"><summary>Model & data versions</summary><p>Selection: {preview.model_version}</p><p>Type chart: {preview.chart_version}</p></details>
           <div className="counter-save">
             <label htmlFor="counter-name">Counter team name</label>
             <input

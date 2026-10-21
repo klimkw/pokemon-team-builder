@@ -205,7 +205,15 @@ export async function deleteTeam(id: string): Promise<void> {
   await request(`teams/${id}`, { method: "DELETE" });
 }
 
+export type Strike = { category: "physical" | "special"; attack_type: string; attack: number; defense: number; effectiveness: number; damage: number };
+export type Duel = {
+  model_version: string; result: "counter" | "opponent" | "draw" | "stalemate";
+  order: "counter" | "opponent" | "simultaneous"; counter_hp: number; opponent_hp: number;
+  outgoing: Strike; incoming: Strike;
+  turns: { turn: number; counter_hp: number; opponent_hp: number; counter_damage: number; opponent_damage: number }[];
+};
 export type CounterMatchup = {
+  simulation?: Duel | null;
   opponent_position: number;
   opponent: Pokemon;
   counter: Pokemon;

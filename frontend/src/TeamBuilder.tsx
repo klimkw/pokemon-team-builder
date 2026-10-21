@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Profile from "./Profile";
 import StatRange from "./StatRange";
-import { statNames, StatList, TypeBadge, TypeBadges } from "./PokemonDetails";
+import { statNames, StatList, TypeBadge, TypeBadges, Sprite, PokemonCard } from "./PokemonDetails";
 import * as api from "./api";
 import CounterPreview from "./CounterPreview";
 import Alerts from "./Alerts";
@@ -19,23 +19,6 @@ const membersOf = (team: Team) =>
 const signature = (name: string, members: Pokemon[]) =>
   JSON.stringify([name, members.map((pokemon) => pokemon.id)]);
 
-
-function Sprite({ pokemon }: { pokemon: Pokemon }) {
-  const [failed, setFailed] = useState(false);
-  return pokemon.sprite_url && !failed ? (
-    <img
-      className="pokemon-sprite"
-      src={pokemon.sprite_url}
-      alt=""
-      loading="lazy"
-      onError={() => setFailed(true)}
-    />
-  ) : (
-    <span className="sprite-placeholder" aria-label="Sprite unavailable">
-      ◇
-    </span>
-  );
-}
 
 export default function TeamBuilder({
   user,
@@ -337,19 +320,7 @@ export default function TeamBuilder({
               <>
                 <div className="pokemon-grid">
                   {catalog.items.map((pokemon) => (
-                    <article
-                      className={`pokemon-card ${members.some(member => member.id === pokemon.id) ? "is-selected" : ""}`}
-                      key={pokemon.id}
-                      aria-label={pokemon.name}
-                    >
-                      <span className="pokemon-number">
-                        #{String(pokemon.id).padStart(3, "0")}
-                      </span>
-                      <Sprite key={pokemon.id} pokemon={pokemon} />
-                      <h3>{pokemon.name}</h3>
-                      {members.some(member => member.id === pokemon.id) && <span className="selected-label">In team · {members.filter(member => member.id === pokemon.id).length}</span>}
-                      <TypeBadges types={pokemon.types} />
-                      <StatList pokemon={pokemon} />
+                    <PokemonCard pokemon={pokemon} selectedCount={members.filter(member => member.id === pokemon.id).length} key={pokemon.id}>
                       <button
                         className="add-button"
                         disabled={locked || members.length >= 6}
@@ -362,7 +333,7 @@ export default function TeamBuilder({
                         {members.length >= 6 ? "Team full" : "Add to team"}
                         <span aria-hidden="true">+</span>
                       </button>
-                    </article>
+                    </PokemonCard>
                   ))}
                 </div>
                 <nav className="catalog-pagination" aria-label="Catalog pages">

@@ -250,6 +250,23 @@ invalid row leaves the entire old chart intact. No API restart is needed. The bu
 app snapshot remains the pure optimizer's offline/test default. Historical game charts
 and nonstandard types remain outside the model.
 
+### Shared comparison and illustrative replay
+
+The preview uses the same Pokémon card component as the Pokédex, pairing your Pokémon
+on the left with its counter on the right. **Run matchup simulation** starts independent,
+deterministic paired duels. Advance a turn, jump to results or restart; expand formulas
+and logs to audit damage and HP. Results count duel wins, draws and stalemates, not a
+real team-battle win probability. Selection remains unchanged by replay outcomes.
+
+The complete, repo-managed [scoring and simulation guide](frontend/src/docs/counter-model.md)
+is rendered at `/counter-method` and linked from the preview. It explains the exact
+optimizer, stat rounding, own-type attack assumptions, the custom damage formula,
+speed ties, immunities, the 200-turn cap and limitations. Edit that Markdown file to
+update the web page; the guide is bundled locally and offers a Markdown download.
+`backend/app/services/battle.py` implements `paired-base-stats-v1`; its values are
+returned with the preview and reused throughout replay without refetching data.
+No migrations, upstream battle-data calls or simulation dependencies are introduced.
+
 ## Scanner and history
 
 The `scanner` Compose service uses the backend image with a separate command:

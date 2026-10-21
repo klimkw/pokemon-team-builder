@@ -535,3 +535,29 @@ status and save errors remain separate. No backend/scanner changes.
 Save-feedback verification passed build, 25 component tests and six regular browser
 flows (legacy demo skipped). Reports: test-artifacts/save-button/. Only frontend updated.
 Commit: “Show team save confirmation in the save button”.
+
+## Latest: counter comparisons, paired-duel replay and Markdown guide
+
+CounterPreview now uses the exact shared PokemonCard/Sprite/TypeBadges/StatList used
+by the catalog. Your Pokémon is left, assigned counter right. The optimizer remains
+safe-coverage-v1 with unchanged lexicographic exact assignment. New battle.py adds
+paired-base-stats-v1 illustrative independent duels; response matchups contain simulation
+inputs and bounded turn snapshots. The model uses base HP, a custom equal-power damage
+formula, own-type effectiveness, better physical/special ratio, Speed order and
+simultaneous ties. Immunity and 200-turn stalemates are explicit. It does NOT implement
+official battle damage, learned moves, switching, abilities/items or win probabilities.
+
+Run/next/result/restart controls reveal HP bars and auditable formulas/logs. A top
+shortcut reaches simulation. Model/chart versions are available in the preview.
+frontend/src/docs/counter-model.md is the single source for /counter-method, rendered
+as safe React text with downloadable Markdown. README and app link to it. The guide
+explains exact scoring, integer rounding, DP, candidate scope, all simulation rules,
+examples, limits and reproducibility. No migration/dependency changes. Preserve existing
+manual scenario, history and scanner restart-delay behavior during deployment.
+Read agent-process/11-counter-comparison-and-replay.md.
+Final verification: 134 PostgreSQL, 118 SQLite (16 skips), 27 components and six regular
+browser flows passed; production build passed. Screenshots reviewed; reports at
+test-artifacts/counter-replay/. Tested images deployed with healthy services and no
+schema drift. Before/after counts remained 1,351 Pokémon, two teams, one account and
+zero change events/active scenarios (the owner's current state). Scanner retained its
+remaining interval. Commit: “Add shared counter cards, transparent duel replay and model guide”.

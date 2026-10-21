@@ -34,6 +34,13 @@ const preview: Preview = {
   stats_score: 1500,
   matchups: [
     {
+      simulation: {
+        model_version: "paired-base-stats-v1", result: "counter", order: "simultaneous",
+        counter_hp: 45, opponent_hp: 45,
+        outgoing: { category: "physical", attack_type: "fire", attack: 49, defense: 49, effectiveness: 2, damage: 60 },
+        incoming: { category: "physical", attack_type: "poison", attack: 49, defense: 49, effectiveness: 1, damage: 30 },
+        turns: [{ turn: 1, counter_hp: 15, opponent_hp: 0, counter_damage: 60, opponent_damage: 30 }],
+      },
       opponent_position: 0,
       opponent,
       counter,
@@ -201,4 +208,23 @@ it("blocks duplicate saves and dismissal during an in-flight save", async () => 
   expect(close).not.toHaveBeenCalled();
   finish(team);
   await waitFor(() => expect(saved).toHaveBeenCalledWith(team));
+});
+
+
+it("shares Pokédex cards and replays transparent duel results without saving", async () => {
+  show();
+  await screen.findByText("1 / 1 safe matchups");
+  expect(document.querySelectorAll(".paired-cards .pokemon-card")).toHaveLength(2);
+  expect(screen.getByRole("link", { name: /Read the scoring/ })).toHaveAttribute("href", "/counter-method");
+  await userEvent.click(screen.getByRole("button", { name: "Run matchup simulation" }));
+  expect(screen.getByRole("progressbar", { name: "Your slot 1 HP" })).toHaveAttribute("value", "45");
+  await userEvent.click(screen.getByRole("button", { name: "Next turn" }));
+  expect(screen.getByRole("status")).toHaveTextContent("Counter wins 1 / 1 duels");
+  expect(screen.getByRole("progressbar", { name: "Your slot 1 HP" })).toHaveAttribute("value", "0");
+  await userEvent.click(screen.getByText("Damage calculation and turn log"));
+  expect(screen.getAllByText(/max\(1, floor\(20/)).toHaveLength(2);
+  expect(screen.getByText(/Turn 1: counter dealt 60/)).toBeVisible();
+  await userEvent.click(screen.getByRole("button", { name: "Restart simulation" }));
+  expect(screen.getByRole("progressbar", { name: "Counter slot 1 HP" })).toHaveAttribute("value", "45");
+  expect(api.saveTeam).not.toHaveBeenCalled();
 });

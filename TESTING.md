@@ -484,3 +484,25 @@ assertion that also matched stat slider outputs. Production build and 25 compone
 passed; backend suites are unchanged and were not rerun for this frontend increment.
 Final browser rerun passed six regular Chromium flows (legacy demo skipped). Reports:
 test-artifacts/save-button/. Isolated containers cleaned up; only frontend updated.
+
+## Counter cards, deterministic replay and Markdown guide
+
+Backend verification passed 134 PostgreSQL tests and 118 SQLite tests (16 PostgreSQL-only
+skips). New pure duel checks cover exact damage, physical/special choice, immunity,
+zero stats, first-hit knockout without retaliation, equal-Speed simultaneous draws,
+mutual-immunity stalemate, 200-turn cap, repeatability and safe types losing a duel.
+Existing brute-force assignment/priority tests pass unchanged. API assertions verify
+simulation versions, chart multipliers and deterministic side-effect-free previews.
+
+Production frontend build and 27 component tests passed, including shared cards,
+progress-bar HP, next turn/restart, damage/log disclosure, no implicit saving and
+rendering the actual Markdown guide. The guide has no HTML injection or CDN/parser
+dependency; download uses its exact bundled Markdown source. An initial test syntax
+error was corrected before the full run. Final browser checks include the simulation
+shortcut, result summary, reset/advance controls, guide popup, mobile overflow with
+expanded formulas, explicit counter save and preservation of the unsaved source draft.
+Final frontend rerun passed 27 component tests and six regular Chromium flows, with
+legacy separate demo skipped. Screenshots reviewed for side-by-side cards, desktop
+and mobile replay (including formulas), and the rendered guide. Browser reports and
+screenshots: test-artifacts/counter-replay/. Backend totals remain 134 PostgreSQL,
+118 SQLite (16 skips). All isolated containers cleaned up. No schema migration needed.

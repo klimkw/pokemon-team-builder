@@ -121,6 +121,9 @@ def generate_counter(opponents: list[PokemonRead], candidates: list[PokemonRead]
             safe=pair.safe, type_strength=pair.outgoing - pair.incoming,
             attack_potential=pair.attack_potential, durability=pair.durability, speed=pair.speed,
             stats_score=pair.stats))
+    from app.services.battle import simulate_duel
+    for match in matches:
+        match.simulation = simulate_duel(match)
     return CounterPreview(model_version=MODEL_VERSION, chart_version=(chart or type_chart())["version"],
         safe_count=objective[0], size=size, type_strength=objective[1] / 4,
         stats_score=objective[2], matchups=matches)

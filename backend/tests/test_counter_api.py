@@ -16,6 +16,12 @@ def test_preview_uses_current_ordered_lineup_and_does_not_write_teams(signed_in)
     assert len(set(generated)) == 2
     assert result["safe_count"] == sum(match["safe"] for match in result["matchups"])
     assert result["model_version"] == "safe-coverage-v1"
+    for match in result["matchups"]:
+        duel = match["simulation"]
+        assert duel["model_version"] == "paired-base-stats-v1"
+        assert 1 <= len(duel["turns"]) <= 200
+        assert duel["outgoing"]["effectiveness"] == match["outgoing_multiplier"]
+        assert duel["incoming"]["effectiveness"] == match["incoming_multiplier"]
     assert result["chart_version"].startswith("sha256:")
     assert signed_in.get("/api/teams").json() == before
     assert signed_in.get(f"/api/teams/{saved['id']}").json() == saved

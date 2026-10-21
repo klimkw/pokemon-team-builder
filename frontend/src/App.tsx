@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import * as api from "./api";
+import ModelGuide from "./ModelGuide";
 import TeamBuilder from "./TeamBuilder";
 import type { User } from "./api";
 
@@ -16,6 +17,10 @@ function errorMessage(error: unknown): string {
 }
 
 export default function App() {
+  return window.location.pathname === "/counter-method" ? <ModelGuide /> : <WorkspaceApp />;
+}
+
+function WorkspaceApp() {
   const [session, setSession] = useState<SessionState>({ status: "checking" });
   const [retry, setRetry] = useState(0);
   const [mode, setMode] = useState<Mode>("login");
