@@ -21,7 +21,7 @@ RESOURCES = {
 
 
 def init_diagnostics(output):
-    """Read only structured init errors, never state, plan data or source excerpts."""
+    """Read structured Terraform errors, never state, plan data or source excerpts."""
     secrets = []
     for name in ("TF_TOKEN_app_terraform_io", "RENDER_API_KEY", "NEON_API_KEY", "TF_VAR_database_url", "TF_VAR_additional_render_env_vars"):
         value = os.environ.get(name)
@@ -35,6 +35,11 @@ def init_diagnostics(output):
                 secrets.extend([password, unquote(password)])
         except ValueError:
             pass
+    extra = os.environ.get("TF_VAR_additional_render_env_vars", "{}")
+    try:
+        secrets.extend(value for value in json.loads(extra).values() if isinstance(value, str) and value)
+    except (json.JSONDecodeError, AttributeError):
+        pass
     messages = []
     for line in output.splitlines():
         try:
@@ -44,13 +49,14 @@ def init_diagnostics(output):
         diagnostic = event.get("diagnostic", {})
         if diagnostic.get("severity") != "error":
             continue
-        # Init talks only to the state service/provider registry. Omit source,
-        # snippets and all unrelated JSON fields. Mask known input credentials.
+        # Omit source snippets, resource data and all unrelated JSON fields.
+        # Mask input credentials and provider cty string-value dumps.
         message = diagnostic.get("summary", "Initialization error") + "\n" + diagnostic.get("detail", "")
         for secret in sorted(set(secrets), key=len, reverse=True):
             message = message.replace(secret, "[REDACTED]")
         message = re.sub(r"(?i)(postgres(?:ql)?(?:\+asyncpg)?://)[^\s]+", r"\1[REDACTED]", message)
         message = re.sub(r"(?i)(bearer\s+)\S+", r"\1[REDACTED]", message)
+        message = re.sub(r'cty\.StringVal\("(?:[^"\\]|\\.)*"\)', 'cty.StringVal("[REDACTED]")', message)
         messages.append(message[:3000])
     return "\n".join(messages[:3])
 
@@ -60,7 +66,7 @@ def terraform(*args):
     if result.returncode:
         # Provider diagnostics can contain remote data. Do not echo captured logs,
         # state, or plan JSON into a public repository's workflow logs.
-        details = init_diagnostics(result.stdout + "\n" + result.stderr) if args[0] == "init" else ""
+        details = init_diagnostics(result.stdout + "\n" + result.stderr) if args[0] in {"init", "apply"} else ""
         message = f"terraform {args[0]} failed (exit {result.returncode})"
         raise RuntimeError(message + ("\n" + details if details else "; check configuration, credentials, and HCP workspace settings"))
     return result.stdout
@@ -123,7 +129,8 @@ def plan_summary(plan):
                             old_value, new_value = public_repo(old_value), public_repo(new_value)
                         lines.append(f"  - docker.{field}: {json.dumps(old_value)} → {json.dumps(new_value)}")
             elif key in public_fields:
-                lines.append(f"  - {key}: {json.dumps(before.get(key))} → {json.dumps(after.get(key))}")
+                destination = "(known after apply)" if change.get("after_unknown", {}).get(key) is True else json.dumps(after.get(key))
+                lines.append(f"  - {key}: {json.dumps(before.get(key))} → {destination}")
             else:
                 lines.append(f"  - {key}: changed (values withheld; inspect the committed configuration)")
     lines += ["", f"Plan fingerprint: `{digest}`", "", "No secret values or plan files are uploaded."]
@@ -169,7 +176,7 @@ def main():
         if action == "apply":
             if os.environ.get("EXPECTED_PLAN_SHA", "").strip() != digest:
                 raise RuntimeError("Plan differs from the reviewed fingerprint. Review this new plan and rerun apply with its fingerprint")
-            terraform("apply", "-input=false", "-lock-timeout=120s", saved)
+            terraform("apply", "-json", "-input=false", "-lock-timeout=120s", saved)
             print("Applied the reviewed plan. Render configuration changes may trigger a deployment.")
 
 

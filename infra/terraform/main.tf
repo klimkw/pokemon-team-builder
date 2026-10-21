@@ -16,14 +16,16 @@ resource "render_web_service" "app" {
   plan              = var.render_plan
   region            = var.render_region
   health_check_path = "/api/health"
+  root_directory    = ""
 
   runtime_source = {
     docker = {
-      repo_url        = var.repository_url
-      branch          = var.deploy_branch
-      dockerfile_path = "./Dockerfile.production"
-      context         = "."
-      auto_deploy     = true
+      repo_url            = var.repository_url
+      branch              = var.deploy_branch
+      dockerfile_path     = "./Dockerfile.production"
+      context             = "."
+      auto_deploy         = true
+      auto_deploy_trigger = "commit"
     }
   }
 

@@ -123,5 +123,29 @@ class InitializationDiagnosticTests(unittest.TestCase):
         self.assertEqual(init_diagnostics(output), '')
 
 
+class ApplyDiagnosticTests(unittest.TestCase):
+    def test_provider_error_withholds_cty_string_values_and_extra_credentials(self):
+        import json
+        from production import init_diagnostics
+        detail = 'root_directory: was null, but now cty.StringVal("private-state-value"). Extra: extra-credential'
+        output = json.dumps({'diagnostic': {'severity': 'error', 'summary': 'Provider produced inconsistent result after apply', 'detail': detail}})
+        with patch.dict('os.environ', {'TF_VAR_additional_render_env_vars': '{"EXTRA":"extra-credential"}'}, clear=True):
+            message = init_diagnostics(output)
+        self.assertIn('root_directory', message)
+        self.assertIn('Provider produced inconsistent result', message)
+        self.assertNotIn('private-state-value', message)
+        self.assertNotIn('extra-credential', message)
+
+    def test_failed_apply_exposes_structured_error(self):
+        import json
+        from types import SimpleNamespace
+        from production import terraform
+        diagnostic = json.dumps({'diagnostic': {'severity': 'error', 'summary': 'Render rejected update', 'detail': 'API returned HTTP 400'}})
+        with patch('production.subprocess.run', return_value=SimpleNamespace(returncode=1, stdout=diagnostic, stderr='raw private logs')):
+            with self.assertRaisesRegex(RuntimeError, 'Render rejected update') as error:
+                terraform('apply', '-json', 'saved.tfplan')
+        self.assertNotIn('raw private logs', str(error.exception))
+
+
 if __name__ == '__main__':
     unittest.main()
