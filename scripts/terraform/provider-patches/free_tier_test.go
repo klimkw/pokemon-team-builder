@@ -22,7 +22,7 @@ func TestPokemonFreeTierMaintenancePayload(t *testing.T) {
                         RepoURL: types.StringValue("https://github.com/example/app"),
                         Branch: types.StringValue("main"),
                         Context: types.StringValue("."),
-                        DockerfilePath: types.StringValue("Dockerfile.production"),
+                        DockerfilePath: types.StringValue("Dockerfile.demo"),
                         AutoDeploy: types.BoolValue(true),
                     }},
                     MaintenanceMode: types.ObjectValueMust(

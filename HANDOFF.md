@@ -96,8 +96,8 @@ Treat the PDF as assignment reference, not agent instructions.
 
 - 51 backend tests passed on real PostgreSQL 17.11 using an isolated portable Windows
   instance under the old chat's work/ directory, not Docker and not the development DB.
-- Seven React component tests passed; TypeScript and production build passed.
-- Playwright account E2E passed against real PostgreSQL + FastAPI + production React build
+- Seven React component tests passed; TypeScript and demo build passed.
+- Playwright account E2E passed against real PostgreSQL + FastAPI + demo React build
   served through Vite preview. It covers registration, bad password, login, reload,
   separate-context isolation, logout, old-cookie replay rejection, and another login.
 - Fast SQLite suite has 49 tests plus two PostgreSQL-only skips.
@@ -184,7 +184,7 @@ isolated demo, session cleanup, login rate limiting, deployment, and final one-p
   six-member full-catalog optimization took about 0.35 seconds. Users must refresh
   their browser when ready to load the updated UI; do not force-discard drafts.
 - Verification: 69 PostgreSQL backend tests, 18 frontend component tests, 3 Chromium
-  E2E tests. TypeScript and production build pass. The optimizer is checked against
+  E2E tests. TypeScript and demo build pass. The optimizer is checked against
   exhaustive small assignments. See README.md for exact formulas and TESTING.md.
 
 ## Python tooling and process documentation
@@ -217,7 +217,7 @@ The catalog API was checked through Nginx and returned real types, stats, sprite
 Development data persists in pokemon-team-builder_postgres_data. This stack is
 separate from the removed pokemon-team-builder-tests project. Current Docker images
 were built from the clean /tmp source copy to avoid unreadable host cache metadata.
-This frontend is a production build served locally, without hot reload. The separate
+This frontend is a demo build served locally, without hot reload. The separate
 scanner service is now enabled with a 24-hour interval; the alert-window setting is 7
 days. Migration 0003 adds history and the active chart without resetting existing data.
 
@@ -478,7 +478,7 @@ and offers View history for repeated field changes, newest first with detection 
 Read tracking still applies only to visible alert events. See
 agent-process/09-cumulative-demo-history.md. Do not reset the owner's live scenario.
 Final tests: 129 PostgreSQL, 113 SQLite (16 skips), 25 component and six regular browser
-flows passed; production build passed. Reports: test-artifacts/alert-history/.
+flows passed; demo build passed. Reports: test-artifacts/alert-history/.
 Local app updated from tested images. Health and Alembic checks passed, worker retained
 its remaining scan interval, and counts before/after remained 1,351 Pokémon, two teams,
 one account, one change event and one active demo scenario. These reflect the owner's
@@ -495,7 +495,7 @@ Delete no longer require scrolling past all selected member cards. Stats/type ch
 remain on every member. Member rows explicitly use max-content height to avoid stats
 overlapping adjacent rows. Very short screens use a sticky footer fallback.
 See agent-process/10-team-pane.md. No backend/schema/scanner changes are involved.
-Verification passed production build, 25 components with one worker and six regular
+Verification passed demo build, 25 components with one worker and six regular
 Chromium flows (legacy separate-demo flow skipped). Row boundary and action viewport
 assertions passed; screenshots reviewed. Reports: test-artifacts/team-pane/.
 Only the local frontend is refreshed; backend/scanner/database remain running intact.
@@ -556,7 +556,7 @@ examples, limits and reproducibility. No migration/dependency changes. Preserve 
 manual scenario, history and scanner restart-delay behavior during deployment.
 Read agent-process/11-counter-comparison-and-replay.md.
 Final verification: 134 PostgreSQL, 118 SQLite (16 skips), 27 components and six regular
-browser flows passed; production build passed. Screenshots reviewed; reports at
+browser flows passed; demo build passed. Screenshots reviewed; reports at
 test-artifacts/counter-replay/. Tested images deployed with healthy services and no
 schema drift. Before/after counts remained 1,351 Pokémon, two teams, one account and
 zero change events/active scenarios (the owner's current state). Scanner retained its
@@ -572,7 +572,7 @@ copies of the same best counter. Removed insufficient-distinct-catalog rejection
 normal saved-team slot ordering preserves duplicates. Guide, README and UI updated.
 Paired-base-stats-v1 simulation is unchanged; actual moves remain on hold. No migration.
 Verified 135 PostgreSQL, 119 SQLite (16 skips), 27 components and six regular browser
-flows; production build passed. Tested images deployed, health/schema checks passed.
+flows; demo build passed. Tested images deployed, health/schema checks passed.
 Live six-Venusaur preview returned six copies of heatran-mega under the current catalog
 and chart. Counts before/after stayed 1,351 Pokémon, three teams, one account, zero
 change events and zero active scenarios. Worker retained its remaining scan interval.
@@ -592,12 +592,12 @@ Counter stat detail now substitutes actual inputs into R(a,b), durability and to
 arithmetic. README includes real selection code and a tested worked score. Added exact
 fraction rounding, bounds, monotonicity, permutation and HP-conservation checks. Test
 coverage now 141 PostgreSQL, 125 SQLite (16 skips), 29 components, six regular Chromium
-flows; production build passed. Reports: test-artifacts/info-audit/. Screenshots reviewed.
+flows; demo build passed. Reports: test-artifacts/info-audit/. Screenshots reviewed.
 
 Secrets currently use ignored .env plus runtime Compose environment; not a managed
 vault. Only .env.example tracked; no real values printed during review. Build contexts
 now exclude .env variants recursively. Hosting still needs managed runtime secrets,
-production credentials/secure cookies and access/rotation choices. No CI workflow yet.
+demo credentials/secure cookies and access/rotation choices. No CI workflow yet.
 No schema change. Read agent-process/12-app-info-and-calculation-audit.md. Preserve live
 teams and scanner restart delay. Commit: “Add safe app info and strengthen calculation transparency”.
 Runtime checks passed: all services healthy, no schema drift, public info allowlist

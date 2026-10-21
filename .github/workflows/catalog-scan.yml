@@ -1,4 +1,4 @@
-name: Production catalog scan
+name: Demo catalog scan
 on:
   schedule:
     - cron: '23 10 * * *' # 10:23 UTC; DST changes the corresponding local time.
@@ -6,22 +6,22 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: production-catalog-scan
+  group: demo-catalog-scan
   cancel-in-progress: false
 jobs:
   scan:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    environment: production
+    environment: ${{ vars.DEMO_APP_ENVIRONMENT || 'production' }}
     steps:
       - uses: actions/checkout@v4
       - name: Require database secret
         env:
-          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
-        run: test -n "$DATABASE_URL" || { echo 'Set PRODUCTION_DATABASE_URL in the production environment secrets'; exit 1; }
+          DATABASE_URL: ${{ secrets.DEMO_DATABASE_URL || secrets.PRODUCTION_DATABASE_URL }}
+        run: test -n "$DATABASE_URL" || { echo 'Set DEMO_DATABASE_URL in the demo environment secrets'; exit 1; }
       - name: Build the locked scanner image
         run: docker build -t pokemon-scanner ./backend
       - name: Scan catalog and type relations once
         env:
-          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.DEMO_DATABASE_URL || secrets.PRODUCTION_DATABASE_URL }}
         run: docker run --rm --env DATABASE_URL --env ENABLE_DEMO_CONTROLS=false pokemon-scanner python -m app.jobs.scanner

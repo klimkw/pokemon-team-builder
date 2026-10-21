@@ -27,6 +27,7 @@ it("shows an error and supports a fresh info request", async () => {
   render(<AppInfo />);
   fireEvent.click(screen.getByRole("button", { name: "App info" }));
   expect(await screen.findByRole("alert")).toHaveTextContent("Server unavailable");
+  expect(screen.getByRole("link", { name: "Architecture walkthrough ↗" })).toHaveAttribute("href", "/architecture");
   fireEvent.click(screen.getByRole("button", { name: "Refresh info" }));
   expect(await screen.findByText("24 hours")).toBeVisible();
 });

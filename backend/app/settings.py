@@ -22,3 +22,8 @@ CHANGE_ALERT_WINDOW_DAYS = positive_setting("CHANGE_ALERT_WINDOW_DAYS", 7)
 DEMO_MODE = os.environ.get("DEMO_MODE", "false") == "true"
 
 ENABLE_DEMO_CONTROLS = os.environ.get("ENABLE_DEMO_CONTROLS", "false") == "true"
+
+# Local Compose keeps its durable worker; free hosting may run bounded demos inline.
+DEMO_EXECUTION_MODE = os.environ.get("DEMO_EXECUTION_MODE", "worker")
+if DEMO_EXECUTION_MODE not in ("worker", "request"):
+    raise ValueError("DEMO_EXECUTION_MODE must be worker or request")

@@ -180,3 +180,111 @@ def test_cumulative_demo_preserves_originals_and_timeline(administrator):
     pokemon = administrator.get('/api/pokemon/1').json()
     assert pokemon['stats']['attack'] == 55 and pokemon['stats']['speed'] == 90
     assert administrator.get('/api/alerts').json()['total'] == 0
+
+
+@pytest.mark.postgres
+def test_request_demo_apply_repeat_reset_without_worker(administrator, monkeypatch):
+    monkeypatch.setattr(admin, 'DEMO_EXECUTION_MODE', 'request')
+    team = administrator.post('/api/teams', json={'name': 'Review', 'pokemon_ids': [1]}).json()
+    def run(action, payload=None):
+        response = administrator.post('/api/admin/' + action, json=payload)
+        assert response.status_code == 200
+        job = response.json()
+        assert job['status'] == 'succeeded', job
+        assert administrator.get(response.headers['Location']).json()['status'] == 'succeeded'
+        return job
+    assert run('demo/changes', PATCH)['result']['pokemon']['updated'] == 1
+    assert administrator.get('/api/pokemon/1').json()['stats']['attack'] == 60
+    assert administrator.get('/api/alerts').json()['total'] == 2
+    assert run('demo/changes', PATCH)['result']['pokemon']['unchanged'] == 1
+    assert administrator.get('/api/alerts').json()['total'] == 2
+    assert administrator.post('/api/admin/refresh').status_code == 409
+    assert run('demo/reset')['result']['removed_history'] == 2
+    assert administrator.get('/api/pokemon/1').json()['stats']['attack'] == 55
+    assert administrator.get('/api/teams').json()[0]['id'] == team['id']
+    assert administrator.get('/api/alerts').json()['total'] == 0
+    assert run('demo/reset')['result']['removed_history'] == 0
+
+
+@pytest.mark.postgres
+def test_request_demo_contention_does_not_queue_a_job(administrator, monkeypatch):
+    monkeypatch.setattr(admin, 'DEMO_EXECUTION_MODE', 'request')
+    async def hold():
+        async with scan_lock(db.engine):
+            response = await asyncio.to_thread(administrator.post, '/api/admin/demo/changes', json=PATCH)
+            assert response.status_code == 409
+    asyncio.run(hold())
+    assert administrator.get('/api/admin/jobs').json() == []
+
+
+@pytest.mark.postgres
+def test_request_demo_failure_is_audited_and_newer_data_preserved(administrator, monkeypatch):
+    monkeypatch.setattr(admin, 'DEMO_EXECUTION_MODE', 'request')
+    assert administrator.post('/api/admin/demo/changes', json=PATCH).json()['status'] == 'succeeded'
+    async def newer():
+        async with db.session_maker.begin() as session:
+            pokemon = await session.get(Pokemon, 1)
+            pokemon.stats = {**pokemon.stats, 'attack': 61}
+    asyncio.run(newer())
+    response = administrator.post('/api/admin/demo/reset')
+    assert response.status_code == 200
+    assert response.json()['status'] == 'failed'
+    assert 'newer data' in response.json()['error']
+    assert administrator.get('/api/pokemon/1').json()['stats']['attack'] == 61
+
+
+def test_demo_requires_login_even_when_enabled(client, monkeypatch):
+    monkeypatch.setattr(admin, 'ENABLE_DEMO_CONTROLS', True)
+    assert client.post('/api/admin/demo/changes', json=PATCH).status_code == 401
+    assert client.post('/api/admin/demo/reset').status_code == 401
+
+
+@pytest.mark.postgres
+def test_ordinary_user_can_apply_and_reset_only_when_enabled(signed_in, monkeypatch):
+    monkeypatch.setattr(admin, 'DEMO_EXECUTION_MODE', 'request')
+    monkeypatch.setattr(admin, 'ENABLE_DEMO_CONTROLS', True)
+    response = signed_in.post('/api/admin/demo/changes', json=PATCH)
+    assert response.status_code == 200
+    assert response.json()['status'] == 'succeeded'
+    assert signed_in.get('/api/pokemon/1').json()['stats']['attack'] == 60
+    assert signed_in.get('/api/admin/jobs').status_code == 403
+    assert signed_in.get(response.headers['Location']).status_code == 403
+    assert signed_in.post('/api/admin/refresh').status_code == 403
+    assert signed_in.post('/api/admin/demo/reset').json()['status'] == 'succeeded'
+    assert signed_in.get('/api/pokemon/1').json()['stats']['attack'] == 55
+    assert signed_in.post('/api/admin/demo/changes', json=PATCH,
+                          headers={'Origin': 'https://other.example'}).status_code == 403
+    monkeypatch.setattr(admin, 'ENABLE_DEMO_CONTROLS', False)
+    assert signed_in.post('/api/admin/demo/changes', json=PATCH).status_code == 403
+    assert signed_in.post('/api/admin/demo/reset').status_code == 403
+
+
+def test_request_demo_disabled(administrator, monkeypatch):
+    monkeypatch.setattr(admin, 'DEMO_EXECUTION_MODE', 'request')
+    monkeypatch.setattr(admin, 'ENABLE_DEMO_CONTROLS', False)
+    assert administrator.post('/api/admin/demo/changes', json=PATCH).status_code == 403
+    assert administrator.post('/api/admin/demo/reset').status_code == 403
+
+
+def test_shared_reviewer_account_is_explicit_idempotent_and_fixed(client, monkeypatch):
+    from app.jobs import reviewer_account
+    monkeypatch.setattr(reviewer_account, 'ENABLE_DEMO_CONTROLS', True)
+    monkeypatch.setattr(reviewer_account, 'DEMO_EXECUTION_MODE', 'request')
+    asyncio.run(reviewer_account.provision(db.session_maker))
+    asyncio.run(reviewer_account.provision(db.session_maker))
+    assert client.post('/api/auth/login', data={'username': 'admin', 'password': 'admin'}).status_code == 204
+    assert client.get('/api/admin/jobs').status_code == 200
+    response = client.patch('/api/profile', json={'current_password': 'admin', 'username': 'changed'})
+    assert response.status_code == 403
+    assert client.post('/api/auth/register', json={'username': 'someone', 'password': 'admin'}).status_code == 422
+
+
+def test_shared_reviewer_provisioning_cannot_take_over_existing_account(client, monkeypatch):
+    from app.jobs import reviewer_account
+    monkeypatch.setattr(reviewer_account, 'ENABLE_DEMO_CONTROLS', True)
+    monkeypatch.setattr(reviewer_account, 'DEMO_EXECUTION_MODE', 'request')
+    assert client.post('/api/auth/register', json={'username': 'admin', 'password': 'personal-password'}).status_code == 201
+    with pytest.raises(ValueError, match='refusing to overwrite'):
+        asyncio.run(reviewer_account.provision(db.session_maker))
+    assert client.post('/api/auth/login', data={'username': 'admin', 'password': 'personal-password'}).status_code == 204
+    assert client.get('/api/admin/jobs').status_code == 403

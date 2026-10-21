@@ -1,4 +1,4 @@
-name: Production infrastructure
+name: Demo infrastructure
 on:
   workflow_dispatch:
     inputs:
@@ -15,14 +15,14 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: production-infrastructure
+  group: demo-infrastructure
   cancel-in-progress: false
 jobs:
   terraform:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    environment: infrastructure-production
+    environment: ${{ vars.DEMO_INFRA_ENVIRONMENT || 'infrastructure-production' }}
     env:
       TF_IN_AUTOMATION: 'true'
       TF_INPUT: 'false'
@@ -39,7 +39,7 @@ jobs:
       TF_VAR_render_plan: ${{ vars.RENDER_PLAN || 'free' }}
       TF_VAR_app_origin: ${{ vars.APP_ORIGIN }}
       TF_VAR_neon_project_name: ${{ vars.NEON_PROJECT_NAME }}
-      TF_VAR_database_url: ${{ secrets.PRODUCTION_DATABASE_URL }}
+      TF_VAR_database_url: ${{ secrets.DEMO_DATABASE_URL || secrets.PRODUCTION_DATABASE_URL }}
       TF_VAR_additional_render_env_vars: ${{ secrets.RENDER_EXTRA_ENV_VARS_JSON || '{}' }}
       INFRA_ACTION: ${{ inputs.action }}
       EXPECTED_PLAN_SHA: ${{ inputs.expected_plan_sha }}
@@ -65,4 +65,4 @@ jobs:
       - name: Import, plan, or apply
         env:
           RENDER_PROVIDER_DIR: ${{ runner.temp }}/render-provider
-        run: python scripts/terraform/production.py
+        run: python scripts/terraform/demo.py

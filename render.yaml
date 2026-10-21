@@ -5,7 +5,7 @@ services:
     name: pokemon-team-builder
     runtime: docker
     plan: free
-    dockerfilePath: ./Dockerfile.production
+    dockerfilePath: ./Dockerfile.demo
     dockerContext: .
     autoDeployTrigger: checksPass
     healthCheckPath: /api/health
@@ -17,7 +17,9 @@ services:
       - key: COOKIE_SECURE
         value: "true"
       - key: ENABLE_DEMO_CONTROLS
-        value: "false"
+        value: "true"
+      - key: DEMO_EXECUTION_MODE
+        value: "request"
       - key: DEMO_MODE
         value: "false"
       - key: CATALOG_SCAN_INTERVAL_HOURS

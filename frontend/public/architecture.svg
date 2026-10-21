@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1120" role="img" aria-labelledby="title desc">
+<title id="title">Pokémon Team Builder system architecture</title>
+<desc id="desc">The browser uses a same-origin FastAPI service backed by PostgreSQL. Independent catalog scanners fetch PokéAPI and write current records and change history. Local admin and daily workers are separate from the demo Actions scanner. CI builds the application; Terraform manages Render and Neon using remote state.</desc>
+<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#53738a"/></marker></defs>
+<style>text{font-family:Arial,sans-serif;fill:#203047}.title{font-size:26px;font-weight:700}.heading{font-size:18px;font-weight:700}.body{font-size:15px}.label{font-size:13px;fill:#36566c}.edge{fill:none;stroke:#53738a;stroke-width:2;marker-end:url(#arrow)}.dash{stroke-dasharray:7 5}</style>
+<rect width="1200" height="1120" fill="#f6f8fb"/>
+<text x="32" y="42" class="title">Pokémon Team Builder</text>
+<text x="32" y="69" class="body">Runtime, data ownership and delivery boundaries</text>
+<rect x="30" y="100" width="690" height="135" rx="12" fill="#e7f2fa" stroke="#b8cbd7"/>
+<text x="48" y="130" class="heading">Browser · React + TypeScript</text>
+<text x="48" y="157" class="body">Workspace: catalog, local draft, teams, profiles and alerts</text>
+<text x="48" y="180" class="body">Counter explanations + returned turn replay; static documentation</text>
+<text x="48" y="203" class="body">HTTP-only session cookie; no browser token storage</text>
+<rect x="840" y="100" width="330" height="135" rx="12" fill="#fff" stroke="#b8cbd7"/>
+<text x="858" y="130" class="heading">External resources</text>
+<text x="858" y="157" class="body">PokéAPI sprite URLs</text>
+<text x="858" y="180" class="body">Google Fonts + system fallbacks</text>
+<text x="858" y="203" class="body">Browser fetches these directly</text>
+<path d="M720 164 H840" class="edge"/>
+<text x="733" y="151" class="label">images / fonts</text>
+<rect x="30" y="300" width="690" height="190" rx="12" fill="#e7f2fa" stroke="#b8cbd7"/>
+<text x="48" y="330" class="heading">Same-origin HTTP boundary · FastAPI + Uvicorn</text>
+<text x="48" y="357" class="body">Auth / ownership / validation / private no-store responses</text>
+<text x="48" y="380" class="body">Teams + catalog queries + alerts + profile + app info</text>
+<text x="48" y="403" class="body">Counter scorer + duels; bounded request-mode demo writes</text>
+<text x="48" y="426" class="body">Production: built assets and explicit documentation routes</text>
+<text x="48" y="449" class="body">Local: Nginx serves assets and proxies API; Vite in dev</text>
+<path d="M310 235 V300" class="edge"/>
+<text x="326" y="274" class="label">HTTPS JSON + cookie / static assets</text>
+<rect x="840" y="300" width="330" height="190" rx="12" fill="#eaf5ed" stroke="#b8cbd7"/>
+<text x="858" y="330" class="heading">Catalog ingestion services</text>
+<text x="858" y="357" class="body">HTTPX → validated PokéAPI data</text>
+<text x="858" y="380" class="body">At most 5 detail fetches in flight</text>
+<text x="858" y="403" class="body">Bounded retries and timeouts</text>
+<text x="858" y="426" class="body">Per-record current + history commit</text>
+<text x="858" y="449" class="body">Shared PostgreSQL advisory lock</text>
+<rect x="840" y="540" width="330" height="110" rx="12" fill="#fff" stroke="#b8cbd7"/>
+<text x="858" y="570" class="heading">PokéAPI upstream</text>
+<text x="858" y="597" class="body">Pokémon index / details</text>
+<text x="858" y="620" class="body">18 type relationships</text>
+<path d="M1000 490 V540" class="edge"/>
+<text x="1010" y="520" class="label">fetch and normalize</text>
+<rect x="30" y="560" width="690" height="175" rx="12" fill="#fff2df" stroke="#b8cbd7"/>
+<text x="48" y="590" class="heading">PostgreSQL · Neon in demo</text>
+<text x="48" y="617" class="body">Identity: user, accesstoken</text>
+<text x="48" y="640" class="body">Teams: teams, team_members → pokemon</text>
+<text x="48" y="663" class="body">Catalog: pokemon, type_chart</text>
+<text x="48" y="686" class="body">History: scan_runs, catalog_changes, alert_reads</text>
+<text x="48" y="709" class="body">Operations: admin_jobs, demo_state</text>
+<path d="M310 490 V560" class="edge"/>
+<text x="326" y="532" class="label">SQLAlchemy + asyncpg · transactions / row locks</text>
+<path d="M840 445 H780 V640 H720" class="edge"/>
+<text x="753" y="550" class="label">catalog + history</text>
+<rect x="30" y="800" width="330" height="140" rx="12" fill="#eaf5ed" stroke="#b8cbd7"/>
+<text x="48" y="830" class="heading">Production scheduled job</text>
+<text x="48" y="857" class="body">GitHub Actions → scanner CLI</text>
+<text x="48" y="880" class="body">Daily 10:23 UTC + manual trigger</text>
+<text x="48" y="903" class="body">No demo queue worker</text>
+<text x="48" y="926" class="body">Database lock prevents overlap</text>
+<rect x="410" y="800" width="310" height="140" rx="12" fill="#eaf5ed" stroke="#b8cbd7"/>
+<text x="428" y="830" class="heading">Local processes</text>
+<text x="428" y="857" class="body">worker.py → durable admin queue</text>
+<text x="428" y="880" class="body">daily.py → persisted due time</text>
+<text x="428" y="903" class="body">Separate from API process</text>
+<text x="428" y="926" class="body">Demo controls gated</text>
+<path d="M190 800 V735" class="edge"/>
+<text x="202" y="775" class="label">scan writes</text>
+<path d="M560 800 V735" class="edge"/>
+<text x="573" y="775" class="label">claim jobs / scan writes</text>
+<path d="M193 940 V965 H1187 V390 H1170" class="edge dash"/>
+<text x="772" y="957" class="label">job entry points reuse ingestion services</text>
+<path d="M560 940 V965" class="edge dash"/>
+<rect x="840" y="690" width="330" height="230" rx="12" fill="#eeeafb" stroke="#b8cbd7"/>
+<text x="858" y="720" class="heading">Delivery and infrastructure</text>
+<text x="858" y="747" class="body">GitHub source → CI test layers</text>
+<text x="858" y="770" class="body">Production multi-stage Docker build</text>
+<text x="858" y="793" class="body">Render: one API + frontend instance</text>
+<text x="858" y="816" class="body">Alembic migrations before startup</text>
+<text x="858" y="839" class="body">Terraform → Render + Neon</text>
+<text x="858" y="862" class="body">HCP: sensitive remote state + lock</text>
+<text x="858" y="885" class="body">Reviewed plan fingerprint → apply</text>
+<path d="M840 760 H760 V324 H720" class="edge dash"/>
+<text x="768" y="690" class="label">deploy</text>
+<text x="32" y="1010" class="heading">Boundary notes</text>
+<text x="32" y="1040" class="body">• Solid arrows: runtime requests and data. Dashed arrows: execution or delivery relationships.</text>
+<text x="32" y="1065" class="body">• Drafts stay in the browser; team ownership is enforced in the API; durable state lives in PostgreSQL.</text>
+<text x="32" y="1090" class="body">• Catalog reads do not call PokéAPI. Scans are incremental, so the catalog is not an atomic whole-scan snapshot.</text>
+</svg>

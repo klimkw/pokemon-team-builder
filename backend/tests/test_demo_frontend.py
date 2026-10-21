@@ -18,6 +18,7 @@ def test_bundle_and_api_share_origin_without_masking_missing_routes(tmp_path):
     with TestClient(app) as client:
         assert 'Team builder' in client.get('/').text
         assert 'Team builder' in client.get('/counter-method').text
+        assert 'Team builder' in client.get('/architecture').text
         assert client.get('/unknown-page').status_code == 404
         assert client.get('/assets/app.js').status_code == 200
         assert client.get('/api/health').json() == {'status': 'ok'}

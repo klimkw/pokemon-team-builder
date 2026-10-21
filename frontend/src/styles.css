@@ -1555,8 +1555,8 @@ input:disabled {
 
 .score-arithmetic pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #eef0e6; padding: 12px; border-radius: 6px; font-size: 11px; line-height: 1.8; }
 
-/* Let the whole page scroll naturally when the pointer is over the team. */
-.team-editor-host { min-width: 0; }
+/* Tall teams scroll with the document, then stick with their bottom in view. */
+.team-editor-host { min-width: 0; position: sticky; top: var(--team-sticky-top, 16px); }
 .mobile-team-entry { display: none; }
 .team-editor-dialog, .session-recovery { width: min(440px, calc(100% - 24px)); max-height: calc(100dvh - 24px); overflow: auto; border: 1px solid #dcdfd3; border-radius: 16px; padding: 16px; color: #252820; background: #fffdf9; }
 .team-editor-dialog::backdrop, .session-recovery::backdrop { background: #25282066; }

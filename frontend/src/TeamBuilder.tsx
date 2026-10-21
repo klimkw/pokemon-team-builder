@@ -76,6 +76,20 @@ export default function TeamBuilder({
   const [missingTeam, setMissingTeam] = useState(false);
   const [teamOpen, setTeamOpen] = useState(false);
   const teamDialog = useRef<HTMLDialogElement>(null);
+  const teamHost = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const host = teamHost.current!;
+    const positionTeam = () => {
+      // Tall lineups scroll with the document before their bottom sticks.
+      const top = Math.min(16, window.innerHeight - host.getBoundingClientRect().height - 16);
+      host.style.setProperty("--team-sticky-top", `${top}px`);
+    };
+    positionTeam();
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(positionTeam) : null;
+    observer?.observe(host);
+    window.addEventListener("resize", positionTeam);
+    return () => { observer?.disconnect(); window.removeEventListener("resize", positionTeam); };
+  }, []);
   useEffect(() => {
     if (!teamOpen) return;
     const dialog = teamDialog.current!;
@@ -562,7 +576,7 @@ export default function TeamBuilder({
             )}
           </div>
         </section>
-        <div className="team-editor-host">{!teamOpen && teamEditor}</div>
+        <div ref={teamHost} className="team-editor-host">{!teamOpen && teamEditor}</div>
       </div>
       {counterSource && (
         <CounterPreview

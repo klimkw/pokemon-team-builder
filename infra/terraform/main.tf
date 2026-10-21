@@ -1,6 +1,6 @@
 # The imported project includes its default branch/database/role/compute. Do not
 # also declare those same defaults as separately managed resources.
-resource "neon_project" "production" {
+resource "neon_project" "demo" {
   name = var.neon_project_name
 
   lifecycle {
@@ -22,7 +22,7 @@ resource "render_web_service" "app" {
     docker = {
       repo_url            = var.repository_url
       branch              = var.deploy_branch
-      dockerfile_path     = "./Dockerfile.production"
+      dockerfile_path     = "./Dockerfile.demo"
       context             = "."
       auto_deploy         = true
       auto_deploy_trigger = "checksPass"
@@ -35,7 +35,8 @@ resource "render_web_service" "app" {
       DATABASE_URL                = { value = var.database_url }
       APP_ORIGIN                  = { value = var.app_origin }
       COOKIE_SECURE               = { value = "true" }
-      ENABLE_DEMO_CONTROLS        = { value = "false" }
+      ENABLE_DEMO_CONTROLS        = { value = "true" }
+      DEMO_EXECUTION_MODE         = { value = "request" }
       DEMO_MODE                   = { value = "false" }
       CATALOG_SCAN_INTERVAL_HOURS = { value = "24" }
       CHANGE_ALERT_WINDOW_DAYS    = { value = "7" }
@@ -47,4 +48,10 @@ resource "render_web_service" "app" {
     # These existing dashboard preferences are outside this adoption's scope.
     ignore_changes = [notification_override, previews, pull_request_previews_enabled]
   }
+}
+
+# Rename the Terraform address without replacing the existing Neon project.
+moved {
+  from = neon_project.production
+  to   = neon_project.demo
 }

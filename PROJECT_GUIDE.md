@@ -23,7 +23,7 @@ From `backend`, use Python 3.12 with uv: `uv sync --locked`, then
 `uv.lock` with uv; no host Python environment is reused.
 From `frontend`, use Node 22.12+ (Node 24 recommended), run `npm ci`, `npm test`, and
 `npm run build`. The full suite covers SQLite, PostgreSQL, frontend components, and Chromium browser
-flows. The separate production-image smoke check verifies the Render packaging and
+flows. The separate demo-image smoke check verifies the Render packaging and
 startup migrations against a disposable PostgreSQL database.
 See [TESTING.md](TESTING.md) for isolated Compose tests, setup, cleanup, and reports.
 
@@ -34,7 +34,7 @@ http://127.0.0.1:5173 address; localhost and 127.0.0.1 are different origins.
 Vite proxies `/api` to http://127.0.0.1:8000. In the Windows authoring sandbox,
 esbuild dependency scanning was blocked, so browser QA used `npm run build` followed
 by `npm run preview -- --port 5173`; `--configLoader native` was also supplied to Vite
-and Vitest to avoid sandbox-restricted config bundling. Production Docker builds do
+and Vitest to avoid sandbox-restricted config bundling. Demo Docker builds do
 not require these sandbox-specific flags.
 
 ## Local development stack
@@ -95,7 +95,7 @@ the concise reviewer README and this detailed project guide.
   Logout deletes only the presented token. Expiry blocks access but does not delete
   the account or its teams. Expired-token cleanup remains to be added.
 - Browser mutations check Origin and Sec-Fetch-Site. The frontend and API share an origin.
-  Production requires HTTPS, COOKIE_SECURE=true, and the actual APP_ORIGIN.
+  Demo requires HTTPS, COOKIE_SECURE=true, and the actual APP_ORIGIN.
 - Alembic now owns schema creation. Docker runs `alembic upgrade head` before the API.
   `0001_accounts` matches the library's account schema; `0002_teams` adds catalog/teams.
   No existing data was modified during implementation. For an existing database with
@@ -144,7 +144,7 @@ including migration round trips and account-schema adoption. See TESTING.md.
 The catalog starts empty; populate it with the explicit CLI command below. Tests
 use controlled fixtures. The local development database was initially populated on
 October 19, 2026: all 1,351 discovered PokéAPI records imported with zero failures.
-This is local development data, not a deployed production database.
+This is local development data, not a deployed demo database.
 
 ## PokéAPI ingestion
 
@@ -402,11 +402,12 @@ are stored directly in the database by the current library strategy, a documente
 trade-off. Passwords are hashed, and the session cookie is HttpOnly/SameSite=Lax.
 
 At hosting time, use the provider's managed runtime secrets/environment settings,
-fresh production credentials, restricted access and a documented rotation procedure.
-Set the correct HTTPS APP_ORIGIN and COOKIE_SECURE=true. Keep demo controls disabled
-unless deliberately enabled for a restricted reviewer/admin workflow. Do not put
+fresh demo credentials, restricted access and a documented rotation procedure.
+Set the correct HTTPS APP_ORIGIN and COOKIE_SECURE=true. This shared take-home demo
+explicitly enables catalog demo changes for signed-in users; disable the flag when
+that shared editing behavior is no longer wanted. Do not put
 credentials in Vite variables, Docker build arguments, source code or screenshots.
-Production uses GitHub Actions secrets, Render runtime environment settings, and
+Demo uses GitHub Actions secrets, Render runtime environment settings, and
 HCP Terraform remote state; see the infrastructure guide for access and rotation. Reference:
 [OWASP secrets-management guidance](https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html).
 
@@ -435,12 +436,12 @@ this does not add autosave or persistence across refresh/close or explicit sign-
 The fixture-based `frontend/e2e/ux-recovery.spec.ts` covers these flows at desktop and
 mobile widths without modifying account or team data on the backend.
 
-## Production deployment
+## Demo deployment
 
 See [DEPLOYMENT.md](DEPLOYMENT.md) for the GitHub → Render + Neon setup and the
 separate GitHub Actions scanner. Local Docker Compose remains unchanged.
 
-## Production infrastructure as code
+## Demo infrastructure as code
 
 See [infra/terraform/README.md](infra/terraform/README.md) to adopt the existing Render
 service and Neon project into Terraform, using GitHub secrets and HCP remote state.

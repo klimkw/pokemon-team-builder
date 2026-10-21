@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import * as api from "./api";
 import AppInfo from "./AppInfo";
 import ModelGuide from "./ModelGuide";
+import ArchitectureGuide from "./ArchitectureGuide";
 import TeamBuilder from "./TeamBuilder";
 import SessionRecovery from "./SessionRecovery";
 import type { User } from "./api";
@@ -19,6 +20,7 @@ function errorMessage(error: unknown): string {
 }
 
 export default function App() {
+  if (window.location.pathname === "/architecture") return <ArchitectureGuide />;
   return window.location.pathname === "/counter-method" ? <ModelGuide /> : <WorkspaceApp />;
 }
 

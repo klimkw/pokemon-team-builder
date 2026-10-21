@@ -1,0 +1,26 @@
+name: Demo demo account
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: demo-demo-account
+  cancel-in-progress: false
+jobs:
+  provision:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: ${{ vars.DEMO_APP_ENVIRONMENT || 'production' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require database secret
+        env:
+          DATABASE_URL: ${{ secrets.DEMO_DATABASE_URL || secrets.PRODUCTION_DATABASE_URL }}
+        run: test -n "$DATABASE_URL"
+      - name: Build account management image
+        run: docker build -t pokemon-demo-account ./backend
+      - name: Provision the shared take-home demo account
+        env:
+          DATABASE_URL: ${{ secrets.DEMO_DATABASE_URL || secrets.PRODUCTION_DATABASE_URL }}
+        run: docker run --rm --env DATABASE_URL --env ENABLE_DEMO_CONTROLS=true --env DEMO_EXECUTION_MODE=request pokemon-demo-account python -m app.jobs.reviewer_account

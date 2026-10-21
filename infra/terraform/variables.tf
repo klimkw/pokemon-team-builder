@@ -40,7 +40,7 @@ variable "app_origin" {
 variable "database_url" {
   type        = string
   sensitive   = true
-  description = "Direct Neon URL, supplied from GitHub PRODUCTION_DATABASE_URL."
+  description = "Direct Neon URL, supplied from GitHub DEMO_DATABASE_URL."
   validation {
     condition = (
       can(regex("^postgres(ql)?(\\+asyncpg)?://", var.database_url)) &&

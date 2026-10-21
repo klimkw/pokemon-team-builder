@@ -1,18 +1,18 @@
-# Production: Render + Neon + GitHub Actions
+# Demo: Render + Neon + GitHub Actions
 
 Local development remains `docker compose up --build`. Its Dockerfiles, Nginx,
 volumes, and scanner processes are separate from this deployment.
 
-Production topology:
+Demo topology:
 
-- Render builds `Dockerfile.production`: React assets and FastAPI in one service.
+- Render builds `Dockerfile.demo`: React assets and FastAPI in one service.
 - Neon stores accounts, sessions, teams, catalog, change history, and scan audits.
 - GitHub Actions runs a one-shot scanner daily at 10:23 UTC and on manual request.
 - No local database files, accounts, or volumes are uploaded.
 
 ## 1. Create Neon
 
-Create a production project at https://neon.com, ideally in the same region as Render.
+Create a demo project at https://neon.com, ideally in the same region as Render.
 In **Connect**, disable connection pooling and copy the PostgreSQL URL. Use this
 **direct** URL for both Render and the scheduled job: scanner advisory locks require
 session affinity, and startup migrations also use this connection.
@@ -44,8 +44,8 @@ The Blueprint creates one free Docker web service, and prompts for:
   settings if Render adds a suffix. Redeploy after correcting it. Login and mutations
   will be rejected until the origin matches.
 
-The Blueprint sets secure cookies and disables demo controls. Root context is `.`,
-Dockerfile is `./Dockerfile.production`, health check is `/api/health`, and the image
+The Blueprint sets secure cookies and enables bounded request-mode demo controls. Root context is `.`,
+Dockerfile is `./Dockerfile.demo`, health check is `/api/health`, and the image
 listens on Render's `PORT`. No disk, Render database, or scanner service is created.
 
 Startup runs `alembic upgrade head` before accepting requests. This supports the
@@ -58,19 +58,19 @@ Pass** (`checksPass`). For an existing service, run the infrastructure plan/appl
 procedure below before relying on this gate. Render waits for detected checks on the
 commit; a failed check prevents automatic deployment. Manual deploys bypass this gate.
 Both Tests jobs run on every deployment-branch push: the full application suite and
-the production-image smoke check. The latter uses a fresh disposable PostgreSQL DB,
-real startup migrations, production cookie settings, and synthetic catalog fixtures.
+the demo-image smoke check. The latter uses a fresh disposable PostgreSQL DB,
+real startup migrations, demo cookie settings, and synthetic catalog fixtures.
 It makes no requests to the live service. Keep schema changes backward compatible
 with the previous release.
 
 ## 4. Configure and run the scanner
 
-In GitHub **Settings > Environments**, create `production`. Add environment secret
-`PRODUCTION_DATABASE_URL` with the same direct Neon URL. Allow only the deployment
+In GitHub **Settings > Environments**, create `demo`. Add environment secret
+`DEMO_DATABASE_URL` with the same direct Neon URL. Allow only the deployment
 branch to use this environment. If you add required human approval, scheduled runs
 will wait for that approval; omit approval requirements for unattended daily scans.
 
-After Render has successfully run migrations, open **Actions > Production catalog
+After Render has successfully run migrations, open **Actions > Demo catalog
 scan > Run workflow**, select the deployed branch, and run it. The first successful
 scan populates both Pokemon and type relations. It does not create user accounts.
 
@@ -91,11 +91,12 @@ schema after a failed deployment.
 ## Admin queue versus daily scans
 
 This free setup schedules live catalog scans. It does **not** run the durable admin
-queue worker. An admin `/api/admin/refresh` request would stay queued; use GitHub's
-manual scanner workflow for refreshes instead. Demo controls are disabled.
+queue worker. Request mode rejects `/api/admin/refresh` with instructions to use
+GitHub's manual scanner workflow. Signed-in users can apply/reset bounded demo
+changes within the HTTP request; no background worker is needed for those actions.
 
 If you need admin queue processing, add a paid Render background worker using root
-context `.`, `Dockerfile.production`, the same direct `DATABASE_URL`, and Docker
+context `.`, `Dockerfile.demo`, the same direct `DATABASE_URL`, and Docker
 command `python -m app.jobs.worker` (without `--schedule`). Keep demo controls false.
 Only the GitHub workflow should own periodic scans in that arrangement. Do not start
 an always-on worker in the web service or use a sleeping web service as a scheduler.
@@ -131,12 +132,12 @@ public-repository schedules after 60 days without activity. Check current terms:
 Before opening registration widely, add login abuse protection/rate limiting.
 Maintain database backups appropriate to the data's importance. Application rollback
 on Render does not roll back database migrations; prefer forward fixes and never
-blindly downgrade or delete the production database.
+blindly downgrade or delete the demo database.
 
 ## Adopt existing infrastructure into Terraform
 
 For an existing Render/Neon deployment, follow [infra/terraform/README.md](infra/terraform/README.md).
-It keeps production credentials in GitHub secret settings and persistent state in
+It keeps demo credentials in GitHub secret settings and persistent state in
 HCP Terraform. Disconnect Blueprint syncing before Terraform applies service changes;
 keep Docker Compose for local development.
 
@@ -144,7 +145,7 @@ keep Docker Compose for local development.
 
 After the release-check changes are pushed and both Tests jobs pass:
 
-1. Run **Actions → Production infrastructure → Run workflow**, selecting `plan`.
+1. Run **Actions → Demo infrastructure → Run workflow**, selecting `plan`.
 2. Confirm the Render change sets `docker.auto_deploy_trigger` from `commit` to
    `checksPass`, with no creation, deletion or replacement. Review any other drift.
 3. Run it again with `apply` and the exact plan fingerprint from that new plan.
@@ -162,3 +163,43 @@ compatible with the current schema. Prefer a forward fix for schema changes. Bef
 a risky migration, confirm the Neon recovery window and take an appropriate backup;
 test a restore to a separate branch/database before depending on that recovery path.
 The current free deployment does not provide a tested disaster-recovery guarantee.
+
+## Rename existing account-side settings safely
+
+Deployment files and workflows now use **demo** names. Existing resources are retained:
+
+1. In GitHub, create environment `demo` and copy the app environment settings from
+   `production`. Set repository variable `DEMO_APP_ENVIRONMENT=demo` only after the
+   new environment is ready. Until then, workflows use the existing environment.
+2. Create environment `infrastructure-demo` and copy the infrastructure secrets and
+   variables from `infrastructure-production`. Secret values cannot be read back;
+   use the originals or rotate the credentials if needed. Set repository variable
+   `DEMO_INFRA_ENVIRONMENT=infrastructure-demo` when ready.
+3. Add `DEMO_DATABASE_URL` with the same direct Neon URL wherever the old database
+   secret was stored. Workflows temporarily fall back to `PRODUCTION_DATABASE_URL`.
+   Remove the old secret after a successful manual demo scan and infrastructure plan.
+4. Rename the existing HCP workspace to `pokemon-team-builder-demo` in its settings,
+   then update `TF_WORKSPACE` in the active infrastructure GitHub environment. Rename
+   the existing workspace; do not create an empty workspace or discard its state.
+5. Run **Demo infrastructure → plan**. The plan should move `neon_project.production`
+   to `neon_project.demo`, update the Dockerfile path to `./Dockerfile.demo`, enable
+   demo controls and select request execution. It must not recreate resources.
+   Review all changes and apply using the new fingerprint.
+
+The public Render URL and Render/Neon resource IDs stay the same. Their display names
+already use `pokemon-team-builder`. Old run history retains its historical labels.
+The legacy environment names and secret fallback are migration bridges; delete the old
+GitHub environments after both demo workflows have been verified with the new ones.
+
+## Shared demo controls
+
+Any active signed-in user may apply or reset demo changes when
+`ENABLE_DEMO_CONTROLS=true`. These operations change the shared catalog for all users;
+reset can undo another reviewer's demo. They keep origin checks, audit records and
+scan locking. Full refresh and job-history endpoints still require a superuser.
+Hosted `DEMO_EXECUTION_MODE=request` executes bounded demo operations without a worker;
+local Compose retains its queue worker. Daily real-source refresh remains in Actions.
+
+`Dockerfile.production` temporarily mirrors `Dockerfile.demo` so the existing Render
+Dockerfile setting still builds during this transition. After the demo Dockerfile path
+has been applied and deployed successfully, remove that compatibility file.

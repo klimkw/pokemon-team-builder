@@ -20,7 +20,7 @@ coverage/
 coverage.xml
 htmlcov/
 
-# Terraform: state and plans may contain production credentials.
+# Terraform: state and plans may contain demo credentials.
 **/.terraform/
 *.tfstate
 *.tfstate.*

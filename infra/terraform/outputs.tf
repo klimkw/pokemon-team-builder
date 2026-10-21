@@ -3,5 +3,5 @@ output "application_url" {
 }
 
 output "neon_project_id" {
-  value = neon_project.production.id
+  value = neon_project.demo.id
 }

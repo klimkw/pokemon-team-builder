@@ -12,7 +12,7 @@ bash scripts/test.sh
 ```
 
 The same command runs in `.github/workflows/tests.yml` on pull requests, pushes to
-main/master, and manual dispatch. It builds the production frontend (including
+main/master, and manual dispatch. It builds the demo frontend (including
 TypeScript checking), then runs SQLite tests, PostgreSQL tests with branch coverage,
 frontend component tests with coverage, and Chromium browser tests. Test failures
 are collected across layers and make the command fail. Build/setup failures stop
@@ -123,7 +123,7 @@ Reports:
 Coverage is currently reported rather than gated by an arbitrary percentage. Review
 uncovered branches for user/data impact. In particular, subprocess shutdown, real
 network outages and high-load behavior need different checks than ordinary unit
-coverage. A high percentage does not establish security or production capacity.
+coverage. A high percentage does not establish security or demo capacity.
 
 Concurrency tests send overlapping HTTP requests while holding the target database
 row, observe PostgreSQL lock waits, then release it. They assert coherent saved
@@ -150,7 +150,7 @@ When adding tests:
 
 ## Verification baseline — October 20, 2026
 
-The testing-improvement run passed the production build and TypeScript check,
+The testing-improvement run passed the demo build and TypeScript check,
 172 PostgreSQL tests, 153 SQLite tests (19 PostgreSQL-only skips), 38 component
 tests, and 15 Chromium scenarios (13 full-stack cases and 2 mocked browser-layout
 cases). The final browser suite was rerun after fixing an ambiguous logout status
@@ -164,7 +164,7 @@ locator; no browser retries or skipped scenarios were used.
 These percentages do not include browser coverage. Backend uncovered paths are
 concentrated in command-line wrappers and process/signal/error handling; frontend
 coverage still has gaps in API error paths and less-used interactions. Coverage is
-an aid to choosing the next meaningful test, not a production-readiness claim.
+an aid to choosing the next meaningful test, not a demo-readiness claim.
 
 The preserved local reports for this run are under
 `test-artifacts/testing-quality/`; subsequent `scripts/test.sh` runs write to the
@@ -173,23 +173,23 @@ initial browser failure; `browser-final.log` records the passing browser rerun.
 The isolated test containers and network were removed after validation. GitHub CI
 has been added locally; its first hosted execution requires pushing these changes.
 
-## Production container release check
+## Demo container release check
 
-Run `bash scripts/test-production.sh` to build `Dockerfile.production` and start it
+Run `bash scripts/test-demo.sh` to build `Dockerfile.demo` and start it
 against an empty, disposable PostgreSQL database. The image's normal startup command
 runs Alembic before serving the built frontend and API. The smoke check covers built
 assets and direct page links, catalog search, registration/login, secure cookie flags,
 saved-team edits and persistence, counter preview, origin rejection and revoked sessions.
 It is an HTTP packaging check; the separate Chromium suite covers browser behavior.
 
-Production cookie settings remain enabled. Because the isolated transport is plain
+Demo cookie settings remain enabled. Because the isolated transport is plain
 HTTP, the check explicitly replays the cookie after verifying Secure/HttpOnly/SameSite
 attributes. It does not claim to test TLS termination, Neon TLS, live credentials or
-Render itself. No production secret is required, no live upstream request is made,
+Render itself. No demo secret is required, no live upstream request is made,
 and demo controls stay disabled. Fixtures and smoke code are streamed into the test
-container rather than added to the production image.
+container rather than added to the demo image.
 
-CI runs this as the `production-image` job alongside the application suite. Container
-logs are saved under `test-artifacts/production/` even on failure. The stack and tmpfs
-database are removed on exit. Set `PRODUCTION_TEST_PROJECT` to a unique name beginning
-with `pokemon-team-builder-tests-production` for simultaneous runs in separate checkouts.
+CI runs this as the `demo-image` job alongside the application suite. Container
+logs are saved under `test-artifacts/demo/` even on failure. The stack and tmpfs
+database are removed on exit. Set `DEMO_TEST_PROJECT` to a unique name beginning
+with `pokemon-team-builder-tests-demo` for simultaneous runs in separate checkouts.

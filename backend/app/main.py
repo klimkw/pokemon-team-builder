@@ -62,6 +62,6 @@ async def health():
     return {"status": "ok"}
 
 
-# Compose continues to serve React through Nginx; only production opts in.
+# Compose continues to serve React through Nginx; only demo opts in.
 if frontend_dist := os.environ.get("FRONTEND_DIST"):
     mount_frontend(app, frontend_dist)

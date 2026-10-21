@@ -1,3 +1,4 @@
+# Legacy deployment-path bridge; use Dockerfile.demo after the reviewed Terraform apply.
 FROM node:24-bookworm-slim AS frontend
 WORKDIR /frontend
 COPY frontend/package.json frontend/package-lock.json ./

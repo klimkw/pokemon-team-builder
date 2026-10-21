@@ -1,16 +1,16 @@
 # Adopt the existing Render + Neon deployment
 
 Docker Compose remains the local development setup. This configuration adopts the
-existing production resources; it does not provision replacements or alter tables.
+existing demo resources; it does not provision replacements or alter tables.
 Alembic still manages schema migrations. GitHub Actions still runs the daily scanner.
 
 ## Ownership and secret flow
 
 ```text
 GitHub repository / Actions
-  ├─ repository secret: PRODUCTION_DATABASE_URL ─┬─ daily scanner
+  ├─ repository secret: DEMO_DATABASE_URL ─┬─ daily scanner
   │                                            └─ Terraform → Render environment
-  └─ infrastructure-production environment
+  └─ infrastructure-demo environment
        ├─ Render API key / Neon API key
        ├─ HCP Terraform token
        └─ nonsecret resource IDs, names, region, and app URL
@@ -26,7 +26,7 @@ including computed credentials retrieved during import. HCP stores this sensitiv
 state, and Render must retain the database URL to run the app. Marking a Terraform
 variable sensitive hides its display; it does not remove it from state. No saved
 plans, state files, or provider logs are published as GitHub artifacts or PR comments.
-Do not enable TF_LOG or shell tracing on a production workflow.
+Do not enable TF_LOG or shell tracing on a demo workflow.
 
 Only two Terraform resources are managed: the Render web service and Neon project.
 The Neon provider bundles its default branch, database, role and primary compute in
@@ -34,13 +34,13 @@ The Neon provider bundles its default branch, database, role and primary compute
 configuration preserves existing topology, compute sizing, Postgres version and
 branch protection and backup-history retention. Render notification/preview preferences
 are also preserved. Additional branches/databases/roles are outside this initial
-scope. Confirm the production connection points at the intended branch in Neon.
+scope. Confirm the demo connection points at the intended branch in Neon.
 Application accounts, passwords, team data and local volumes are not imported.
 
 ## 1. Set up remote state once
 
 1. Sign in at https://app.terraform.io and create an HCP Terraform organization.
-2. Create a CLI-driven workspace named `pokemon-team-builder-production`.
+2. Create a CLI-driven workspace named `pokemon-team-builder-demo`.
 3. In that workspace's Settings > General, set **Execution Mode: Local**. GitHub
    runs Terraform; HCP supplies state storage and locking. Do not connect the workspace
    to VCS or enable auto-apply. Set Terraform version to **1.13.5** if prompted.
@@ -57,19 +57,19 @@ In repository **Settings > Secrets and variables > Actions > Secrets**, create:
 
 | Repository secret | Value |
 | --- | --- |
-| `PRODUCTION_DATABASE_URL` | Existing direct/unpooled Neon URL, with `sslmode=require` or `sslmode=verify-full` |
+| `DEMO_DATABASE_URL` | Existing direct/unpooled Neon URL, with `sslmode=require` or `sslmode=verify-full` |
 
 This one repository secret is consumed by both the infrastructure workflow and the
-scanner. If the existing `production` environment already has a secret with the
+scanner. If the existing `demo` environment already has a secret with the
 same name, it overrides the repository value: remove that duplicate after copying
 the correct URL to the repository secret, or keep both deliberately synchronized.
-The scanner's `production` environment must still exist. It has no infrastructure
+The scanner's `demo` environment must still exist. It has no infrastructure
 API credentials and should permit unattended scheduling.
 
-Next create **Settings > Environments > infrastructure-production**. Restrict
+Next create **Settings > Environments > infrastructure-demo**. Restrict
 its deployment branches to `main`. Configure required reviewers if your GitHub
 plan/repository visibility supports them; the apply fingerprint is required either
-way. Keep this environment separate from `production`, so approval requirements
+way. Keep this environment separate from `demo`, so approval requirements
 do not block the daily scanner.
 
 Add these **environment secrets**:
@@ -91,7 +91,7 @@ Add these **environment Variables** (nonsecret):
 | Variable | Value |
 | --- | --- |
 | `TF_CLOUD_ORGANIZATION` | Exact HCP organization name |
-| `TF_WORKSPACE` | `pokemon-team-builder-production` |
+| `TF_WORKSPACE` | `pokemon-team-builder-demo` |
 | `RENDER_OWNER_ID` | Existing Render workspace owner ID (`usr-...` or `tea-...`), not the service ID |
 | `RENDER_SERVICE_ID` | Existing service ID; the service shared in this chat was `srv-dbc3if1srm7s739hmh5g`—verify before using |
 | `RENDER_SERVICE_NAME` | Exact existing service name |
@@ -104,28 +104,28 @@ Add these **environment Variables** (nonsecret):
 Render's owner ID is available from its workspace/API metadata; do not substitute
 `srv-...`. Names and regions must match existing resources. GitHub masks input secrets,
 but contributors who can change main-branch workflows can use those secrets: protect
-main and review workflow changes as production code.
+main and review workflow changes as demo code.
 
 ## 3. Publish the configuration and import
 
 Push these files to `main` after reviewing them. The **Terraform checks** workflow
 runs formatting, schema validation, mocked plans and workflow-policy tests without
-production credentials. It never imports or applies resources.
+demo credentials. It never imports or applies resources.
 
-Then open **Actions > Production infrastructure > Run workflow**, branch **main**:
+Then open **Actions > Demo infrastructure > Run workflow**, branch **main**:
 
 1. Choose `import` and run it.
 2. If the infrastructure environment requires approval, approve the run.
 3. The workflow connects to the HCP state and runs the equivalent of:
 
    ```sh
-   terraform import neon_project.production shiny-moon-16690679
+   terraform import neon_project.demo shiny-moon-16690679
    terraform import render_web_service.app srv-dbc3if1srm7s739hmh5g
    ```
 
    These commands are illustrative; the workflow reads your verified IDs from
    GitHub Variables and credentials from secrets. You do not need a local Terraform
-   installation or to copy production credentials onto your workstation.
+   installation or to copy demo credentials onto your workstation.
 4. Import adopts resources into state **without applying infrastructure changes**.
    It skips resources already imported with matching IDs, so a partially failed
    import can be retried. An existing mismatched ID stops the run.
@@ -161,7 +161,7 @@ create/reconnect a Blueprint from it or manage this service through two systems.
 
 ## 5. Apply a reviewed plan
 
-Run **Production infrastructure** with:
+Run **Demo infrastructure** with:
 
 - action: `apply`
 - expected_plan_sha: the full fingerprint from the reviewed `plan` run
@@ -172,7 +172,7 @@ plan file survives the runner. Terraform state locking and Actions concurrency
 serialize infrastructure operations. Changes to Render settings may redeploy the app.
 
 After apply, verify `/api/health`, login, saved teams, and the public app. Trigger
-**Production catalog scan** manually if the database has not been populated yet.
+**Demo catalog scan** manually if the database has not been populated yet.
 Keep schema migrations and catalog jobs out of Terraform.
 
 ## Render free-tier provider compatibility
@@ -194,7 +194,7 @@ rejects creation/replacement plans. Paid-service behavior is unchanged.
 - Regression test: the actual serialized API request excludes maintenanceMode for
   Free and preserves it for Starter (both enabled/disabled cases).
 - A generated build manifest records source, patch and executable checksums; the
-  production runner verifies it before activating the build.
+  demo runner verifies it before activating the build.
 - Terraform uses a runner-local **development override** for this provider after
   normal initialization. This is a locally built compatibility binary, not a
   signed fixed release from the registry. The schema/state format remains 1.9.1,
@@ -221,7 +221,7 @@ the service or upgrade its plan to work around this bug.
   diagnosis, use a trusted private terminal with appropriate credentials and remote
   state access; do not upload raw state/plan/provider logs to an issue.
 - If a replacement is proposed, match the existing configuration. Never destroy
-  the database to make import succeed. Keep production data backups independently.
+  the database to make import succeed. Keep demo data backups independently.
 - To upgrade providers, change pins, regenerate `.terraform.lock.hcl`, and rerun
   validation and plan review. Existing application tests are unaffected by this patch.
 
@@ -252,7 +252,7 @@ References:
 
 The web service uses `auto_deploy_trigger = "checksPass"`. Apply a fresh reviewed
 plan to activate it on the imported service; changing this file alone does not update
-Render. The Tests workflow runs the application suite and the production-image smoke
+Render. The Tests workflow runs the application suite and the demo-image smoke
 check on every deployment-branch push. Manual Render deploys can bypass the gate.
 See [DEPLOYMENT.md](../../DEPLOYMENT.md#activate-the-ci-deployment-gate-on-the-existing-service)
 for the activation steps. This requires no additional secret or paid service.

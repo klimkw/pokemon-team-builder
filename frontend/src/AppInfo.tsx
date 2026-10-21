@@ -45,8 +45,9 @@ export default function AppInfo() {
           <div><dt>Alert window</dt><dd>{data.alert_window_days} days</dd></div>
           <div><dt>Last successful live refresh</dt><dd>{data.last_successful_live_refresh ? date(data.last_successful_live_refresh.finished_at) : "None recorded"}</dd></div>
         </dl>
-        <nav className="info-links"><a href={data.repository_url} target="_blank" rel="noreferrer">Repository ↗</a><a href="/counter-method" target="_blank" rel="noreferrer">Calculation guide ↗</a></nav>
+        <nav className="info-links"><a href={data.repository_url} target="_blank" rel="noreferrer">Repository ↗</a></nav>
       </>}
+      <nav className="info-links" aria-label="Project documentation"><a href="/counter-method" target="_blank" rel="noreferrer">Calculation guide ↗</a><a href="/architecture" target="_blank" rel="noreferrer">Architecture walkthrough ↗</a></nav>
     </dialog>}
   </>;
 }

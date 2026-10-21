@@ -61,7 +61,7 @@ Tests never truncate the public schema or delete a development database. Backend
 integration tests and E2E may share the disposable database: E2E uses its public
 schema, while integration tests use individually isolated schemas. Test-only engines
 use NullPool because TestClient and asyncio.run helpers use different event loops;
-asyncpg connections must not be reused across those loops. Production pooling is unchanged.
+asyncpg connections must not be reused across those loops. Demo pooling is unchanged.
 
 The complete existing backend suite runs on PostgreSQL, including account/session
 handling, team ownership and rollback, catalog filters, ingestion, and migrations.
@@ -153,9 +153,9 @@ database container is stopped. The container runner seeds its small deterministi
 
 - PostgreSQL 17.11: all 51 backend tests passed, including migrations, JSONB and locks.
 - SQLite: 49 passed, two PostgreSQL-specific tests skipped.
-- React: 13 component tests passed; TypeScript check and production build passed.
+- React: 13 component tests passed; TypeScript check and demo build passed.
 - Chromium: the account E2E test passed against the real PostgreSQL-backed API and
-  production React build, served through Vite's preview proxy on isolated test ports.
+  demo React build, served through Vite's preview proxy on isolated test ports.
 - Docker verification completed October 19, 2026: all 51 PostgreSQL backend tests,
   13 component tests, and both Chromium E2E tests passed using the isolated Compose
   stack and Nginx.
@@ -172,7 +172,7 @@ database container is stopped. The container runner seeds its small deterministi
 ## Team editor tests
 
 `frontend-tests` runs Vitest inside the frontend build stage, which also checks
-TypeScript and the production build. Six team-editor component tests cover the
+TypeScript and the demo build. Six team-editor component tests cover the
 six-member limit with duplicates, whole-team request order, failed-save draft
 retention, discard cancellation, delete confirmation, empty teams, duplicate-submit
 prevention, search/type query parameters, and visibility of all six stats.
@@ -184,7 +184,7 @@ stats/types are intentionally synthetic and sprite URLs are null; the browser te
 needs no live PokéAPI or image host. This service exists only in compose.test.yaml.
 
 `frontend/e2e/teams.spec.ts` uses a separate unique account, real HTTP and database
-calls, and the production UI. It verifies pagination, search/type filtering,
+calls, and the demo UI. It verifies pagination, search/type filtering,
 duplicates, capacity, explicit saves, reload persistence, rename/reorder/remove,
 sign-out/sign-in persistence, multiple teams including empty ones, cancelled draft
 discard, deletion, and mobile jump navigation without horizontal overflow. Desktop
@@ -356,7 +356,7 @@ main app. The owner can now perform the walkthrough through the same app's docs.
 
 Current results: 120 PostgreSQL tests, 105 SQLite tests (15 PostgreSQL-only skips),
 22 component tests, and five normal Chromium flows. The older isolated-demo flow
-remains opt-in. TypeScript and production builds passed. Backend checks cover combined
+remains opt-in. TypeScript and demo builds passed. Backend checks cover combined
 multi-type filters, any/all matching, stat bounds, profile verification/rename/conflict,
 password revocation and per-user persistent alert acknowledgements. Component tests
 verify the initially closed tray, unread count/read failures, filtering and draft safety.
@@ -416,7 +416,7 @@ interval and did not run a new startup refresh. No schema migration was required
 
 Passed 127 PostgreSQL tests, 112 SQLite tests (15 PostgreSQL-only skips), 24 component
 tests and six regular Chromium flows. The legacy separate-demo browser flow remains
-opt-in/skipped. Production frontend build passed inside Docker. Checks cover current
+opt-in/skipped. Demo frontend build passed inside Docker. Checks cover current
 affected Pokémon types, title-case headings, accessible before/after change chips,
 shared type badges, defensive relevance, persisted unread handling and mobile width.
 Desktop/mobile screenshots were visually reviewed; reports: test-artifacts/alerts-polish/.
@@ -434,14 +434,14 @@ Attack history, checks date grouping and mobile width, then repeats and resets.
 
 Final verification passed: 129 PostgreSQL tests, 113 SQLite tests with 16 PostgreSQL-only
 skips, 25 component tests and six regular Chromium flows. The legacy separate-demo
-flow remains skipped. Production Docker build passed. Screenshot review confirmed
+flow remains skipped. Demo Docker build passed. Screenshot review confirmed
 readable date headings and expanded timestamped history; mobile overflow passed.
 The first build caught misplaced JSX closing tags, corrected before the full rerun.
 Reports/screenshots: test-artifacts/alert-history/. Test containers were cleaned up.
 
 ## Team pane dropdown and visible actions
 
-Production frontend build and 25 component tests passed. The catalog-loading component
+Demo frontend build and 25 component tests passed. The catalog-loading component
 wait timed out under parallel suite contention; the same tests passed with one Vitest
 worker, without changing expectations. Browser checks select the new blank dropdown
 entry, preserve unsaved edits on cancelled switching, and verify counter/delete actions
@@ -458,7 +458,7 @@ suites were not rerun for this frontend-only change.
 The owner clarified that pane height may exceed the viewport. Removed the list height
 cap/internal scrollbar and moved actions before the full member list. The mobile
 shortcut now explicitly focuses/scrolls to its heading after a browser check exposed
-an unstable jump during resizing. Production build, 25 components (one worker) and
+an unstable jump during resizing. Demo build, 25 components (one worker) and
 six regular Chromium flows passed; legacy demo skipped. Action visibility, discard
 protection and nonoverlapping stats still pass. Mobile screenshot reviewed; reports:
 test-artifacts/team-expanded/. Only frontend refreshed; no backend tests were rerun.
@@ -469,7 +469,7 @@ Restored actions below the full member list and removed desktop sticky positioni
 The regression scrolls 600 px, checks the pane moved by more than 550 px, checks both
 counter/delete actions are visible and proves the page end is still over 500 px away.
 Screenshot review confirms all three actions below the list at that scroll position.
-Production build, 25 components (one worker) and six regular Chromium flows passed;
+Demo build, 25 components (one worker) and six regular Chromium flows passed;
 legacy demo skipped. Reports: test-artifacts/team-natural/. Only frontend deployed.
 
 ## Save feedback button
@@ -480,7 +480,7 @@ of the separate success message and normal Save team state after editing. Existi
 browser save assertions now target the button. The responsive navigation check allows
 two animation frames after resizing before clicking its section shortcut. Initial test
 fixes removed a Testing Library option unsupported by its types and narrowed a status
-assertion that also matched stat slider outputs. Production build and 25 components
+assertion that also matched stat slider outputs. Demo build and 25 components
 passed; backend suites are unchanged and were not rerun for this frontend increment.
 Final browser rerun passed six regular Chromium flows (legacy demo skipped). Reports:
 test-artifacts/save-button/. Isolated containers cleaned up; only frontend updated.
@@ -494,7 +494,7 @@ mutual-immunity stalemate, 200-turn cap, repeatability and safe types losing a d
 Existing brute-force assignment/priority tests pass unchanged. API assertions verify
 simulation versions, chart multipliers and deterministic side-effect-free previews.
 
-Production frontend build and 27 component tests passed, including shared cards,
+Demo frontend build and 27 component tests passed, including shared cards,
 progress-bar HP, next turn/restart, damage/log disclosure, no implicit saving and
 rendering the actual Markdown guide. The guide has no HTML injection or CDN/parser
 dependency; download uses its exact bundled Markdown source. An initial test syntax
@@ -510,7 +510,7 @@ screenshots: test-artifacts/counter-replay/. Backend totals remain 134 PostgreSQ
 ## Duplicate-friendly counter generation
 
 Passed 135 PostgreSQL tests, 119 SQLite tests (16 PostgreSQL-only skips), 27 component
-tests and six regular Chromium flows (legacy demo skipped); production build passed.
+tests and six regular Chromium flows (legacy demo skipped); demo build passed.
 Exhaustive comparisons now enumerate assignments with replacement, validating the same
 lexicographic optimum as independent per-slot selection. Six identical Venusaurs select
 six identical best counters; small catalogs are sufficient and duplicate members save
@@ -521,7 +521,7 @@ Reports: test-artifacts/counter-duplicates/. Isolated containers removed after t
 ## App info, secret boundaries and calculation invariants
 
 Passed 141 PostgreSQL tests, 125 SQLite tests (16 PostgreSQL-only skips), 29 component
-tests and six regular Chromium flows (legacy demo skipped); production build passed.
+tests and six regular Chromium flows (legacy demo skipped); demo build passed.
 The new metadata test initially omitted its catalog fixture; corrected before the
 complete rerun. Numerical tests compare ratio/damage rounding to exact fractions,
 assert ratio bounds/monotonicity, permutation/repeated-slot behavior and turn-by-turn
@@ -537,7 +537,7 @@ battle-model fidelity. Docker test suites are automated, but no CI workflow exis
 
 ## Simplified info and catalog-source link
 
-Passed production build, 141 PostgreSQL tests, 29 component tests and six regular
+Passed demo build, 141 PostgreSQL tests, 29 component tests and six regular
 Chromium flows (legacy demo skipped). Removed latest-attempt metadata and model-version
 identifiers/disclosures without altering calculation behavior. Tests assert removed
 fields are absent and the catalog source link matches the importer URL including

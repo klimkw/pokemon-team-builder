@@ -22,13 +22,13 @@ Open http://localhost:8080. For a fresh database, populate the catalog separatel
 docker compose run --rm scanner python -m app.jobs.scanner
 ```
 
-Local Compose keeps its own database and scanner. It needs no production credentials.
+Local Compose keeps its own database and scanner. It needs no demo credentials.
 
 ## Verify
 
 ```bash
 bash scripts/test.sh
-bash scripts/test-production.sh
+bash scripts/test-demo.sh
 ```
 
 The first command runs backend tests against SQLite and PostgreSQL, frontend tests,
@@ -36,12 +36,17 @@ and Chromium user journeys in an isolated stack. The second builds the exact Ren
 Dockerfile, runs startup migrations on an empty PostgreSQL database, and checks
 frontend assets, catalog queries, authentication, team persistence, counter generation,
 origin enforcement and session revocation. Both clean up their disposable containers.
-The production smoke check uses synthetic catalog data and no production secrets.
+The demo smoke check uses synthetic catalog data and no demo secrets.
 CI runs both checks on pull requests and deployment-branch pushes.
 
 ## Architecture and decisions
 
-- React/TypeScript frontend and FastAPI backend share one origin. Production serves
+Read the [full architecture walkthrough](frontend/src/docs/architecture.md) for a
+subsystem tour, rationale, assumptions, diagrams, tradeoffs and prioritized backlog.
+The same document is available in the app under **App info → Architecture walkthrough**
+at `/architecture`, with Markdown and diagram downloads.
+
+- React/TypeScript frontend and FastAPI backend share one origin. Demo serves
   the built frontend from the API container; local Compose uses Nginx.
 - PostgreSQL stores accounts, opaque sessions, owned teams, catalog and scan history.
   Alembic manages schema changes. Team writes are atomic; ownership is checked on
@@ -72,3 +77,9 @@ Keep migrations compatible with the prior application release. Render rollback d
 not undo schema changes; preserve Neon recovery history before risky changes. The
 private repository's current GitHub plan does not enforce protected branches; the
 Render CI gate controls automatic deployment, not pushes or manual deploys.
+
+Signed-in reviewers may apply/reset shared catalog demo changes through `/docs`.
+These affect every user; full catalog refresh and job history remain superuser-only.
+Hosted demos run within a bounded request; daily real-source scans run in Actions.
+See the deployment guide for the existing-settings rename checklist and temporary
+legacy names used to preserve access to secrets and Terraform state.

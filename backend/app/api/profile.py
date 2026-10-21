@@ -10,6 +10,7 @@ from app.api.auth import UserRead
 from app.api.dependencies import Database, Owner
 from app.api.security import require_same_origin
 from app.db.models import AccessToken, User
+from app.jobs.reviewer_account import REVIEWER_ACCOUNT_ID
 
 router = APIRouter(prefix='/api/profile', tags=['profile'])
 
@@ -34,6 +35,8 @@ class ProfileResult(BaseModel):
 
 @router.patch('', response_model=ProfileResult, dependencies=[Depends(require_same_origin)])
 async def update_profile(payload: ProfileUpdate, db: Database, owner: Owner):
+    if owner.id == REVIEWER_ACCOUNT_ID:
+        raise HTTPException(403, 'The shared reviewer account has fixed credentials; register a personal account to edit your profile')
     user = await db.scalar(select(User).where(User.id == owner.id).with_for_update().execution_options(populate_existing=True))
     helper = PasswordHelper()
     valid, upgraded = await run_in_threadpool(helper.verify_and_update, payload.current_password, user.hashed_password)

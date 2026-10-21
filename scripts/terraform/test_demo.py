@@ -1,7 +1,7 @@
 """Protect the adoption/apply boundary without cloud accounts."""
 import unittest
 from unittest.mock import patch
-from production import plan_summary, main
+from demo import plan_summary, main
 
 
 def plan(actions=None, address='render_web_service.app', value='dummy-secret'):
@@ -57,19 +57,19 @@ class PlanPolicyTests(unittest.TestCase):
         self.assertNotIn('private-password', summary)
 
     def test_missing_settings_fail_before_running_terraform(self):
-        with patch.dict('os.environ', {'INFRA_ACTION': 'import'}, clear=True), patch('production.terraform') as run:
+        with patch.dict('os.environ', {'INFRA_ACTION': 'import'}, clear=True), patch('demo.terraform') as run:
             with self.assertRaisesRegex(RuntimeError, 'Missing GitHub'):
                 main()
             run.assert_not_called()
 
 class AdoptionBoundaryTests(unittest.TestCase):
     def setUp(self):
-        patched = patch('production.activate_render_provider')
+        patched = patch('demo.activate_render_provider')
         patched.start()
         self.addCleanup(patched.stop)
 
     def environment(self, action):
-        from production import RESOURCES
+        from demo import RESOURCES
         names = ['RENDER_API_KEY', 'RENDER_OWNER_ID', 'NEON_API_KEY', 'TF_TOKEN_app_terraform_io',
                  'TF_CLOUD_ORGANIZATION', 'TF_WORKSPACE', 'TF_VAR_database_url',
                  'TF_VAR_render_service_name', 'TF_VAR_render_region', 'TF_VAR_app_origin',
@@ -77,20 +77,26 @@ class AdoptionBoundaryTests(unittest.TestCase):
         return {**dict.fromkeys(names, 'dummy'), 'INFRA_ACTION': action}
 
     def state(self):
-        from production import RESOURCES
+        from demo import RESOURCES
         import json
         return json.dumps({'values': {'root_module': {'resources': [
             {'address': address, 'values': {'id': 'dummy'}} for address in RESOURCES]}}})
 
     def test_import_with_existing_ids_never_applies(self):
-        with patch.dict('os.environ', self.environment('import'), clear=True), patch('production.terraform') as run:
+        with patch.dict('os.environ', self.environment('import'), clear=True), patch('demo.terraform') as run:
             run.side_effect = lambda *args: self.state() if args[0] == 'show' else ''
             main()
             self.assertFalse(any(call.args[0] in {'import', 'plan', 'apply'} for call in run.call_args_list))
 
+    def test_legacy_neon_address_is_adopted_without_importing_again(self):
+        with patch.dict('os.environ', self.environment('import'), clear=True), patch('demo.terraform') as run:
+            run.side_effect = lambda *args: self.state().replace('neon_project.demo', 'neon_project.production') if args[0] == 'show' else ''
+            main()
+            self.assertFalse(any(call.args[0] in {'import', 'apply'} for call in run.call_args_list))
+
     def test_wrong_state_id_stops_adoption(self):
         env = {**self.environment('import'), 'RENDER_SERVICE_ID': 'wrong-id'}
-        with patch.dict('os.environ', env, clear=True), patch('production.terraform') as run:
+        with patch.dict('os.environ', env, clear=True), patch('demo.terraform') as run:
             run.side_effect = lambda *args: self.state() if args[0] == 'show' else ''
             with self.assertRaisesRegex(RuntimeError, 'does not match'):
                 main()
@@ -102,7 +108,7 @@ class AdoptionBoundaryTests(unittest.TestCase):
             if args[0] == 'show':
                 return json.dumps(plan()) if len(args) > 2 else self.state()
             return ''
-        with patch.dict('os.environ', self.environment('apply'), clear=True), patch('production.terraform', side_effect=output) as run:
+        with patch.dict('os.environ', self.environment('apply'), clear=True), patch('demo.terraform', side_effect=output) as run:
             with self.assertRaisesRegex(RuntimeError, 'fingerprint'):
                 main()
             self.assertFalse(any(call.args[0] == 'apply' for call in run.call_args_list))
@@ -111,7 +117,7 @@ class AdoptionBoundaryTests(unittest.TestCase):
 class InitializationDiagnosticTests(unittest.TestCase):
     def test_init_error_explains_hcp_failure_without_credentials(self):
         import json
-        from production import init_diagnostics
+        from demo import init_diagnostics
         event = {"diagnostic": {"severity": "error", "summary": "Failed to read organization", "detail": "Unauthorized: Bearer secret-token; postgresql://user:encoded%40password@host/db", "snippet": "never print source"}}
         with patch.dict('os.environ', {'TF_TOKEN_app_terraform_io': 'secret-token', 'TF_VAR_database_url': 'postgresql://user:encoded%40password@host/db'}, clear=True):
             message = init_diagnostics(json.dumps(event))
@@ -123,7 +129,7 @@ class InitializationDiagnosticTests(unittest.TestCase):
 
     def test_unstructured_logs_and_non_errors_are_not_exposed(self):
         import json
-        from production import init_diagnostics
+        from demo import init_diagnostics
         output = 'raw private provider data\n' + json.dumps({'diagnostic': {'severity': 'warning', 'detail': 'private'}})
         self.assertEqual(init_diagnostics(output), '')
 
@@ -131,7 +137,7 @@ class InitializationDiagnosticTests(unittest.TestCase):
 class ApplyDiagnosticTests(unittest.TestCase):
     def test_provider_error_withholds_cty_string_values_and_extra_credentials(self):
         import json
-        from production import init_diagnostics
+        from demo import init_diagnostics
         detail = 'root_directory: was null, but now cty.StringVal("private-state-value"). Extra: extra-credential'
         output = json.dumps({'diagnostic': {'severity': 'error', 'summary': 'Provider produced inconsistent result after apply', 'detail': detail}})
         with patch.dict('os.environ', {'TF_VAR_additional_render_env_vars': '{"EXTRA":"extra-credential"}'}, clear=True):
@@ -144,9 +150,9 @@ class ApplyDiagnosticTests(unittest.TestCase):
     def test_failed_apply_exposes_structured_error(self):
         import json
         from types import SimpleNamespace
-        from production import terraform
+        from demo import terraform
         diagnostic = json.dumps({'diagnostic': {'severity': 'error', 'summary': 'Render rejected update', 'detail': 'API returned HTTP 400'}})
-        with patch('production.subprocess.run', return_value=SimpleNamespace(returncode=1, stdout=diagnostic, stderr='raw private logs')):
+        with patch('demo.subprocess.run', return_value=SimpleNamespace(returncode=1, stdout=diagnostic, stderr='raw private logs')):
             with self.assertRaisesRegex(RuntimeError, 'Render rejected update') as error:
                 terraform('apply', '-json', 'saved.tfplan')
         self.assertNotIn('raw private logs', str(error.exception))

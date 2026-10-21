@@ -2,7 +2,7 @@
 
 Uses real HTTP, migrations and PostgreSQL. CI does not contact the live deployment.
 The HTTP transport is local; Secure cookies are explicitly replayed after checking
-attributes so production cookie configuration stays enabled.
+attributes so demo cookie configuration stays enabled.
 """
 import asyncio
 import json
@@ -17,7 +17,7 @@ from http.cookies import SimpleCookie
 BASE = 'http://127.0.0.1:8000'
 EXPECTED_DB = 'postgresql://pokemon_test:disposable_test_password@db:5432/pokemon_test'
 if os.environ.get('DATABASE_URL') != EXPECTED_DB or os.environ.get('APP_ORIGIN') != BASE:
-    raise RuntimeError('Smoke check requires the isolated production-test stack')
+    raise RuntimeError('Smoke check requires the isolated demo-test stack')
 
 
 async def seed():
@@ -101,4 +101,4 @@ cookie = f'pokemon_session={cookies["pokemon_session"].value}'
 request(path, cookie=cookie)
 request(path, 'DELETE', cookie=cookie, expected=204)
 request('/api/auth/logout', 'POST', cookie=cookie, expected=204)
-print('Production image smoke passed: startup migrations, frontend assets, catalog, login, secure cookie, saved teams, counters, origin guard, logout and persistence.')
+print('Demo image smoke passed: startup migrations, frontend assets, catalog, login, secure cookie, saved teams, counters, origin guard, logout and persistence.')

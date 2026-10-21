@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from production import activate_render_provider
+from demo import activate_render_provider
 from build_render_provider import UPSTREAM_COMMIT, ARCHIVE_SHA256, PATCHES
 
 

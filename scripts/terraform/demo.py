@@ -1,4 +1,4 @@
-"""Adopt or plan/apply existing production resources without publishing state/plans.
+"""Adopt or plan/apply existing demo resources without publishing state/plans.
 
 Runs only on a manually dispatched main-branch GitHub Actions job. Terraform state
 lives in an HCP Local-execution workspace. No cloud create/delete is permitted here.
@@ -16,7 +16,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[2] / "infra" / "terraform"
 RESOURCES = {
-    "neon_project.production": "NEON_PROJECT_ID",
+    "neon_project.demo": "NEON_PROJECT_ID",
     "render_web_service.app": "RENDER_SERVICE_ID",
 }
 
@@ -86,7 +86,7 @@ def plan_summary(plan):
     # printing them. Ignore run timestamps so a fresh identical plan can match.
     payload = {key: plan.get(key, {}) for key in ("resource_changes", "output_changes")}
     digest = hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
-    lines = ["### Production Terraform plan", ""]
+    lines = ["### Demo Terraform plan", ""]
     for item in changes:
         change = item["change"]
         lines.append(f"- `{item['address']}`: {', '.join(change['actions'])}")
@@ -144,7 +144,7 @@ def activate_render_provider():
     manifest = directory / "build.json"
     binary = directory / "terraform-provider-render"
     if not manifest.is_file() or not binary.is_file():
-        raise RuntimeError("Build the Render free-tier compatibility provider before running production Terraform")
+        raise RuntimeError("Build the Render free-tier compatibility provider before running demo Terraform")
     metadata = json.loads(manifest.read_text())
     expected = {
         "upstream_commit": UPSTREAM_COMMIT,
@@ -175,6 +175,11 @@ def main():
         # Re-read because the previous import updates state. Never print it.
         state = json.loads(terraform("show", "-json"))
         managed = {item["address"]: item for item in state.get("values", {}).get("root_module", {}).get("resources", [])}
+        # The moved block updates this address at apply; recognize old state before then.
+        if "neon_project.production" in managed:
+            if "neon_project.demo" in managed:
+                raise RuntimeError("Both legacy and demo Neon addresses exist; inspect state before proceeding")
+            managed["neon_project.demo"] = managed["neon_project.production"]
         if address not in managed:
             if action != "import":
                 raise RuntimeError(f"Import {address} first using the import action")
@@ -186,8 +191,8 @@ def main():
         # retry if the second import failed. It changes state only.
         print("Existing Neon project and Render service adopted. No infrastructure changes applied. Run plan next.")
         return
-    with tempfile.TemporaryDirectory(prefix="production-plan-") as temporary:
-        saved = str(Path(temporary) / "production.tfplan")
+    with tempfile.TemporaryDirectory(prefix="demo-plan-") as temporary:
+        saved = str(Path(temporary) / "demo.tfplan")
         terraform("plan", "-input=false", "-lock-timeout=120s", "-out=" + saved)
         digest, summary = plan_summary(json.loads(terraform("show", "-json", saved)))
         print(summary)

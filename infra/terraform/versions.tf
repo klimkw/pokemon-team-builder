@@ -6,7 +6,7 @@ terraform {
   cloud {}
 
   required_providers {
-    # Production uses a checksum-verified free-tier patch on this release.
+    # Demo uses a checksum-verified free-tier patch on this release.
     # See scripts/terraform/build_render_provider.py and README.md.
     render = {
       source  = "render-oss/render"
