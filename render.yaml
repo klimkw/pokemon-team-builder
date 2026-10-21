@@ -7,6 +7,7 @@ services:
     plan: free
     dockerfilePath: ./Dockerfile.production
     dockerContext: .
+    autoDeployTrigger: checksPass
     healthCheckPath: /api/health
     envVars:
       - key: DATABASE_URL

@@ -25,7 +25,7 @@ resource "render_web_service" "app" {
       dockerfile_path     = "./Dockerfile.production"
       context             = "."
       auto_deploy         = true
-      auto_deploy_trigger = "commit"
+      auto_deploy_trigger = "checksPass"
     }
   }
 

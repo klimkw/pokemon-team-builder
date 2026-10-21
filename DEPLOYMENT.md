@@ -53,9 +53,15 @@ single-instance free deployment; do not scale replicas without moving migrations
 an explicitly coordinated release step. Health currently verifies process liveness,
 not database availability. Never run a destructive schema reset to fix a failed deploy.
 
-Render deploys repository pushes independently of GitHub CI by default. For a reviewed
-release, merge only after the Tests workflow passes; do not assume the Blueprint gates
-publication on CI. Keep schema changes backward compatible with the previous release.
+Terraform and the bootstrap Blueprint set the deploy trigger to **After CI Checks
+Pass** (`checksPass`). For an existing service, run the infrastructure plan/apply
+procedure below before relying on this gate. Render waits for detected checks on the
+commit; a failed check prevents automatic deployment. Manual deploys bypass this gate.
+Both Tests jobs run on every deployment-branch push: the full application suite and
+the production-image smoke check. The latter uses a fresh disposable PostgreSQL DB,
+real startup migrations, production cookie settings, and synthetic catalog fixtures.
+It makes no requests to the live service. Keep schema changes backward compatible
+with the previous release.
 
 ## 4. Configure and run the scanner
 
@@ -133,3 +139,26 @@ For an existing Render/Neon deployment, follow [infra/terraform/README.md](infra
 It keeps production credentials in GitHub secret settings and persistent state in
 HCP Terraform. Disconnect Blueprint syncing before Terraform applies service changes;
 keep Docker Compose for local development.
+
+## Activate the CI deployment gate on the existing service
+
+After the release-check changes are pushed and both Tests jobs pass:
+
+1. Run **Actions → Production infrastructure → Run workflow**, selecting `plan`.
+2. Confirm the Render change sets `docker.auto_deploy_trigger` from `commit` to
+   `checksPass`, with no creation, deletion or replacement. Review any other drift.
+3. Run it again with `apply` and the exact plan fingerprint from that new plan.
+4. Confirm Render **Settings → Auto-Deploy → After CI Checks Pass**. No new secret
+   is needed. Subsequent pushes deploy after their CI checks pass.
+
+A passing CI image check validates packaging and application behavior in isolation;
+it cannot verify live Neon credentials, Render configuration or provider availability.
+After a deployment, check the public URL, sign in, and inspect App info for catalog
+freshness. Use the scanner workflow's run history and failure notifications for daily
+job status. No automated restore drill or proactive stale-scan monitor is configured.
+
+For rollback, select the last known working Render deployment only when its code is
+compatible with the current schema. Prefer a forward fix for schema changes. Before
+a risky migration, confirm the Neon recovery window and take an appropriate backup;
+test a restore to a separate branch/database before depending on that recovery path.
+The current free deployment does not provide a tested disaster-recovery guarantee.

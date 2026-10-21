@@ -1,0 +1,33 @@
+# Disposable release check; never merge with local-development Compose.
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: pokemon_test
+      POSTGRES_USER: pokemon_test
+      POSTGRES_PASSWORD: disposable_test_password
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U pokemon_test -d pokemon_test]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.production
+    environment:
+      DATABASE_URL: postgresql://pokemon_test:disposable_test_password@db:5432/pokemon_test
+      APP_ORIGIN: http://127.0.0.1:8000
+      COOKIE_SECURE: "true"
+      ENABLE_DEMO_CONTROLS: "false"
+      DEMO_MODE: "false"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health')"]
+      interval: 2s
+      timeout: 5s
+      retries: 30

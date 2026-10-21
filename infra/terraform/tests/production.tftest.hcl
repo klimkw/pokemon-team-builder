@@ -20,6 +20,10 @@ run "production_configuration" {
     error_message = "Render must build the combined production image."
   }
   assert {
+    condition     = render_web_service.app.runtime_source.docker.auto_deploy_trigger == "checksPass"
+    error_message = "Production deploys must wait for CI checks to pass."
+  }
+  assert {
     condition     = render_web_service.app.env_vars["COOKIE_SECURE"].value == "true" && render_web_service.app.env_vars["ENABLE_DEMO_CONTROLS"].value == "false"
     error_message = "Production needs HTTPS cookies and disabled demo controls."
   }

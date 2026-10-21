@@ -172,3 +172,24 @@ normal paths above. `full-suite.log` records the backend/component run and the
 initial browser failure; `browser-final.log` records the passing browser rerun.
 The isolated test containers and network were removed after validation. GitHub CI
 has been added locally; its first hosted execution requires pushing these changes.
+
+## Production container release check
+
+Run `bash scripts/test-production.sh` to build `Dockerfile.production` and start it
+against an empty, disposable PostgreSQL database. The image's normal startup command
+runs Alembic before serving the built frontend and API. The smoke check covers built
+assets and direct page links, catalog search, registration/login, secure cookie flags,
+saved-team edits and persistence, counter preview, origin rejection and revoked sessions.
+It is an HTTP packaging check; the separate Chromium suite covers browser behavior.
+
+Production cookie settings remain enabled. Because the isolated transport is plain
+HTTP, the check explicitly replays the cookie after verifying Secure/HttpOnly/SameSite
+attributes. It does not claim to test TLS termination, Neon TLS, live credentials or
+Render itself. No production secret is required, no live upstream request is made,
+and demo controls stay disabled. Fixtures and smoke code are streamed into the test
+container rather than added to the production image.
+
+CI runs this as the `production-image` job alongside the application suite. Container
+logs are saved under `test-artifacts/production/` even on failure. The stack and tmpfs
+database are removed on exit. Set `PRODUCTION_TEST_PROJECT` to a unique name beginning
+with `pokemon-team-builder-tests-production` for simultaneous runs in separate checkouts.
