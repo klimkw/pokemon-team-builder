@@ -16,7 +16,7 @@ services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile.production
+      dockerfile: Dockerfile.demo
     environment:
       DATABASE_URL: postgresql://pokemon_test:disposable_test_password@db:5432/pokemon_test
       APP_ORIGIN: http://127.0.0.1:8000
