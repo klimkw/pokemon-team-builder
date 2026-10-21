@@ -32,7 +32,8 @@ Only two Terraform resources are managed: the Render web service and Neon projec
 The Neon provider bundles its default branch, database, role and primary compute in
 `neon_project`; don't import those defaults again as separate resources. The initial
 configuration preserves existing topology, compute sizing, Postgres version and
-branch protection. Additional branches/databases/roles are outside this initial
+branch protection and backup-history retention. Render notification/preview preferences
+are also preserved. Additional branches/databases/roles are outside this initial
 scope. Confirm the production connection points at the intended branch in Neon.
 Application accounts, passwords, team data and local volumes are not imported.
 

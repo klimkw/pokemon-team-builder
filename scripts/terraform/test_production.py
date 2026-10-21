@@ -35,6 +35,27 @@ class PlanPolicyTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             plan_summary(plan(address='neon_project.unexpected'))
 
+    def test_public_render_differences_are_visible_but_database_url_is_hidden(self):
+        change = plan()
+        change['resource_changes'][0]['change'] = {
+            'actions': ['update'],
+            'before': {'env_vars': {'APP_ORIGIN': {'value': 'https://old.example'}, 'DATABASE_URL': {'value': 'private-old'}}},
+            'after': {'env_vars': {'APP_ORIGIN': {'value': 'https://new.example'}, 'DATABASE_URL': {'value': 'private-new'}}, 'runtime_source': {'docker': {'context': '.', 'repo_url': 'private-repo-credential'}}},
+        }
+        _, summary = plan_summary(change)
+        self.assertIn('https://old.example', summary)
+        self.assertIn('https://new.example', summary)
+        self.assertIn('docker.context', summary)
+        self.assertNotIn('private-old', summary)
+        self.assertNotIn('private-new', summary)
+        self.assertNotIn('private-repo-credential', summary)
+
+    def test_origin_with_credentials_is_withheld(self):
+        change = plan()
+        change['resource_changes'][0]['change']['after'] = {'env_vars': {'APP_ORIGIN': {'value': 'https://user:private-password@host'}}}
+        _, summary = plan_summary(change)
+        self.assertNotIn('private-password', summary)
+
     def test_missing_settings_fail_before_running_terraform(self):
         with patch.dict('os.environ', {'INFRA_ACTION': 'import'}, clear=True), patch('production.terraform') as run:
             with self.assertRaisesRegex(RuntimeError, 'Missing GitHub'):

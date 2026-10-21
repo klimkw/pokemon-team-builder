@@ -87,7 +87,7 @@ def plan_summary(plan):
         # Show field names for all differences. Only these known nonsecret
         # scalar settings get values; imported provider state can contain secrets.
         public_fields = {"name", "plan", "region", "health_check_path", "num_instances",
-                         "pg_version", "region_id", "history_retention_seconds"}
+                         "pg_version", "region_id", "history_retention_seconds", "root_directory", "slug"}
         for key in sorted(before.keys() | after.keys()):
             if before.get(key) == after.get(key):
                 continue
@@ -96,7 +96,32 @@ def plan_summary(plan):
                 for name in sorted(old_vars.keys() | new_vars.keys()):
                     if old_vars.get(name) != new_vars.get(name):
                         action = "removed" if name not in new_vars else "added" if name not in old_vars else "updated"
-                        lines.append(f"  - environment `{name}`: {action} (value withheld)")
+                        if name == "APP_ORIGIN":
+                            old_origin = (old_vars.get(name) or {}).get("value")
+                            new_origin = (new_vars.get(name) or {}).get("value")
+                            def public_origin(value):
+                                if value is None:
+                                    return None
+                                parsed = urlsplit(value)
+                                return value if parsed.scheme in {"http", "https"} and parsed.hostname and not parsed.username and not parsed.password and not parsed.query and not parsed.fragment and parsed.path in {"", "/"} else "[withheld: not a plain origin]"
+                            lines.append(f"  - environment APP_ORIGIN: {json.dumps(public_origin(old_origin))} → {json.dumps(public_origin(new_origin))}")
+                        else:
+                            lines.append(f"  - environment `{name}`: {action} (value withheld)")
+            elif key == "runtime_source":
+                old_docker = (before.get(key) or {}).get("docker") or {}
+                new_docker = (after.get(key) or {}).get("docker") or {}
+                fields = {"branch", "context", "dockerfile_path", "auto_deploy", "auto_deploy_trigger", "repo_url"}
+                for field in sorted(fields):
+                    if old_docker.get(field) != new_docker.get(field):
+                        old_value, new_value = old_docker.get(field), new_docker.get(field)
+                        if field == "repo_url":
+                            def public_repo(value):
+                                if value is None:
+                                    return None
+                                parsed = urlsplit(value)
+                                return value if parsed.scheme == "https" and parsed.hostname == "github.com" and not parsed.username and not parsed.password and not parsed.query and not parsed.fragment else "[withheld]"
+                            old_value, new_value = public_repo(old_value), public_repo(new_value)
+                        lines.append(f"  - docker.{field}: {json.dumps(old_value)} → {json.dumps(new_value)}")
             elif key in public_fields:
                 lines.append(f"  - {key}: {json.dumps(before.get(key))} → {json.dumps(after.get(key))}")
             else:

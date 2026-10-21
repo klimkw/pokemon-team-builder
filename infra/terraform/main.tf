@@ -7,7 +7,7 @@ resource "neon_project" "production" {
     prevent_destroy = true
     # Adopt existing topology, Postgres version, and compute settings as-is.
     # This first iteration manages the project name, not database sizing.
-    ignore_changes = [branch, primary_compute, region_id, pg_version, default_branch_protected]
+    ignore_changes = [branch, primary_compute, region_id, pg_version, default_branch_protected, history_retention_seconds]
   }
 }
 
@@ -42,5 +42,7 @@ resource "render_web_service" "app" {
 
   lifecycle {
     prevent_destroy = true
+    # These existing dashboard preferences are outside this adoption's scope.
+    ignore_changes = [notification_override, previews, pull_request_previews_enabled]
   }
 }
