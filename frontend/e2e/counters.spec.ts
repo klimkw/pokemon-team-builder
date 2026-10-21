@@ -53,7 +53,7 @@ test("preview counters for unsaved edits, explain them, and explicitly save a se
   await expect(dialog.getByRole("status")).toContainText("Counter wins");
   await page.screenshot({ path: testInfo.outputPath("counter-simulation-desktop.png") });
   await dialog.getByText("Damage calculation and turn log").first().click();
-  await expect(dialog.getByText(/Model: paired-base-stats-v1/).first()).toBeVisible();
+  await expect(dialog.getByText(/Every duel starts at full HP/).first()).toBeVisible();
   await dialog.getByRole("button", { name: "Restart simulation" }).click();
   await dialog.getByRole("button", { name: "Next turn" }).click();
   const guideTab = page.waitForEvent("popup");
@@ -123,7 +123,6 @@ test("preview counters for unsaved edits, explain them, and explicitly save a se
   );
   expect(counter.members).toHaveLength(2);
   const repeated = await (await page.request.post('/api/teams/counter-preview', { data: { pokemon_ids: [3, 3, 3, 3, 3, 3] } })).json();
-  expect(repeated.model_version).toBe('safe-coverage-v2-duplicates');
   expect(repeated.matchups).toHaveLength(6);
   expect(new Set(repeated.matchups.map((match: { counter: { id: number } }) => match.counter.id)).size).toBe(1);
   // Closing without saving also leaves the source draft intact.

@@ -534,3 +534,14 @@ checks anonymous/signed-in use, links, Escape, narrow header width and popup scr
 Desktop/mobile screenshots reviewed. Reports: test-artifacts/info-audit/. Isolated
 containers cleaned up. This is not a repository-history secret scan or a claim of full
 battle-model fidelity. Docker test suites are automated, but no CI workflow exists yet.
+
+## Simplified info and catalog-source link
+
+Passed production build, 141 PostgreSQL tests, 29 component tests and six regular
+Chromium flows (legacy demo skipped). Removed latest-attempt metadata and model-version
+identifiers/disclosures without altering calculation behavior. Tests assert removed
+fields are absent and the catalog source link matches the importer URL including
+page limit. Counter/replay tests still pass without identifiers. Desktop screenshot
+reviewed; reports: test-artifacts/info-cleanup/. Isolated containers cleaned up.
+SQLite was not rerun in this increment. Only API/frontend updated; scanner kept running.
+Live metadata and counter schemas verified; no database migration required.

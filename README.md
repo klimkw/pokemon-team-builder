@@ -242,7 +242,7 @@ items, levels, and switching are excluded. Equal assumed same-type attack bonuse
 omitted; displayed numbers are type effectiveness, not damage or win probabilities.
 
 The API reads the active chart from PostgreSQL on each preview, returning its SHA-256
-version plus `safe-coverage-v2-duplicates`. Migration 0003 seeds a frozen PokéAPI snapshot from
+version for data provenance. Migration 0003 seeds a frozen PokéAPI snapshot from
 `backend/migrations/data/type_chart_v1.json`; provenance and observation time are in
 that file. The scanner fetches and validates all 18 current type rows, then replaces
 the chart and appends per-attacking-type history in one transaction. A missing or
@@ -280,7 +280,7 @@ is rendered at `/counter-method` and linked from the preview. It explains the ex
 optimizer, stat rounding, own-type attack assumptions, the custom damage formula,
 speed ties, immunities, the 200-turn cap and limitations. Edit that Markdown file to
 update the web page; the guide is bundled locally and offers a Markdown download.
-`backend/app/services/battle.py` implements `paired-base-stats-v1`; its values are
+`backend/app/services/battle.py` calculates the paired duels; its values are
 returned with the preview and reused throughout replay without refetching data.
 No migrations, upstream battle-data calls or simulation dependencies are introduced.
 
@@ -401,8 +401,9 @@ credentials in Vite variables, Docker build arguments, source code or screenshot
 We have not selected/configured a hosted secret store yet. Reference:
 [OWASP secrets-management guidance](https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html).
 
-The header **App info** popup reads `/api/info`, an explicit allowlist of public version,
-model, catalog-count and refresh timestamps/settings. It never returns database URLs,
+The header **App info** popup reads `/api/info`, an explicit allowlist of public app version, catalog source/count and refresh timestamps/settings. It never returns database URLs,
 credentials, user data, job payloads, scanner summaries or raw errors. The release
-version comes from backend/pyproject.toml; it is not a commit counter. Latest live
-refresh and last successful live refresh are separate, excluding manual/sample runs.
+version comes from backend/pyproject.toml; it is not a commit counter. Only the last successful live refresh is displayed, excluding manual/sample runs.
+
+Catalog source links directly to the importer's `CATALOG_URL`:
+`https://pokeapi.co/api/v2/pokemon/?limit=200`.

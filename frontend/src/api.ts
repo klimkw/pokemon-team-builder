@@ -207,7 +207,7 @@ export async function deleteTeam(id: string): Promise<void> {
 
 export type Strike = { category: "physical" | "special"; attack_type: string; attack: number; defense: number; effectiveness: number; damage: number };
 export type Duel = {
-  model_version: string; result: "counter" | "opponent" | "draw" | "stalemate";
+  result: "counter" | "opponent" | "draw" | "stalemate";
   order: "counter" | "opponent" | "simultaneous"; counter_hp: number; opponent_hp: number;
   outgoing: Strike; incoming: Strike;
   turns: { turn: number; counter_hp: number; opponent_hp: number; counter_damage: number; opponent_damage: number }[];
@@ -229,7 +229,6 @@ export type CounterMatchup = {
   stats_score: number;
 };
 export type CounterPreview = {
-  model_version: string;
   chart_version: string;
   safe_count: number;
   size: number;
@@ -293,9 +292,9 @@ export async function updateProfile(payload: { current_password: string; usernam
 
 export type RefreshStatus = { status: string; started_at: string; finished_at: string | null };
 export type AppInfo = {
-  app_version: string; counter_model: string; simulation_model: string; repository_url: string;
-  catalog_count: number; scan_interval_hours: number; alert_window_days: number;
-  latest_live_refresh: RefreshStatus | null; last_successful_live_refresh: RefreshStatus | null; checked_at: string;
+  app_version: string; repository_url: string;
+  catalog_source_url: string; catalog_count: number; scan_interval_hours: number; alert_window_days: number;
+  last_successful_live_refresh: RefreshStatus | null; checked_at: string;
 };
 export async function getAppInfo(signal?: AbortSignal): Promise<AppInfo> {
   return (await request("info", { signal })).json();

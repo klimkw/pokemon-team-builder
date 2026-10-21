@@ -269,7 +269,6 @@ Total = ${match.attack_potential} + ${match.durability} + ${match.speed} = ${mat
             ))}
           </ol>
           <BattleReplay matches={preview.matchups} />
-          <details className="model-versions"><summary>Model & data versions</summary><p>Selection: {preview.model_version}</p><p>Type chart: {preview.chart_version}</p></details>
           <div className="counter-save">
             <label htmlFor="counter-name">Counter team name</label>
             <input

@@ -13,7 +13,6 @@ from typing import get_args
 from app.schemas.counters import CounterMatchup, CounterPreview
 from app.schemas.teams import PokemonRead, PokemonType
 
-MODEL_VERSION = "safe-coverage-v2-duplicates"
 
 
 @lru_cache(maxsize=1)
@@ -112,6 +111,6 @@ def generate_counter(opponents: list[PokemonRead], candidates: list[PokemonRead]
     from app.services.battle import simulate_duel
     for match in matches:
         match.simulation = simulate_duel(match)
-    return CounterPreview(model_version=MODEL_VERSION, chart_version=(chart or type_chart())["version"],
+    return CounterPreview(chart_version=(chart or type_chart())["version"],
         safe_count=objective[0], size=size, type_strength=objective[1] / 4,
         stats_score=objective[2], matchups=matches)

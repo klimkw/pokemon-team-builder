@@ -10,12 +10,13 @@ def test_public_info_is_allowlisted_and_uncached(client, catalog):
     assert response.status_code == 200
     assert response.headers['cache-control'] == 'no-store'
     result = response.json()
-    assert set(result) == {'app_version', 'counter_model', 'simulation_model', 'repository_url',
-        'catalog_count', 'scan_interval_hours', 'alert_window_days', 'latest_live_refresh',
+    assert set(result) == {'app_version', 'repository_url',
+        'catalog_source_url', 'catalog_count', 'scan_interval_hours', 'alert_window_days',
         'last_successful_live_refresh', 'checked_at'}
     assert result['app_version'] == APP_VERSION
     assert result['catalog_count'] == 3
-    assert result['latest_live_refresh'] is None
+    assert result['catalog_source_url'] == 'https://pokeapi.co/api/v2/pokemon/?limit=200'
+    assert 'latest_live_refresh' not in result
     assert result['repository_url'] == 'https://github.com/klimkw/pokemon-team-builder'
     assert client.get('/openapi.json').json()['info']['version'] == APP_VERSION
 
@@ -36,7 +37,6 @@ def test_refresh_metadata_excludes_demo_sample_and_private_details(client):
     asyncio.run(store())
     response = client.get('/api/info')
     result = response.json()
-    assert result['latest_live_refresh']['status'] == 'failed'
     assert result['last_successful_live_refresh']['started_at'].startswith((now - timedelta(days=4)).date().isoformat())
     assert 'DO_NOT_EXPOSE' not in response.text
-    assert set(result['latest_live_refresh']) == {'status', 'started_at', 'finished_at'}
+    assert set(result['last_successful_live_refresh']) == {'status', 'started_at', 'finished_at'}

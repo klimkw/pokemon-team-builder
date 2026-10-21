@@ -27,7 +27,6 @@ class DuelTurn(BaseModel):
 
 
 class Duel(BaseModel):
-    model_version: str
     result: Literal['counter', 'opponent', 'draw', 'stalemate']
     order: Literal['counter', 'opponent', 'simultaneous']
     counter_hp: int
@@ -55,7 +54,6 @@ class CounterMatchup(BaseModel):
 
 
 class CounterPreview(BaseModel):
-    model_version: str
     chart_version: str
     safe_count: int
     size: int

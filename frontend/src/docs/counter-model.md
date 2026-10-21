@@ -80,9 +80,9 @@ Every paired duel starts independently at full HP. HP is not carried between slo
 
 A duel ends on a knockout. Mutual immunities stop after the first zero-damage turn. A safety limit of 200 turns prevents unusually slow manual scenarios from running indefinitely. If both still have HP at the limit (or cannot damage each other), the result is a stalemate, not an inferred winner. The replay reports counter wins, your wins, simultaneous knockout draws and stalemates separately.
 
-## Reproducibility and live data
+## Consistent replays and live data
 
-The preview reports selection model safe-coverage-v2-duplicates and the active type-chart hash. Every duel reports paired-base-stats-v1. The replay uses the exact Pokémon and type multipliers from that preview, without fetching new catalog values mid-replay. Identical inputs and versions produce identical outputs. A later live refresh or manual change can alter newly generated results; an open preview stays a snapshot. Generate a new preview to use newer data.
+The replay uses the exact Pokémon and type multipliers from that preview, without fetching new catalog values mid-replay. The same inputs and calculation rules produce the same outputs. A later live refresh or manual change can alter newly generated results; an open preview stays a snapshot. Generate a new preview to use newer data.
 
 Generation, simulation and replay do not save teams, edit the source lineup, mutate the catalog or generate alerts. Save as new team is the explicit persistence action. Saved counter teams store Pokémon membership, not a frozen battle report; reopening them uses current catalog data.
 

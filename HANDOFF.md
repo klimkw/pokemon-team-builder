@@ -603,3 +603,18 @@ teams and scanner restart delay. Commit: “Add safe app info and strengthen cal
 Runtime checks passed: all services healthy, no schema drift, public info allowlist
 verified against live 1,351-entry catalog. Before/after counts stayed 1,351 Pokémon,
 two teams, one account, zero events/scenarios. Worker retained its scan interval.
+
+## Latest: simplified info and catalog source
+
+Owner removed latest-attempt refresh metadata and model-version concepts. App info now
+shows app release version, catalog source/count, interval/window, last successful live
+refresh and repo/guide links. The source URL is the importer's CATALOG_URL constant,
+https://pokeapi.co/api/v2/pokemon/?limit=200. No latest_live_refresh, counter_model or
+simulation_model fields remain. Counter/replay model_version identifiers/constants and
+version disclosures/history are removed from current code/API/UI/guide/README; actual
+calculations and tests remain. App version and internal type-chart provenance remain.
+Verified build, 141 PostgreSQL, 29 components and six Chromium flows (legacy demo skipped).
+Source link/absent labels/contracts checked; desktop screenshot reviewed. Reports:
+test-artifacts/info-cleanup/. Live API/frontend updated, no schema drift. Scanner kept
+running without restart; no catalog/team/demo mutation was requested or performed.
+Commit: “Simplify app info and link the catalog source”.

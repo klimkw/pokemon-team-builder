@@ -26,7 +26,6 @@ const counter: Pokemon = {
   types: ["fire"],
 };
 const preview: Preview = {
-  model_version: "safe-coverage-v2-duplicates",
   chart_version: "sha256:example",
   size: 1,
   safe_count: 1,
@@ -35,7 +34,7 @@ const preview: Preview = {
   matchups: [
     {
       simulation: {
-        model_version: "paired-base-stats-v1", result: "counter", order: "simultaneous",
+        result: "counter", order: "simultaneous",
         counter_hp: 45, opponent_hp: 45,
         outgoing: { category: "physical", attack_type: "fire", attack: 49, defense: 49, effectiveness: 2, damage: 60 },
         incoming: { category: "physical", attack_type: "poison", attack: 49, defense: 49, effectiveness: 1, damage: 30 },

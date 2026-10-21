@@ -8,6 +8,9 @@ test("stable account card, advanced filters, profile and password changes", asyn
   await page.getByRole("button", { name: "App info", exact: true }).click();
   const info = page.getByRole("dialog", { name: "App info", exact: true });
   await expect(info.getByText("Version", { exact: true })).toBeVisible();
+  await expect(info.getByText("Latest live refresh", { exact: true })).toHaveCount(0);
+  await expect(info.getByText("Counter model", { exact: true })).toHaveCount(0);
+  await expect(info.getByRole("link", { name: "PokéAPI ↗" })).toHaveAttribute("href", "https://pokeapi.co/api/v2/pokemon/?limit=200");
   await expect(info.getByRole("link", { name: "Repository ↗" })).toHaveAttribute("href", "https://github.com/klimkw/pokemon-team-builder");
   await info.getByRole("button", { name: "Refresh info" }).click();
   await expect(info.getByText("24 hours")).toBeVisible();

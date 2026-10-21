@@ -129,7 +129,6 @@ def test_six_identical_venusaurs_reuse_best_counter_even_with_small_catalog():
     single = generate_counter([venusaur], candidates)
     result = generate_counter([venusaur] * 6, candidates)
     assert ids(result) == ids(single) * 6
-    assert result.model_version == 'safe-coverage-v2-duplicates'
     assert result.stats_score == single.stats_score * 6
     assert result.safe_count == single.safe_count * 6
     assert all(match.simulation == result.matchups[0].simulation for match in result.matchups)

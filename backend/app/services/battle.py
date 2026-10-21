@@ -1,7 +1,6 @@
 """Deterministic illustrative paired duels; not a competitive battle engine."""
 from app.schemas.counters import Duel, DuelTurn, Strike
 
-SIMULATION_VERSION = 'paired-base-stats-v1'
 MAX_TURNS = 200
 
 
@@ -46,6 +45,6 @@ def simulate_duel(match):
         if not chp or not ohp or (outgoing.damage == incoming.damage == 0):
             break
     result = 'draw' if chp == ohp == 0 else 'counter' if ohp == 0 else 'opponent' if chp == 0 else 'stalemate'
-    return Duel(model_version=SIMULATION_VERSION, result=result, order=order,
+    return Duel(result=result, order=order,
                 counter_hp=max(1, counter.stats.hp), opponent_hp=max(1, opponent.stats.hp),
                 outgoing=outgoing, incoming=incoming, turns=turns)

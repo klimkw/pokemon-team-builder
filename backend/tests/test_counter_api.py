@@ -15,10 +15,10 @@ def test_preview_uses_current_ordered_lineup_and_does_not_write_teams(signed_in)
     generated = [match["counter"]["id"] for match in result["matchups"]]
     assert len(generated) == 2
     assert result["safe_count"] == sum(match["safe"] for match in result["matchups"])
-    assert result["model_version"] == "safe-coverage-v2-duplicates"
+    assert "model_version" not in result
     for match in result["matchups"]:
         duel = match["simulation"]
-        assert duel["model_version"] == "paired-base-stats-v1"
+        assert "model_version" not in duel
         assert 1 <= len(duel["turns"]) <= 200
         assert duel["outgoing"]["effectiveness"] == match["outgoing_multiplier"]
         assert duel["incoming"]["effectiveness"] == match["incoming_multiplier"]

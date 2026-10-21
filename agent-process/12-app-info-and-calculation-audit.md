@@ -46,3 +46,22 @@ catalog fixture was corrected before rerunning. Desktop/mobile popup screenshots
 reviewed; reports: test-artifacts/info-audit/. Deployment health/schema checks and live
 metadata allowlist passed; database counts and worker schedule remained unchanged.
 Commit: “Add safe app info and strengthen calculation transparency”.
+
+## Simplified info and catalog source
+
+The owner removed latest refresh attempts from the popup, keeping only last successful
+live refresh. They then requested removal of model-version concepts rather than a
+history feature. Removed those labels/disclosures and identifier fields/constants from
+the public info, counter-preview and replay contracts; calculation behavior is unchanged.
+Current guide/README explain the current rules without model-version history. The app's
+ordinary release version remains. Existing process records are historical descriptions
+of earlier increments, not the current interface.
+
+Catalog source now links to the exact CATALOG_URL constant used by the importer,
+including its page limit. This avoids a second independently maintained source URL.
+Tests assert the source link and absence of removed fields/labels.
+Final simplification verified production build, 141 PostgreSQL, 29 components and six
+regular browser flows (legacy demo skipped). SQLite not rerun. Live metadata/schemas
+confirm removed fields and exact catalog URL; API/frontend updated without restarting
+the scanner. Screenshot reviewed; reports: test-artifacts/info-cleanup/.
+Commit: “Simplify app info and link the catalog source”.

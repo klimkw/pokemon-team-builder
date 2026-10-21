@@ -43,7 +43,7 @@ export default function BattleReplay({ matches }: { matches: CounterMatchup[] })
             <ol>{duel.turns.slice(0, turn).map(step => <li key={step.turn}>
               Turn {step.turn}: counter dealt {step.counter_damage}, your Pokémon dealt {step.opponent_damage}. Remaining HP: counter {step.counter_hp}, yours {step.opponent_hp}.
             </li>)}</ol>
-            <small>Model: {duel.model_version} · Every duel starts at full HP.</small>
+            <small>Every duel starts at full HP.</small>
           </details>
         </li>;
       })}</ol>

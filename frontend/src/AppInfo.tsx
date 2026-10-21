@@ -38,13 +38,11 @@ export default function AppInfo() {
       {!loading && !error && data && <>
         <dl className="info-values">
           <div><dt>Version</dt><dd>{data.app_version}</dd></div>
+          <div><dt>Catalog source</dt><dd><a href={data.catalog_source_url} target="_blank" rel="noreferrer">PokéAPI ↗</a></dd></div>
           <div><dt>Pokémon catalog</dt><dd>{data.catalog_count.toLocaleString()} entries</dd></div>
           <div><dt>Live refresh interval</dt><dd>{data.scan_interval_hours} hours</dd></div>
           <div><dt>Alert window</dt><dd>{data.alert_window_days} days</dd></div>
-          <div><dt>Latest live refresh</dt><dd>{data.latest_live_refresh ? <>{data.latest_live_refresh.status} · Started {date(data.latest_live_refresh.started_at)}<br />Finished {date(data.latest_live_refresh.finished_at)}</> : "Not scanned yet"}</dd></div>
           <div><dt>Last successful live refresh</dt><dd>{data.last_successful_live_refresh ? date(data.last_successful_live_refresh.finished_at) : "None recorded"}</dd></div>
-          <div><dt>Counter model</dt><dd>{data.counter_model}</dd></div>
-          <div><dt>Simulation model</dt><dd>{data.simulation_model}</dd></div>
         </dl>
         <p className="info-note">Refreshes check PokéAPI Pokémon data and the type chart. Manual demo activity is excluded here. The interval is a schedule setting, not a countdown; queued work and hosting availability can delay a scan.</p>
         <nav className="info-links"><a href={data.repository_url} target="_blank" rel="noreferrer">Repository ↗</a><a href="/counter-method" target="_blank" rel="noreferrer">Calculation guide ↗</a></nav>
