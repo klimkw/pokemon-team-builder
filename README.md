@@ -27,15 +27,15 @@
 - **Simple and contained architecture**
 
   A single API service serves the frontend, while a separate batch process refreshes PokéAPI data.
-  As such, the application reads from a local version of the catalog in Postgres. This protects the application from upstream outages. The tradeoff here is eventual freshness, I have arbitrarily set a refresh interval of 24 hours.
+  As such, the application reads from a local version of the catalog in Postgres. This protects the application from upstream outages. The tradeoff here is eventual freshness, I have arbitrarily set a refresh interval of 24 hours ([Catalog Scan Workflow](.github\workflows\catalog-scan.yml)).
 
 - **Ownership and consistency in the backend**
 
   Persistent data is protected via database constraints and owner-scoped queries. Each save atomically updates the team name and team lineup, while row locks prevent concurrent updates from interleaving. SQLAlchemy is used to manage database access and Alembic is used to track schema versioning.
 
-- **Recoverable and idempotent ingestions**
+- **Recoverable and idempotent catalog scan**
   
-  The ingestion process fetches at most 5 Pokémon details concurrently. The number '5' was assumed as a safe limit to avoid upstream pressure while still achieving a faster scan. 
+  The process fetches at most 5 Pokémon details concurrently. The number '5' was assumed as a safe limit to avoid upstream pressure while still achieving a faster scan. 
   
   During a scan, changes to a Pokémon’s name, types, base stats, or sprite URL are detected and the catalog record is updated. Separately, a history event containing the changed fields’ before-and-after values is also created. Both writes commit in one transaction, so a catalog change cannot be saved without its matching history event.
 
