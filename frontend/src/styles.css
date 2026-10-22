@@ -1175,12 +1175,6 @@ input:disabled {
 .counter-heading .eyebrow {
   font-size: 8px;
 }
-.counter-description {
-  margin-top: 16px;
-  font-size: 13px;
-  line-height: 1.7;
-  color: #68715d;
-}
 .counter-summary {
   margin-top: 22px;
   padding: 16px;
@@ -1196,28 +1190,11 @@ input:disabled {
   line-height: 1.7;
   margin-top: 7px;
 }
-.counter-method {
-  margin: 18px 0;
-  font-size: 12px;
-  line-height: 1.8;
-  color: #59634c;
-}
-.counter-method summary,
 .matchup-stats summary {
   cursor: pointer;
   color: #37462a;
   font-weight: 600;
   padding: 5px 0;
-}
-.counter-method ol {
-  padding-left: 22px;
-}
-.counter-method p {
-  margin-top: 12px;
-}
-.counter-method small {
-  display: block;
-  margin-top: 10px;
 }
 .counter-matchups {
   list-style: none;
@@ -1515,7 +1492,7 @@ input:disabled {
 .counter-matchup .pokemon-card h3 { font-size: 16px; margin: 0 0 8px; }
 .counter-matchup .pokemon-card { height: 100%; padding: 16px; }
 .paired-cards .pokemon-card { height: auto; }
-.counter-model-link, .model-objective { font-size: 12px; margin: 14px 0; overflow-wrap: anywhere; }
+.counter-model-link { font-size: 12px; margin: 14px 0; overflow-wrap: anywhere; }
 .counter-model-link a { color: #526b3b; text-decoration: underline; }
 .battle-replay { margin: 24px 0; padding: 18px; border: 1px solid #dce3cd; border-radius: 12px; background: #f7f8f1; }
 .battle-replay h3 { font-size: 18px; margin-bottom: 10px; }

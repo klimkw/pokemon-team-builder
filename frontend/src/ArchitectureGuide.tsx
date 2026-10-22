@@ -1,13 +1,21 @@
 import { Fragment } from "react";
-import source from "./docs/architecture.md?raw";
+import rawSource from "../../docs/architecture.md?raw";
 import "./architecture-guide.css";
 
 const slug = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
+const source = rawSource.replace(/\r\n?/g, "\n");
+
 // Only repository-authored text is supported. No raw HTML or runtime Markdown execution.
 function inline(value: string) {
-  return value.split(/(`[^`]+`)/g).map((part, index) => part.startsWith("`")
-    ? <code key={index}>{part.slice(1, -1)}</code> : <Fragment key={index}>{part}</Fragment>);
+  return value.split(/(`[^`]+`|\[[^\]\n]+\]\((?:https:\/\/[^\s)]+|counter-model\.md)\))/g).map((part, index) => {
+    if (part.startsWith("`")) return <code key={index}>{part.slice(1, -1)}</code>;
+    // Allow HTTPS references and the repository calculation guide; other markup stays plain text.
+    const link = part.match(/^\[([^\]\n]+)\]\(((?:https:\/\/[^\s)]+|counter-model\.md))\)$/);
+    if (link?.[2] === "counter-model.md") return <a key={index} href="/counter-method">{link[1]}</a>;
+    if (link) return <a key={index} href={link[2]} target="_blank" rel="noopener noreferrer">{link[1]}</a>;
+    return <Fragment key={index}>{part}</Fragment>;
+  });
 }
 
 function blocks(markdown: string) {
@@ -37,7 +45,7 @@ export default function ArchitectureGuide() {
             if (heading[1].length === 2) return <h2 id={id} key={index}>{title}</h2>;
             return <h3 id={id} key={index}>{title}</h3>;
           }
-          const picture = block.match(/^!\[([^\]]+)\]\(\.\.\/\.\.\/public\/(architecture\.svg)\)$/);
+          const picture = block.match(/^!\[([^\]]+)\]\(\.\.\/frontend\/public\/(architecture\.svg)\)$/);
           if (picture) return <figure key={index}><a href={`/${picture[2]}`} target="_blank" rel="noreferrer" aria-label="Open full architecture diagram"><img src={`/${picture[2]}`} alt={picture[1]} /></a><figcaption>Open the diagram for a larger view. <a href={`/${picture[2]}`} download="architecture.svg">Download SVG</a></figcaption></figure>;
           if (block.startsWith("|")) {
             const rows = block.split("\n").map(line => line.slice(1, -1).split("|").map(cell => cell.trim()));

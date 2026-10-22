@@ -264,27 +264,3 @@ def test_request_demo_disabled(administrator, monkeypatch):
     monkeypatch.setattr(admin, 'ENABLE_DEMO_CONTROLS', False)
     assert administrator.post('/api/admin/demo/changes', json=PATCH).status_code == 403
     assert administrator.post('/api/admin/demo/reset').status_code == 403
-
-
-def test_shared_reviewer_account_is_explicit_idempotent_and_fixed(client, monkeypatch):
-    from app.jobs import reviewer_account
-    monkeypatch.setattr(reviewer_account, 'ENABLE_DEMO_CONTROLS', True)
-    monkeypatch.setattr(reviewer_account, 'DEMO_EXECUTION_MODE', 'request')
-    asyncio.run(reviewer_account.provision(db.session_maker))
-    asyncio.run(reviewer_account.provision(db.session_maker))
-    assert client.post('/api/auth/login', data={'username': 'admin', 'password': 'admin'}).status_code == 204
-    assert client.get('/api/admin/jobs').status_code == 200
-    response = client.patch('/api/profile', json={'current_password': 'admin', 'username': 'changed'})
-    assert response.status_code == 403
-    assert client.post('/api/auth/register', json={'username': 'someone', 'password': 'admin'}).status_code == 422
-
-
-def test_shared_reviewer_provisioning_cannot_take_over_existing_account(client, monkeypatch):
-    from app.jobs import reviewer_account
-    monkeypatch.setattr(reviewer_account, 'ENABLE_DEMO_CONTROLS', True)
-    monkeypatch.setattr(reviewer_account, 'DEMO_EXECUTION_MODE', 'request')
-    assert client.post('/api/auth/register', json={'username': 'admin', 'password': 'personal-password'}).status_code == 201
-    with pytest.raises(ValueError, match='refusing to overwrite'):
-        asyncio.run(reviewer_account.provision(db.session_maker))
-    assert client.post('/api/auth/login', data={'username': 'admin', 'password': 'personal-password'}).status_code == 204
-    assert client.get('/api/admin/jobs').status_code == 403

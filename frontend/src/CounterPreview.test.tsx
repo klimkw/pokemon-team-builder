@@ -95,7 +95,7 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-it("explains safe coverage, both type directions, stats, and assumptions without saving", async () => {
+it("shows safe coverage, both type directions, and optional stats without saving", async () => {
   show();
   expect(await screen.findByText("1 / 1 safe matchups")).toBeVisible();
   expect(screen.getByText("2× outgoing")).toBeVisible();
@@ -105,8 +105,6 @@ it("explains safe coverage, both type directions, stats, and assumptions without
     expect.any(AbortSignal),
   );
   expect(api.saveTeam).not.toHaveBeenCalled();
-  await userEvent.click(screen.getByText("How we choose the optimal team"));
-  expect(screen.getByText(/Moves, abilities, items/)).toBeVisible();
   await userEvent.click(
     screen.getByText("Compare base stats and tie-break details"),
   );

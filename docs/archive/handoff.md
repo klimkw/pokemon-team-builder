@@ -1,5 +1,7 @@
 # Continue the Pokemon Team Builder project
 
+Historical implementation notes. For current setup, use the [development guide](../development.md); for current checks, use the [testing guide](../testing.md). Older commands and environment observations below describe their original context.
+
 ## User intent and working style
 
 This is a take-home assignment due Wednesday, October 21, 2026 at 8:00 AM Eastern.

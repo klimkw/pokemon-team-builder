@@ -1,85 +1,68 @@
 # Pokémon Team Builder
 
-[Open the deployed app](https://pokemon-team-builder-f4w6.onrender.com/). Register a
-username and password; no shared credentials are needed. Render's free service may
-need a moment to wake after inactivity.
+[Hosted app](https://pokemon-team-builder-f4w6.onrender.com/) · [Demo walkthrough](docs/demo.md) · [Architecture](docs/architecture.md)
 
-Search and filter the catalog, save an ordered team, generate an explained counter
-lineup, and run its deterministic simulation. Saved teams persist across sessions;
-recent source changes surface as alerts for affected teams.
+Build, name, reorder and save multiple teams of up to six Pokémon. Browse the
+responsive catalog, generate an equal-size counter team, simulate its matchups,
+and receive alerts about changes affecting your saved teams. Register a personal
+account to keep teams across sessions.
 
-## Run locally
+## Design decisions
 
-With Docker installed, copy `.env.example` to `.env`, choose a database password, then:
+- **React + TypeScript, FastAPI and PostgreSQL.** A single API serves the hosted
+  frontend; a separate batch job refreshes PokéAPI data. Reading a local catalog
+  keeps browsing independent of upstream outages, at the cost of eventual freshness
+  (a configurable 24-hour scan interval).
+- **Ownership and atomic saves.** Server-side owner checks isolate accounts.
+  Database constraints protect ordered membership, and each save updates the name
+  and lineup in one transaction. Row locks prevent concurrent writes from
+  interleaving; separate tabs still use last-write-wins semantics. SQLAlchemy handles
+  persistence and Alembic versions the schema.
+- **Recoverable ingestion and notifications.** Discovery follows every catalog
+  page; detail fetches use bounded concurrency of five. Each changed record and its
+  before/after history commit together. Successful records survive partial failures,
+  and unchanged reruns create no duplicate events. A separate scanner also checks
+  the 18-type effectiveness chart. Alerts show relevant changes from the last seven
+  days; controlled demo mutations make this rare upstream behavior reproducible.
+- **An explicit definition of optimal.** Counter selection maximizes safe matchups
+  (at least 2× outgoing and at most 1× incoming), then net type advantage, then a
+  relative base-stat score; lowest Pokémon ID breaks ties. With reusable candidates
+  and independent slots, selecting each slot's best candidate exactly optimizes
+  this objective. The deterministic battle replay illustrates the result using
+  simplified damage and speed rules. [Scoring and simulation](docs/counter-model.md)
+
+## Assumptions and tradeoffs
+
+Order matters. Duplicate members and empty saved drafts are allowed; previews need
+at least one member. Teams reference current catalog values, not snapshots. All
+catalog forms are eligible; movesets, abilities, items and switching are outside
+the counter model. Unsaved drafts live in browser memory.
+
+Enabled demo mutations affect the shared catalog for every user. This is a
+single-instance assignment demo. Production follow-ups include abuse limits,
+database readiness/freshness monitoring, tested backup restoration, and optimistic
+concurrency. Docker, GitHub Actions and Terraform support repeatable builds,
+validation and infrastructure management.
+
+## Run and verify
+
+With Docker Compose installed, copy `.env.example` to `.env`, choose a long random
+alphanumeric database password, and run:
 
 ```bash
-docker compose up --build
+docker compose up --build -d
 ```
 
-Open http://localhost:8080. For a fresh database, populate the catalog separately:
-
-```bash
-docker compose run --rm scanner python -m app.jobs.scanner
-```
-
-Local Compose keeps its own database and scanner. It needs no demo credentials.
-
-## Verify
+Open [localhost:8080](http://localhost:8080). Startup applies migrations; the
+separate scanner populates the catalog. [Development setup](docs/development.md)
 
 ```bash
 bash scripts/test.sh
 bash scripts/test-demo.sh
 ```
 
-The first command runs backend tests against SQLite and PostgreSQL, frontend tests,
-and Chromium user journeys in an isolated stack. The second builds the exact Render
-Dockerfile, runs startup migrations on an empty PostgreSQL database, and checks
-frontend assets, catalog queries, authentication, team persistence, counter generation,
-origin enforcement and session revocation. Both clean up their disposable containers.
-The demo smoke check uses synthetic catalog data and no demo secrets.
-CI runs both checks on pull requests and deployment-branch pushes.
+The isolated suites cover backend behavior, real PostgreSQL locks/migrations,
+React components, Chromium journeys and demo-image startup. Browser layout mocks
+are distinguished from full-stack tests. [Testing and evidence](docs/testing.md)
 
-## Architecture and decisions
-
-Read the [full architecture walkthrough](frontend/src/docs/architecture.md) for a
-subsystem tour, rationale, assumptions, diagrams, tradeoffs and prioritized backlog.
-The same document is available in the app under **App info → Architecture walkthrough**
-at `/architecture`, with Markdown and diagram downloads.
-
-- React/TypeScript frontend and FastAPI backend share one origin. Demo serves
-  the built frontend from the API container; local Compose uses Nginx.
-- PostgreSQL stores accounts, opaque sessions, owned teams, catalog and scan history.
-  Alembic manages schema changes. Team writes are atomic; ownership is checked on
-  every private operation and concurrent updates lock the team row.
-- Counter generation ranks candidates for each opponent slot, explains the scoring,
-  and simulates deterministic duels. Previewing never changes saved teams.
-- A separate daily GitHub Actions scan refreshes PokéAPI data. Bounded retries,
-  per-record transactions and an advisory lock handle failures and overlapping runs.
-- Terraform adopts the existing Render and Neon resources with deletion protection.
-  Render's configured deployment trigger waits for CI checks to pass; an existing
-  service needs the Terraform plan/apply procedure to activate that change.
-
-See [the project guide](PROJECT_GUIDE.md) for API contracts and implementation details,
-[the testing guide](TESTING_GUIDE.md) for reports and test conventions, and
-[deployment instructions](DEPLOYMENT.md) for secrets, scheduling and release operations.
-The [infrastructure guide](infra/terraform/README.md) documents the pinned, tested
-Render provider compatibility patch and its removal criteria.
-
-## Scope and operational limits
-
-This is a single-instance take-home deployment. Free hosting can sleep and scheduled
-jobs can be delayed. Login rate limiting, account recovery, expired-session cleanup,
-automated restore drills, database readiness and proactive freshness alerts remain
-follow-up work. The current health endpoint checks process liveness. Deployment does
-not automatically run authenticated tests against live user data.
-
-Keep migrations compatible with the prior application release. Render rollback does
-not undo schema changes; preserve Neon recovery history before risky changes. The
-private repository's current GitHub plan does not enforce protected branches; the
-Render CI gate controls automatic deployment, not pushes or manual deploys.
-
-Signed-in reviewers may apply/reset shared catalog demo changes through `/docs`.
-These affect every user; full catalog refresh and job history remain superuser-only.
-Hosted demos run within a bounded request; daily real-source scans run in Actions.
-See the deployment guide for the existing-settings rename checklist and temporary
-legacy names used to preserve access to secrets and Terraform state.
+[Demo instructions](docs/demo.md) · [Documentation index](docs/README.md) · [Contributing](CONTRIBUTING.md)

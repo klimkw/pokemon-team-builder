@@ -1,11 +1,13 @@
 # Pokemon Team Builder
 
+Historical implementation notes. For current setup, use the [development guide](../development.md); for current checks, use the [testing guide](../testing.md). Older commands and environment observations below describe their original context.
+
 Take-home project built in reviewable increments. Current increment: compact workspace, advanced Pokédex filters, editable profiles and unread alerts,
 alongside the catalog, persistent teams, explainable counters, and change history.
 
 ## Run and test
 
-See [TESTING_GUIDE.md](TESTING_GUIDE.md) for the current full-suite command, coverage reports, CI, and test-writing conventions.
+See [TESTING_GUIDE.md](../testing.md) for the current full-suite command, coverage reports, CI, and test-writing conventions.
 
 Copy `.env.example` to `.env` and choose a long random alphanumeric database password.
 Run `docker compose up --build`, then open http://localhost:8080 for the application.
@@ -25,7 +27,7 @@ From `frontend`, use Node 22.12+ (Node 24 recommended), run `npm ci`, `npm test`
 `npm run build`. The full suite covers SQLite, PostgreSQL, frontend components, and Chromium browser
 flows. The separate demo-image smoke check verifies the Render packaging and
 startup migrations against a disposable PostgreSQL database.
-See [TESTING.md](TESTING.md) for isolated Compose tests, setup, cleanup, and reports.
+See [TESTING.md](../archive/testing-notes.md) for isolated Compose tests, setup, cleanup, and reports.
 
 For development without Docker, set APP_ORIGIN=http://127.0.0.1:5173 and DATABASE_URL,
 run `alembic upgrade head` from `backend`, then start `uvicorn app.main:app`.
@@ -53,7 +55,7 @@ source-only copy under /tmp, without reusing host dependencies. See TESTING.md.
 
 ## Development walkthroughs
 
-[agent-process/README.md](agent-process/README.md) indexes the detailed build journal,
+[agent-process/README.md](../archive/agent-process/README.md) indexes the detailed build journal,
 PostgreSQL/Alembic walkthrough, and uv workflow. These process documents accompany
 the concise reviewer README and this detailed project guide.
 
@@ -265,7 +267,7 @@ This excerpt is from `backend/app/services/counters.py`. A safe pairing always b
 an unsafe one, regardless of stats. Example checked by unit tests: a Pokémon with all
 six base stats at 100 against one with all six at 50 scores Attack 667 + Durability
 800 + Speed 667 = 2,134. The preview's **Show score arithmetic** substitutes actual
-pair inputs into these formulas. The full [model guide](frontend/src/docs/counter-model.md)
+pair inputs into these formulas. The full [model guide](../counter-model.md)
 contains damage calculations and limitations; scores are never win probabilities.
 
 ### Shared comparison and illustrative replay
@@ -276,7 +278,7 @@ deterministic paired duels. Advance a turn, jump to results or restart; expand f
 and logs to audit damage and HP. Results count duel wins, draws and stalemates, not a
 real team-battle win probability. Selection remains unchanged by replay outcomes.
 
-The complete, repo-managed [scoring and simulation guide](frontend/src/docs/counter-model.md)
+The complete, repo-managed [scoring and simulation guide](../counter-model.md)
 is rendered at `/counter-method` and linked from the preview. It explains the exact
 optimizer, stat rounding, own-type attack assumptions, the custom damage formula,
 speed ties, immunities, the 200-turn cap and limitations. Edit that Markdown file to
@@ -347,7 +349,7 @@ Manual changes use your existing full catalog and saved teams, and alerts label 
 as demo changes. Reset restores only recorded fields and removes only tagged demo
 history. Full refresh records real source differences normally, including reversals.
 
-See [the API-doc walkthrough](agent-process/05-admin-scanner-controls.md) for admin
+See [the API-doc walkthrough](../archive/agent-process/05-admin-scanner-controls.md) for admin
 setup, example requests, status polling and reset semantics. Local Compose enables
 manual controls explicitly; standalone application defaults disable them. Older
 isolated fixture tooling remains in compose.demo.yaml but is not needed for this flow.
@@ -388,7 +390,7 @@ pagination. Type badges and six-stat displays are shared with the selected team.
 to the first page when changed. The profile button opens account controls and your
 saved-team list. Username/password changes require the current password; a new password
 revokes existing sessions. Team drafts remain intact while viewing Profile.
-See [the UX walkthrough](agent-process/06-workspace-ux.md) for API and unread semantics.
+See [the UX walkthrough](../archive/agent-process/06-workspace-ux.md) for API and unread semantics.
 
 ## Secret handling before hosting
 
@@ -438,11 +440,11 @@ mobile widths without modifying account or team data on the backend.
 
 ## Demo deployment
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for the GitHub → Render + Neon setup and the
+See [DEPLOYMENT.md](../deployment.md) for the GitHub → Render + Neon setup and the
 separate GitHub Actions scanner. Local Docker Compose remains unchanged.
 
 ## Demo infrastructure as code
 
-See [infra/terraform/README.md](infra/terraform/README.md) to adopt the existing Render
+See [infra/terraform/README.md](../../infra/terraform/README.md) to adopt the existing Render
 service and Neon project into Terraform, using GitHub secrets and HCP remote state.
 Docker Compose remains the local development setup.

@@ -1,5 +1,7 @@
 # Agent coding process
 
+Historical implementation notes. For current setup, use the [development guide](../../development.md); for current checks, use the [testing guide](../../testing.md). Older commands and environment observations below describe their original context.
+
 This folder explains how the Pokémon Team Builder was developed with an AI coding
 assistant and how its main technical pieces work. It is intended to help the project
 owner review the decisions and explain the application from browser to database.

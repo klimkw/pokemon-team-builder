@@ -1,5 +1,7 @@
 # Testing the application
 
+Historical implementation notes. For current setup, use the [development guide](../development.md); for current checks, use the [testing guide](../testing.md). Older commands and environment observations below describe their original context.
+
 Tests run alongside each feature. The test stack is separate from development:
 `compose.test.yaml` uses project `pokemon-team-builder-tests`, database `pokemon_test`,
 fixed disposable test credentials, its own network, and PostgreSQL storage in tmpfs.

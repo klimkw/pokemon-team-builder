@@ -136,7 +136,7 @@ blindly downgrade or delete the demo database.
 
 ## Adopt existing infrastructure into Terraform
 
-For an existing Render/Neon deployment, follow [infra/terraform/README.md](infra/terraform/README.md).
+For an existing Render/Neon deployment, follow [infra/terraform/README.md](../infra/terraform/README.md).
 It keeps demo credentials in GitHub secret settings and persistent state in
 HCP Terraform. Disconnect Blueprint syncing before Terraform applies service changes;
 keep Docker Compose for local development.
@@ -203,3 +203,17 @@ local Compose retains its queue worker. Daily real-source refresh remains in Act
 `Dockerfile.production` temporarily mirrors `Dockerfile.demo` so the existing Render
 Dockerfile setting still builds during this transition. After the demo Dockerfile path
 has been applied and deployed successfully, remove that compatibility file.
+
+## Retiring the former shared reviewer login
+
+The provisioning CLI and manual workflow for the former shared reviewer account
+have been removed. Demo apply/reset continues to use normal signed-in accounts
+when demo controls are enabled.
+
+Deploying this revision runs `0006_retire_reviewer` through the usual Alembic startup
+step. It targets only the reserved reviewer UUID, revokes its sessions and superuser
+access, and cancels its queued jobs. If it has no teams, job records or alert-read
+markers, the account is deleted. Otherwise it remains inactive to preserve those
+records. Personal accounts named `admin` are not matched by name and are untouched.
+No shared login is recreated on downgrade. Applying the migration, rather than
+removing files alone, is what retires an account that was already provisioned.

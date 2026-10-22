@@ -1,4 +1,6 @@
-import source from "./docs/counter-model.md?raw";
+import rawSource from "../../docs/counter-model.md?raw";
+
+const source = rawSource.replace(/\r\n?/g, "\n");
 
 // The guide is trusted repo content. Render a small Markdown subset as React text,
 // never HTML, so formulas and code remain safe and readable without a runtime CDN.

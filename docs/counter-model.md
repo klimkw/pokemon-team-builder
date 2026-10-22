@@ -4,9 +4,19 @@ This is the single source for the guide at /counter-method. Edit this Markdown f
 
 ## What “optimal” means here
 
-Optimal means the best lineup under the explicit type-and-base-stat objective below. It does not mean the best competitive Pokémon team. Selection and the illustrative duel simulation are separate models. A type-safe pairing can lose a simulated duel because of Speed, HP or attacking/defensive stats. The simulation does not select or rerank the counters.
+Selection and the illustrative duel simulation are separate models. A type-safe pairing can lose a simulated duel because of Speed, HP or attacking/defensive stats. The simulation does not select or rerank the counters.
 
 The generator uses the editor's current ordered Pokémon IDs, including unsaved changes. There are one to six opposing slots. Both your team and the counter team may repeat catalog IDs. Each opposing slot independently receives its best counter. All catalog entries, including alternate forms and legendary Pokémon, are eligible, and an opponent's own ID is not excluded. Different forms retain their own catalog IDs. There is no budget, generation or competitive legality filter.
+
+## Assumptions and limitations
+
+The counter generator is an educational, explainable optimization over types and base stats. It does not model movesets, abilities, items, levels, EVs, IVs, status, weather, switching, competitive legality, or team synergy. The simulation uses fictional equal-power attacks. Those omissions are product assumptions, not minor precision errors.
+
+For example, against a pure Water-type opponent, an Electric-type candidate gets a favorable outgoing type multiplier. The generator can recommend it without knowing its actual moveset: it assumes access to a hypothetical attack of its own type. In the replay, that attack uses the same fixed damage scale as every other hypothetical attack, then applies attack/defense stats and type effectiveness. “Equal power” does not mean equal damage, because those stats and multipliers still differ.
+
+Real play can reverse the recommendation. A Water-type opponent might have a Ground-type coverage move that the model never considers, or an ability or held item that changes the interaction. Levels, EVs (training-based stat improvements) and IVs (individual stat variation) affect actual battle stats; this app uses species base stats instead. Weather, status conditions and switching introduce further state and choices. Team synergy includes members covering one another’s weaknesses, while this optimizer evaluates each paired slot independently and permits repeated picks.
+
+“Optimal” therefore means best under the documented lexicographic objective: safe type matchups first, then type advantage, then the stat score. It does not mean the highest chance of winning a real competitive battle, or even the most wins in this app’s separate illustrative replay. Adding omitted mechanics would change the inputs, objective or constraints—not merely add decimal precision to the current answer.
 
 ## 1. Compute each pair's type matchup
 
@@ -88,6 +98,6 @@ Generation, simulation and replay do not save teams, edit the source lineup, mut
 
 ## Implementation and verification
 
-Selection is implemented in backend/app/services/counters.py; illustrative duels in backend/app/services/battle.py. The API is POST /api/teams/counter-preview. Shared cards live in frontend/src/PokemonDetails.tsx, the comparison in CounterPreview.tsx and the replay in BattleReplay.tsx. This guide is frontend/src/docs/counter-model.md.
+Selection is implemented in backend/app/services/counters.py; illustrative duels in backend/app/services/battle.py. The API is POST /api/teams/counter-preview. Shared cards live in frontend/src/PokemonDetails.tsx, the comparison in CounterPreview.tsx and the replay in BattleReplay.tsx. This guide is docs/counter-model.md.
 
 Selection tests compare the exact solver with exhaustive assignments allowing replacement on small catalogs and check priority ordering, duplicate opponents, repeated counters and small catalogs, type immunities, dual types and deterministic ties. Duel tests cover physical/special choice, damage arithmetic, immunities, speed order, prevented retaliation, simultaneous knockouts, zero-stat handling, the turn cap and deterministic output. Browser tests exercise shared cards, replay controls, the guide, mobile width and explicit saving without changing the original draft.

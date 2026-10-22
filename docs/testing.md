@@ -1,6 +1,6 @@
 # Testing guide
 
-This is the current guide to running and extending the suite. `TESTING.md` retains
+This is the current guide to running and extending the suite. [archived testing notes](archive/testing-notes.md) retains
 historical verification notes; old counts there describe earlier revisions.
 
 ## Run everything
@@ -172,6 +172,31 @@ normal paths above. `full-suite.log` records the backend/component run and the
 initial browser failure; `browser-final.log` records the passing browser rerun.
 The isolated test containers and network were removed after validation. GitHub CI
 has been added locally; its first hosted execution requires pushing these changes.
+
+## Submission review — October 21, 2026
+
+Validation of the submission changes passed:
+
+- 166 SQLite tests; 23 PostgreSQL-only cases skipped intentionally.
+- 189 PostgreSQL tests, including reviewer retirement and concurrent writes.
+- 41 React component tests across 11 files, plus TypeScript and production builds.
+- 13 Chromium scenarios: 11 full-stack journeys and 2 mocked layout cases.
+- The final demo-image smoke suite and 18 Python infrastructure-runner tests.
+
+Docker validation used a source-only copy under `/tmp` because Windows cache
+permissions prevented direct build-context access. Initial runs exposed broken
+architecture rendering with CRLF input and a browser assertion for a removed
+counter explanation panel. Both were corrected. Two documentation tests timed out
+under overlapping suite load; the final component run passed with one worker.
+Final browser tests passed without retries. PostgreSQL coverage was 89.71% lines
+and 80.65% branches. Reports and logs are preserved locally under
+`test-artifacts/submission-review/` and are excluded from Git.
+
+Read-only checks confirmed that the public frontend, architecture route and health
+endpoint responded and that the catalog contained 1,351 entries. These checks
+preceded the submission push; they do not establish deployment of the new commit
+or a live authenticated end-to-end journey. Terraform provider build/configuration
+checks were not rerun locally; the Python runner tests do not replace those checks.
 
 ## Demo container release check
 

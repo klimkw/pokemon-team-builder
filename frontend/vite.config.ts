@@ -1,9 +1,12 @@
 import react from "@vitejs/plugin-react";
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   plugins: [react()],
   server: {
+    // Canonical app-rendered guides live beside the frontend package.
+    fs: { allow: [fileURLToPath(new URL(".", import.meta.url)), fileURLToPath(new URL("../docs", import.meta.url))] },
     port: 5173,
     strictPort: true,
     // Preserve the browser's Origin so the API can enforce APP_ORIGIN.

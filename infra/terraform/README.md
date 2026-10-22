@@ -254,5 +254,5 @@ The web service uses `auto_deploy_trigger = "checksPass"`. Apply a fresh reviewe
 plan to activate it on the imported service; changing this file alone does not update
 Render. The Tests workflow runs the application suite and the demo-image smoke
 check on every deployment-branch push. Manual Render deploys can bypass the gate.
-See [DEPLOYMENT.md](../../DEPLOYMENT.md#activate-the-ci-deployment-gate-on-the-existing-service)
+See [Deployment guide](../../docs/deployment.md#activate-the-ci-deployment-gate-on-the-existing-service)
 for the activation steps. This requires no additional secret or paid service.

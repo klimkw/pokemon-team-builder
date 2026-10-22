@@ -47,7 +47,9 @@ services:
       timeout: 5s
       retries: 30
   frontend-test:
-    build: ./frontend
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
     ports:
       - "127.0.0.1:${TEST_FRONTEND_PORT:-18080}:80"
     depends_on:
@@ -60,7 +62,8 @@ services:
       retries: 30
   frontend-tests:
     build:
-      context: ./frontend
+      context: .
+      dockerfile: frontend/Dockerfile
       target: build
     command: ["npm", "test"]
     volumes:

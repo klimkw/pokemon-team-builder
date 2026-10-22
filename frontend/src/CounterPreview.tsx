@@ -95,7 +95,6 @@ export default function CounterPreview({
       ref={dialog}
       className="counter-dialog"
       aria-labelledby="counter-title"
-      aria-describedby="counter-description"
       onCancel={(event) => {
         event.preventDefault();
         if (!savingRef.current) onClose();
@@ -114,9 +113,6 @@ export default function CounterPreview({
           Close preview
         </button>
       </div>
-      <p id="counter-description" className="counter-description">
-        Based on your current draft. Saved as a separate team.
-      </p>
       {loading && (
         <p role="status" className="catalog-state">
           Finding the best counter lineup…
@@ -148,45 +144,6 @@ export default function CounterPreview({
             </p>
           </div>
           <p className="counter-model-link"><a href="/counter-method" target="_blank" rel="noreferrer">Read the scoring & simulation guide ↗</a><button className="quiet-button" onClick={() => { const heading = document.getElementById("simulation-title"); heading?.focus({ preventScroll: true }); heading?.scrollIntoView({ block: "start" }); }}>Go to simulation ↓</button></p>
-          <p className="model-objective">Type strength: {preview.type_strength} · Stats tie-break: {preview.stats_score} / {preview.size * 3000}</p>
-          <details className="counter-method">
-            <summary>How we choose the optimal team</summary>
-            <ol>
-              <li>
-                Maximize safe matchups: at least 2× outgoing effectiveness and
-                at most 1× incoming.
-              </li>
-              <li>
-                Then maximize the sum of outgoing minus incoming effectiveness
-                across the lineup.
-              </li>
-              <li>
-                Then compare relative attack potential, durability, and speed.
-                Equal results use a consistent Pokémon ID tie-break.
-              </li>
-            </ol>
-            <p>
-              Each member is paired with one opposing slot. Duplicate counters
-              are allowed, just like in your team. All catalog entries, including special forms and
-              legendary Pokémon, are eligible. Slot pairing explains coverage;
-              it does not simulate battle order.
-            </p>
-            <p>
-              We assume both sides can use an attack of either of their own
-              types. Each uses its best type against the other's full typing.
-              Moves, abilities, items, levels, and switching are not simulated.
-              Multipliers describe type effectiveness, not predicted damage or
-              win probability.
-            </p>
-            <p>
-              Stats score: attack potential compares Attack against Defense and
-              Sp. Atk against Sp. Def, taking the better relative advantage.
-              Durability compares HP × Defense against opposing HP × Attack for
-              both physical and special attacks, then averages the two. Speed
-              compares base Speed. Each component is scaled to 0–1,000 and
-              summed; stats only break ties in the first two priorities.
-            </p>
-          </details>
           <ol className="counter-matchups">
             {preview.matchups.map((match) => (
               <li key={match.opponent_position} className="counter-matchup">

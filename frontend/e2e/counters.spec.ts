@@ -62,18 +62,14 @@ test("preview counters for unsaved edits, explain them, and explicitly save a se
   await expect(guide.getByRole("heading", { name: "Counter teams: scoring and simulation", exact: true })).toBeVisible();
   await expect(guide.getByText(/NOT the official Pokémon damage formula/)).toBeVisible();
   await guide.screenshot({ path: testInfo.outputPath("counter-model-guide.png") });
+  await expect(guide.getByText(/does not model movesets, abilities, items/)).toBeVisible();
   await guide.close();
-  await dialog
-    .getByText("How we choose the optimal team", { exact: true })
-    .click();
-  await expect(dialog.getByText(/Moves, abilities, items/)).toBeVisible();
   await dialog
     .getByText("Compare base stats and tie-break details", { exact: true })
     .first()
     .click();
   await expect(dialog.getByRole("table")).toBeVisible();
   await dialog.getByText("Compare base stats and tie-break details", { exact: true }).first().click();
-  await dialog.getByText("How we choose the optimal team", { exact: true }).click();
   await page.setViewportSize({ width: 390, height: 844 });
   await dialog.locator(".battle-replay").scrollIntoViewIfNeeded();
   expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
